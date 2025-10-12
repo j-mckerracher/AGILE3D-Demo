@@ -44,3 +44,32 @@ body {
   margin: 0;
   font-family: Roboto, 'Helvetica Neue', sans-serif;
 }
+
+/**
+ * Accessibility: Respect user's prefers-reduced-motion setting
+ * WCAG 2.1 Success Criterion 2.3.3 - Animation from Interactions
+ * PRD NFR-3.7 - Accessibility requirements
+ *
+ * Disables or reduces animations for users who prefer reduced motion.
+ * This improves accessibility for users with vestibular disorders or motion sensitivity.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Specific overrides for Angular Material animations */
+  .mat-mdc-progress-spinner circle {
+    animation: none !important;
+  }
+
+  /* Disable Three.js camera animations when reduced motion is preferred */
+  canvas {
+    /* Service layer will handle Three.js animation speed */
+  }
+}
