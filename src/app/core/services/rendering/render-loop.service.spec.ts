@@ -115,7 +115,9 @@ describe('RenderLoopService', () => {
 
   it('enforces unique IDs', () => {
     const id = 'dup';
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     service.register(id, () => {});
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     expect(() => service.register(id, () => {})).toThrow();
     service.unregister(id);
   });

@@ -1,4 +1,4 @@
-import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import { Injectable, NgZone, OnDestroy, inject } from '@angular/core';
 
 /**
  * RenderLoopService provides a single, shared requestAnimationFrame loop
@@ -12,19 +12,18 @@ import { Injectable, NgZone, OnDestroy } from '@angular/core';
  */
 @Injectable({ providedIn: 'root' })
 export class RenderLoopService implements OnDestroy {
+  private readonly zone = inject(NgZone);
   private readonly callbacks = new Map<string, (deltaMs: number, ts: number) => void>();
   private rafId: number | null = null;
   private lastTs: number | null = null;
   private running = false;
-
-  constructor(private readonly zone: NgZone) {}
 
   /**
    * Register a callback to be invoked each animation frame.
    * @param id Unique identifier for this callback. Registering a duplicate ID throws.
    * @param cb Callback invoked as (deltaMs, timestamp)
    */
-  register(id: string, cb: (deltaMs: number, ts: number) => void): void {
+  public register(id: string, cb: (deltaMs: number, ts: number) => void): void {
     if (!id) throw new Error('RenderLoopService.register: id is required');
     if (this.callbacks.has(id)) {
       throw new Error(`RenderLoopService.register: id "${id}" already registered`);
@@ -37,7 +36,7 @@ export class RenderLoopService implements OnDestroy {
    * Unregister a previously registered callback.
    * @param id The identifier used at registration time
    */
-  unregister(id: string): void {
+  public unregister(id: string): void {
     this.callbacks.delete(id);
     if (this.callbacks.size === 0) {
       this.stop();
@@ -45,11 +44,11 @@ export class RenderLoopService implements OnDestroy {
   }
 
   /** Returns true while the RAF loop is active. */
-  isRunning(): boolean {
+  public isRunning(): boolean {
     return this.running;
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.callbacks.clear();
     this.stop();
   }
@@ -60,7 +59,7 @@ export class RenderLoopService implements OnDestroy {
     this.lastTs = null;
 
     this.zone.runOutsideAngular(() => {
-      const tick = (ts: number) => {
+      const tick = (ts: number): void => {
         if (!this.running) return;
 
         const deltaMs = this.lastTs == null ? 0 : ts - this.lastTs;
