@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
 import { Vec3 } from '../../models/scene.models';
@@ -18,7 +18,7 @@ export interface ComparisonData {
  * controls and camera sync, plus derived state for comparison calculations.
  */
 @Injectable({ providedIn: 'root' })
-export class StateService {
+export class StateService implements OnDestroy {
   // Primary state subjects
   public readonly currentScene$ = new BehaviorSubject<string>('vehicle-heavy');
   public readonly contention$ = new BehaviorSubject<number>(0);
@@ -83,6 +83,20 @@ export class StateService {
   /** Update camera target if changed. */
   public setCameraTarget(value: Vec3): void {
     if (!vec3Equal(this.cameraTarget$.value, value)) this.cameraTarget$.next(value);
+  }
+
+  /**
+   * Cleanup lifecycle hook. Completes all BehaviorSubjects to prevent potential
+   * memory leaks if service scoping changes in the future.
+   */
+  public ngOnDestroy(): void {
+    this.currentScene$.complete();
+    this.contention$.complete();
+    this.latencySlo$.complete();
+    this.voxelSize$.complete();
+    this.activeBranch$.complete();
+    this.cameraPos$.complete();
+    this.cameraTarget$.complete();
   }
 }
 

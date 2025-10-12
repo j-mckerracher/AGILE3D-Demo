@@ -84,4 +84,27 @@ describe('StateService', () => {
     service.setCameraPos([1, 2, 3]);
     expect(await firstValueFrom(service.cameraPos$.pipe(take(1)))).toEqual([1, 2, 3]);
   });
+
+  it('completes all subjects on ngOnDestroy', (done) => {
+    let completionCount = 0;
+    const expectedCompletions = 7; // All 7 BehaviorSubjects
+
+    // Subscribe to all subjects and count completions
+    service.currentScene$.subscribe({ complete: () => completionCount++ });
+    service.contention$.subscribe({ complete: () => completionCount++ });
+    service.latencySlo$.subscribe({ complete: () => completionCount++ });
+    service.voxelSize$.subscribe({ complete: () => completionCount++ });
+    service.activeBranch$.subscribe({ complete: () => completionCount++ });
+    service.cameraPos$.subscribe({ complete: () => completionCount++ });
+    service.cameraTarget$.subscribe({ complete: () => completionCount++ });
+
+    // Trigger cleanup
+    service.ngOnDestroy();
+
+    // Allow async completion to settle
+    setTimeout(() => {
+      expect(completionCount).toBe(expectedCompletions);
+      done();
+    }, 10);
+  });
 });
