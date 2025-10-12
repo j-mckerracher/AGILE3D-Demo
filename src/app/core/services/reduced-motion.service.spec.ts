@@ -56,10 +56,10 @@ describe('ReducedMotionService', () => {
     });
 
     it('should return true when user prefers reduced motion', () => {
-      // Create new service with reduced motion enabled
-      mockMediaQueryList.matches = true;
-      const reducedMotionService = new ReducedMotionService();
-      expect(reducedMotionService.prefersReducedMotion()).toBe(true);
+      // Simulate media query change to reduced motion
+      const event = { matches: true } as MediaQueryListEvent;
+      mediaQueryListeners.forEach((listener) => listener(event));
+      expect(service.prefersReducedMotion()).toBe(true);
     });
 
     it('should update when media query changes', () => {
@@ -146,7 +146,9 @@ describe('ReducedMotionService', () => {
     });
 
     it('should return true when reduced motion is preferred', () => {
-      mockMediaQueryList.matches = true;
+      // Simulate media query change to reduced motion
+      const event = { matches: true } as MediaQueryListEvent;
+      mediaQueryListeners.forEach((listener) => listener(event));
       expect(service.getCurrentPreference()).toBe(true);
     });
   });
