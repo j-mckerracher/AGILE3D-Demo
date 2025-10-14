@@ -47,11 +47,19 @@ import * as THREE from 'three';
   `,
   styles: [
     `
+      :host {
+        display: flex;
+        width: 90%;
+        height: 100%;
+        margin: 0 auto;
+        box-sizing: border-box;
+      }
+
       .dual-viewer-container {
         display: flex;
         width: 100%;
         height: 100%;
-        gap: 2px;
+        gap: 1%;
         background: #1a1a1a;
       }
 
@@ -61,6 +69,7 @@ import * as THREE from 'three';
         flex-direction: column;
         position: relative;
         min-width: 0;
+        max-width: 49.5%;
       }
 
       .viewer-label {
@@ -81,6 +90,29 @@ import * as THREE from 'three';
       app-scene-viewer {
         flex: 1;
         display: block;
+      }
+
+      /* Responsive breakpoints */
+      @media (max-width: 1024px) {
+        :host {
+          width: 95%;
+        }
+      }
+
+      @media (max-width: 768px) {
+        :host {
+          width: 100%;
+        }
+        
+        .dual-viewer-container {
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .viewer-panel {
+          max-width: 100%;
+          height: 400px;
+        }
       }
     `,
   ],

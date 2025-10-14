@@ -37,6 +37,7 @@
   flex: 1;
   width: 100%;
   display: flex; // Enable flexbox for full-height child components
+  justify-content: center; // Center the 90% width content
   // No padding/max-width to allow 3D viewers to fill entire space
 }
 
