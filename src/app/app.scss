@@ -36,9 +36,8 @@
 .main-content {
   flex: 1;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+  display: flex; // Enable flexbox for full-height child components
+  // No padding/max-width to allow 3D viewers to fill entire space
 }
 
 .footer {

@@ -37,6 +37,7 @@
     "@angular/material": "^20.2.8",
     "@angular/platform-browser": "^20.3.0",
     "@angular/router": "^20.3.0",
+    "@playwright/mcp": "^0.0.42",
     "angular-three": "^4.0.0-next.115",
     "ngxtension": "^6.0.0",
     "rxjs": "~7.8.0",
