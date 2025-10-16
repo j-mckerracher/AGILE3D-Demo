@@ -1,0 +1,212 @@
+[
+  {
+    "branch_id": "DSVT_Voxel",
+    "name": "DSVT Voxel (Baseline)",
+    "controlKnobs": {
+      "encodingFormat": "voxel",
+      "spatialResolution": 0.16,
+      "spatialEncoding": "DV",
+      "featureExtractor": "transformer",
+      "detectionHead": "center"
+    },
+    "performance": {
+      "memoryFootprint": 6.8,
+      "latency": {
+        "noContention": {
+          "mean": 371,
+          "std": 15.2
+        },
+        "lightContention": {
+          "mean": 425,
+          "std": 22.8
+        },
+        "moderateContention": {
+          "mean": 498,
+          "std": 35.7
+        },
+        "intenseContention": {
+          "mean": 645,
+          "std": 58.2
+        },
+        "peakContention": {
+          "mean": 782,
+          "std": 72.4
+        }
+      },
+      "accuracy": {
+        "vehicleHeavy": 67.1,
+        "pedestrianHeavy": 62.3,
+        "mixed": 64.8
+      }
+    },
+    "modelFamily": "DSVT"
+  },
+  {
+    "branch_id": "CP_Pillar_032",
+    "name": "CenterPoint Pillar 0.32m",
+    "controlKnobs": {
+      "encodingFormat": "pillar",
+      "spatialResolution": 0.32,
+      "spatialEncoding": "DV",
+      "featureExtractor": "2d_cnn",
+      "detectionHead": "center"
+    },
+    "performance": {
+      "memoryFootprint": 3.2,
+      "latency": {
+        "noContention": {
+          "mean": 95,
+          "std": 3.8
+        },
+        "lightContention": {
+          "mean": 115,
+          "std": 5.2
+        },
+        "moderateContention": {
+          "mean": 138,
+          "std": 8.1
+        },
+        "intenseContention": {
+          "mean": 178,
+          "std": 12.5
+        },
+        "peakContention": {
+          "mean": 215,
+          "std": 18.2
+        }
+      },
+      "accuracy": {
+        "vehicleHeavy": 62.5,
+        "pedestrianHeavy": 57.0,
+        "mixed": 61.5
+      }
+    },
+    "modelFamily": "CenterPoint"
+  },
+  {
+    "branch_id": "CP_Voxel_032",
+    "name": "CenterPoint Voxel 0.32m",
+    "controlKnobs": {
+      "encodingFormat": "voxel",
+      "spatialResolution": 0.32,
+      "spatialEncoding": "DV",
+      "featureExtractor": "sparse_cnn",
+      "detectionHead": "center"
+    },
+    "performance": {
+      "memoryFootprint": 4.5,
+      "latency": {
+        "noContention": {
+          "mean": 147,
+          "std": 5.8
+        },
+        "lightContention": {
+          "mean": 178,
+          "std": 8.5
+        },
+        "moderateContention": {
+          "mean": 215,
+          "std": 13.2
+        },
+        "intenseContention": {
+          "mean": 278,
+          "std": 19.8
+        },
+        "peakContention": {
+          "mean": 335,
+          "std": 26.5
+        }
+      },
+      "accuracy": {
+        "vehicleHeavy": 65.0,
+        "pedestrianHeavy": 60.5,
+        "mixed": 64.2
+      }
+    },
+    "modelFamily": "CenterPoint"
+  },
+  {
+    "branch_id": "PP_016",
+    "name": "PointPillars 0.16m",
+    "controlKnobs": {
+      "encodingFormat": "pillar",
+      "spatialResolution": 0.16,
+      "spatialEncoding": "HV",
+      "featureExtractor": "2d_cnn",
+      "detectionHead": "anchor"
+    },
+    "performance": {
+      "memoryFootprint": 2.8,
+      "latency": {
+        "noContention": {
+          "mean": 147,
+          "std": 4.2
+        },
+        "lightContention": {
+          "mean": 178,
+          "std": 6.8
+        },
+        "moderateContention": {
+          "mean": 212,
+          "std": 10.5
+        },
+        "intenseContention": {
+          "mean": 272,
+          "std": 15.8
+        },
+        "peakContention": {
+          "mean": 328,
+          "std": 22.1
+        }
+      },
+      "accuracy": {
+        "vehicleHeavy": 66.2,
+        "pedestrianHeavy": 61.0,
+        "mixed": 65.0
+      }
+    },
+    "modelFamily": "PointPillars"
+  },
+  {
+    "branch_id": "SECOND_016",
+    "name": "SECOND 0.16m",
+    "controlKnobs": {
+      "encodingFormat": "voxel",
+      "spatialResolution": 0.16,
+      "spatialEncoding": "HV",
+      "featureExtractor": "sparse_cnn",
+      "detectionHead": "anchor"
+    },
+    "performance": {
+      "memoryFootprint": 3.5,
+      "latency": {
+        "noContention": {
+          "mean": 143,
+          "std": 4.5
+        },
+        "lightContention": {
+          "mean": 172,
+          "std": 7.2
+        },
+        "moderateContention": {
+          "mean": 205,
+          "std": 11.5
+        },
+        "intenseContention": {
+          "mean": 265,
+          "std": 17.2
+        },
+        "peakContention": {
+          "mean": 318,
+          "std": 24.8
+        }
+      },
+      "accuracy": {
+        "vehicleHeavy": 64.5,
+        "pedestrianHeavy": 58.8,
+        "mixed": 63.0
+      }
+    },
+    "modelFamily": "VoxelNet"
+  }
+]

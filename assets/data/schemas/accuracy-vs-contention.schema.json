@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agile3d-demo.example.com/schemas/accuracy-vs-contention.schema.json",
+  "title": "Accuracy vs Contention Data",
+  "description": "Schema for accuracy vs contention data from Figure 7 (DSVT-Voxel and AGILE3D comparison)",
+  "type": "object",
+  "required": ["dataset", "metric", "contentionLevels", "sloTargets", "dsvt_voxel", "agile3d"],
+  "properties": {
+    "dataset": {
+      "type": "string",
+      "description": "Dataset used for evaluation",
+      "enum": ["Waymo", "nuScenes", "KITTI"]
+    },
+    "metric": {
+      "type": "string",
+      "description": "Accuracy metric used",
+      "const": "mAP"
+    },
+    "contentionLevels": {
+      "type": "array",
+      "description": "Contention levels (percentage) for which data is available",
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "sloTargets": {
+      "type": "array",
+      "description": "Latency SLO targets (ms) for which data is available",
+      "items": {
+        "type": "number",
+        "minimum": 0
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "dsvt_voxel": {
+      "type": "object",
+      "description": "DSVT-Voxel baseline accuracy data",
+      "patternProperties": {
+        "^[0-9]+ms$": {
+          "$ref": "#/definitions/accuracyByContention"
+        }
+      },
+      "additionalProperties": false
+    },
+    "agile3d": {
+      "type": "object",
+      "description": "AGILE3D accuracy data",
+      "patternProperties": {
+        "^[0-9]+ms$": {
+          "$ref": "#/definitions/accuracyByContention"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "accuracyByContention": {
+      "type": "object",
+      "description": "Accuracy values at different contention levels",
+      "patternProperties": {
+        "^[0-9]+(\\.[0-9]+)?$": {
+          "type": "number",
+          "description": "Accuracy (mAP) percentage",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-10-16T05:39:09.509Z",
+  "summary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "validations": [
+    {
+      "dataFile": "agile3d-branches.json",
+      "schemaFile": "branch-config.schema.json",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "dataFile": "baseline-performance.json",
+      "schemaFile": "baseline-performance.schema.json",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "dataFile": "accuracy-vs-contention.json",
+      "schemaFile": "accuracy-vs-contention.schema.json",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "dataFile": "pareto-frontier.json",
+      "schemaFile": "pareto-frontier.schema.json",
+      "status": "PASS",
+      "errors": []
+    }
+  ]
+}
