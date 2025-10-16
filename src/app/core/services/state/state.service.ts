@@ -1,13 +1,14 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
+import { SceneId, VoxelSize } from '../../models/config-and-metrics';
 import { Vec3 } from '../../models/scene.models';
 
 /**
  * Aggregated comparison input values derived from primary state knobs.
  */
 export interface ComparisonData {
-  scene: string;
+  scene: SceneId;
   contention: number;
   latencySlo: number;
   voxelSize: number;
@@ -20,10 +21,10 @@ export interface ComparisonData {
 @Injectable({ providedIn: 'root' })
 export class StateService implements OnDestroy {
   // Primary state subjects
-  public readonly currentScene$ = new BehaviorSubject<string>('vehicle-heavy');
+  public readonly currentScene$ = new BehaviorSubject<SceneId>('vehicle-heavy');
   public readonly contention$ = new BehaviorSubject<number>(0);
   public readonly latencySlo$ = new BehaviorSubject<number>(350);
-  public readonly voxelSize$ = new BehaviorSubject<number>(0.32);
+  public readonly voxelSize$ = new BehaviorSubject<VoxelSize>(0.32);
   public readonly activeBranch$ = new BehaviorSubject<string>('CP_Pillar_032');
 
   // Camera synchronization
@@ -37,18 +38,24 @@ export class StateService implements OnDestroy {
     this.latencySlo$,
     this.voxelSize$,
   ]).pipe(
-    map(([scene, contention, latencySlo, voxelSize]) => ({ scene, contention, latencySlo, voxelSize })),
-    distinctUntilChanged((a, b) =>
-      a.scene === b.scene &&
-      a.contention === b.contention &&
-      a.latencySlo === b.latencySlo &&
-      a.voxelSize === b.voxelSize
+    map(([scene, contention, latencySlo, voxelSize]) => ({
+      scene,
+      contention,
+      latencySlo,
+      voxelSize,
+    })),
+    distinctUntilChanged(
+      (a, b) =>
+        a.scene === b.scene &&
+        a.contention === b.contention &&
+        a.latencySlo === b.latencySlo &&
+        a.voxelSize === b.voxelSize
     ),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
   /** Update current scene if changed. */
-  public setCurrentScene(value: string): void {
+  public setCurrentScene(value: SceneId): void {
     if (this.currentScene$.value !== value) this.currentScene$.next(value);
   }
 
@@ -64,10 +71,18 @@ export class StateService implements OnDestroy {
     if (this.latencySlo$.value !== v) this.latencySlo$.next(v);
   }
 
-  /** Update voxel size in meters (0.16..0.64), clamped. */
+  /**
+   * Update voxel size in meters (0.16..0.64), clamped and snapped to valid VoxelSize values.
+   * Accepts number for UI flexibility, but snaps to nearest valid VoxelSize.
+   */
   public setVoxelSize(value: number): void {
-    const v = clamp(value, 0.16, 0.64);
-    if (this.voxelSize$.value !== v) this.voxelSize$.next(v);
+    const clamped = clamp(value, 0.16, 0.64);
+    // Snap to nearest valid VoxelSize
+    const validSizes: VoxelSize[] = [0.16, 0.24, 0.32, 0.48, 0.64];
+    const snapped = validSizes.reduce((prev, curr) =>
+      Math.abs(curr - clamped) < Math.abs(prev - clamped) ? curr : prev
+    );
+    if (this.voxelSize$.value !== snapped) this.voxelSize$.next(snapped);
   }
 
   /** Update active AGILE3D branch. */

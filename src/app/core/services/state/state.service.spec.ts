@@ -24,29 +24,38 @@ describe('StateService', () => {
     const emissions: ComparisonData[] = [];
     const sub = service.comparisonData$.subscribe((v) => {
       emissions.push(v);
-      if (emissions.length === 2) {
-        // Second emission after updates below
-        expect(emissions[0]).toEqual({
-          scene: 'vehicle-heavy',
-          contention: 0,
-          latencySlo: 350,
-          voxelSize: 0.32,
-        });
-        expect(emissions[1]).toEqual({
-          scene: 'urban',
+    });
+
+    // Wait for initial emission
+    setTimeout(() => {
+      expect(emissions.length).toBeGreaterThanOrEqual(1);
+      expect(emissions[0]).toEqual({
+        scene: 'vehicle-heavy',
+        contention: 0,
+        latencySlo: 350,
+        voxelSize: 0.32,
+      });
+
+      // Update state values - each triggers combineLatest
+      service.setCurrentScene('mixed');
+      service.setContention(10);
+      service.setLatencySlo(200);
+      service.setVoxelSize(0.5);
+
+      // Wait for all combineLatest emissions to settle
+      setTimeout(() => {
+        // Last emission should have all final values
+        const lastEmission = emissions[emissions.length - 1];
+        expect(lastEmission).toEqual({
+          scene: 'mixed',
           contention: 10,
           latencySlo: 200,
-          voxelSize: 0.5,
+          voxelSize: 0.48, // 0.5 snaps to nearest valid VoxelSize (0.48)
         });
         sub.unsubscribe();
         done();
-      }
-    });
-
-    service.setCurrentScene('urban');
-    service.setContention(10);
-    service.setLatencySlo(200);
-    service.setVoxelSize(0.5);
+      }, 20);
+    }, 10);
   });
 
   it('distinctUntilChanged prevents duplicate emissions', (done) => {
