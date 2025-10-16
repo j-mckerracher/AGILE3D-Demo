@@ -40,9 +40,7 @@ import { Detection } from '../../core/models/scene.models';
   template: `
     <div class="scene-viewer-container">
       <!-- FPS Overlay -->
-      <div class="fps-overlay" *ngIf="showFps">
-        FPS: {{ currentFps() }}
-      </div>
+      <div class="fps-overlay" *ngIf="showFps">FPS: {{ currentFps() }}</div>
 
       <!-- Three.js Canvas -->
       <canvas #canvas></canvas>
@@ -307,9 +305,7 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
       const { center, dimensions, yaw } = det;
       matrix.makeRotationZ(yaw);
       matrix.setPosition(center[0], center[1], center[2]);
-      matrix.scale(
-        new THREE.Vector3(dimensions.width, dimensions.length, dimensions.height)
-      );
+      matrix.scale(new THREE.Vector3(dimensions.width, dimensions.length, dimensions.height));
       mesh.setMatrixAt(i, matrix);
 
       const detColor = classColors[det.class] ?? new THREE.Color(0xffffff);

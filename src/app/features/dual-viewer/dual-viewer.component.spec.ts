@@ -12,14 +12,8 @@ describe('DualViewerComponent', () => {
   let fixture: ComponentFixture<DualViewerComponent>;
 
   beforeEach(async () => {
-    const renderLoopSpy = jasmine.createSpyObj('RenderLoopService', [
-      'register',
-      'unregister',
-    ]);
-    const cameraControlSpy = jasmine.createSpyObj('CameraControlService', [
-      'attach',
-      'detach',
-    ]);
+    const renderLoopSpy = jasmine.createSpyObj('RenderLoopService', ['register', 'unregister']);
+    const cameraControlSpy = jasmine.createSpyObj('CameraControlService', ['attach', 'detach']);
 
     await TestBed.configureTestingModule({
       imports: [DualViewerComponent, SceneViewerComponent],

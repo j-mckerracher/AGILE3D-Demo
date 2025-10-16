@@ -65,9 +65,7 @@ describe('CameraControlService', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     service.attach('test-1', controls as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(() => service.attach('test-1', controls as any)).toThrowError(
-      /already attached/
-    );
+    expect(() => service.attach('test-1', controls as any)).toThrowError(/already attached/);
     service.detach('test-1');
   });
 

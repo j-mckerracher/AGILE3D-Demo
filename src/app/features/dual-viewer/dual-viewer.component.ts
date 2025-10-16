@@ -103,12 +103,12 @@ import * as THREE from 'three';
         :host {
           width: 100%;
         }
-        
+
         .dual-viewer-container {
           flex-direction: column;
           gap: 12px;
         }
-        
+
         .viewer-panel {
           max-width: 100%;
           height: 400px;

@@ -12,14 +12,8 @@ describe('SceneViewerComponent', () => {
   let renderLoopService: jasmine.SpyObj<RenderLoopService>;
 
   beforeEach(async () => {
-    const renderLoopSpy = jasmine.createSpyObj('RenderLoopService', [
-      'register',
-      'unregister',
-    ]);
-    const cameraControlSpy = jasmine.createSpyObj('CameraControlService', [
-      'attach',
-      'detach',
-    ]);
+    const renderLoopSpy = jasmine.createSpyObj('RenderLoopService', ['register', 'unregister']);
+    const cameraControlSpy = jasmine.createSpyObj('CameraControlService', ['attach', 'detach']);
 
     await TestBed.configureTestingModule({
       imports: [SceneViewerComponent],
@@ -52,10 +46,7 @@ describe('SceneViewerComponent', () => {
 
   it('should register with RenderLoopService on init', () => {
     component.ngOnInit();
-    expect(renderLoopService.register).toHaveBeenCalledWith(
-      'test-viewer',
-      jasmine.any(Function)
-    );
+    expect(renderLoopService.register).toHaveBeenCalledWith('test-viewer', jasmine.any(Function));
   });
 
   it('should unregister from RenderLoopService on destroy', () => {
