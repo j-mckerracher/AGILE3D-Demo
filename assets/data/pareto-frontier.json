@@ -1,0 +1,131 @@
+{
+  "dataset": "Waymo",
+  "points": [
+    {
+      "method": "DSVT-Voxel",
+      "latency_ms": 371,
+      "mAP": 67.1,
+      "branch_id": "DSVT_Voxel",
+      "isBaseline": true,
+      "controlKnobs": {
+        "encodingFormat": "voxel",
+        "spatialResolution": 0.16,
+        "spatialEncoding": "DV",
+        "featureExtractor": "transformer",
+        "detectionHead": "center"
+      }
+    },
+    {
+      "method": "DSVT-Pillar",
+      "latency_ms": 186,
+      "mAP": 63.5,
+      "branch_id": "DSVT_Pillar",
+      "isBaseline": false,
+      "controlKnobs": {
+        "encodingFormat": "pillar",
+        "spatialResolution": 0.32,
+        "spatialEncoding": "DV",
+        "featureExtractor": "transformer",
+        "detectionHead": "center"
+      }
+    },
+    {
+      "method": "CP-Voxel-0.16",
+      "latency_ms": 240,
+      "mAP": 66.8,
+      "branch_id": "CP_Voxel_016",
+      "isBaseline": false,
+      "controlKnobs": {
+        "encodingFormat": "voxel",
+        "spatialResolution": 0.16,
+        "spatialEncoding": "DV",
+        "featureExtractor": "sparse_cnn",
+        "detectionHead": "center"
+      }
+    },
+    {
+      "method": "CP-Voxel-0.32",
+      "latency_ms": 147,
+      "mAP": 64.2,
+      "branch_id": "CP_Voxel_032",
+      "isBaseline": false,
+      "controlKnobs": {
+        "encodingFormat": "voxel",
+        "spatialResolution": 0.32,
+        "spatialEncoding": "DV",
+        "featureExtractor": "sparse_cnn",
+        "detectionHead": "center"
+      }
+    },
+    {
+      "method": "CP-Pillar-0.32",
+      "latency_ms": 95,
+      "mAP": 61.5,
+      "branch_id": "CP_Pillar_032",
+      "isBaseline": false,
+      "controlKnobs": {
+        "encodingFormat": "pillar",
+        "spatialResolution": 0.32,
+        "spatialEncoding": "DV",
+        "featureExtractor": "2d_cnn",
+        "detectionHead": "center"
+      }
+    },
+    {
+      "method": "PointPillars-0.16",
+      "latency_ms": 147,
+      "mAP": 65.0,
+      "branch_id": "PP_016",
+      "isBaseline": false,
+      "controlKnobs": {
+        "encodingFormat": "pillar",
+        "spatialResolution": 0.16,
+        "spatialEncoding": "HV",
+        "featureExtractor": "2d_cnn",
+        "detectionHead": "anchor"
+      }
+    },
+    {
+      "method": "PointPillars-0.32",
+      "latency_ms": 74,
+      "mAP": 59.5,
+      "branch_id": "PP_032",
+      "isBaseline": false,
+      "controlKnobs": {
+        "encodingFormat": "pillar",
+        "spatialResolution": 0.32,
+        "spatialEncoding": "HV",
+        "featureExtractor": "2d_cnn",
+        "detectionHead": "anchor"
+      }
+    },
+    {
+      "method": "SECOND-0.16",
+      "latency_ms": 143,
+      "mAP": 63.0,
+      "branch_id": "SECOND_016",
+      "isBaseline": false,
+      "controlKnobs": {
+        "encodingFormat": "voxel",
+        "spatialResolution": 0.16,
+        "spatialEncoding": "HV",
+        "featureExtractor": "sparse_cnn",
+        "detectionHead": "anchor"
+      }
+    },
+    {
+      "method": "SECOND-0.32",
+      "latency_ms": 58,
+      "mAP": 55.0,
+      "branch_id": "SECOND_032",
+      "isBaseline": false,
+      "controlKnobs": {
+        "encodingFormat": "voxel",
+        "spatialResolution": 0.32,
+        "spatialEncoding": "HV",
+        "featureExtractor": "sparse_cnn",
+        "detectionHead": "anchor"
+      }
+    }
+  ]
+}

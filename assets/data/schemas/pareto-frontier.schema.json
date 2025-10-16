@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agile3d-demo.example.com/schemas/pareto-frontier.schema.json",
+  "title": "Pareto Frontier Data",
+  "description": "Schema for Pareto frontier data from Figure 11 showing accuracy vs latency trade-offs",
+  "type": "object",
+  "required": ["dataset", "points"],
+  "properties": {
+    "dataset": {
+      "type": "string",
+      "description": "Dataset used for evaluation",
+      "enum": ["Waymo", "nuScenes", "KITTI"]
+    },
+    "points": {
+      "type": "array",
+      "description": "Pareto frontier points (method, latency, accuracy)",
+      "items": {
+        "type": "object",
+        "required": ["method", "latency_ms", "mAP"],
+        "properties": {
+          "method": {
+            "type": "string",
+            "description": "Method/model name",
+            "minLength": 1
+          },
+          "latency_ms": {
+            "type": "number",
+            "description": "Mean latency in milliseconds",
+            "minimum": 0
+          },
+          "mAP": {
+            "type": "number",
+            "description": "Mean Average Precision (percentage)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "branch_id": {
+            "type": "string",
+            "description": "Branch identifier (for AGILE3D branches)",
+            "pattern": "^[A-Za-z0-9_]+$"
+          },
+          "isBaseline": {
+            "type": "boolean",
+            "description": "Whether this is the baseline method (DSVT-Voxel)"
+          },
+          "controlKnobs": {
+            "type": "object",
+            "description": "Control knob settings (for AGILE3D branches)",
+            "properties": {
+              "encodingFormat": {
+                "type": "string",
+                "enum": ["voxel", "pillar"]
+              },
+              "spatialResolution": {
+                "type": "number",
+                "enum": [0.16, 0.24, 0.32, 0.48, 0.64]
+              },
+              "spatialEncoding": {
+                "type": "string",
+                "enum": ["HV", "DV"]
+              },
+              "featureExtractor": {
+                "type": "string",
+                "enum": ["transformer", "sparse_cnn", "2d_cnn"]
+              },
+              "detectionHead": {
+                "type": "string",
+                "enum": ["anchor", "center"]
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}

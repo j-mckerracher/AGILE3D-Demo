@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agile3d-demo.example.com/schemas/baseline-performance.schema.json",
+  "title": "DSVT-Voxel Baseline Performance",
+  "description": "Schema for DSVT-Voxel baseline performance metrics across different conditions",
+  "type": "object",
+  "required": ["model", "accuracyByScene", "latencyByContention", "violationRatesBySLO", "memoryFootprint"],
+  "properties": {
+    "model": {
+      "type": "string",
+      "description": "Baseline model identifier",
+      "const": "DSVT_Voxel"
+    },
+    "accuracyByScene": {
+      "type": "object",
+      "description": "Accuracy (mAP) for each scene type",
+      "required": ["vehicleHeavy", "pedestrianHeavy", "mixed"],
+      "properties": {
+        "vehicleHeavy": {
+          "type": "number",
+          "description": "mAP for vehicle-heavy scenes",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "pedestrianHeavy": {
+          "type": "number",
+          "description": "mAP for pedestrian-heavy scenes",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "mixed": {
+          "type": "number",
+          "description": "mAP for mixed scenes",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    },
+    "latencyByContention": {
+      "type": "object",
+      "description": "Latency statistics by contention level",
+      "required": ["0", "38", "45", "64", "67"],
+      "properties": {
+        "0": {
+          "$ref": "#/definitions/latencyStats"
+        },
+        "38": {
+          "$ref": "#/definitions/latencyStats"
+        },
+        "45": {
+          "$ref": "#/definitions/latencyStats"
+        },
+        "64": {
+          "$ref": "#/definitions/latencyStats"
+        },
+        "67": {
+          "$ref": "#/definitions/latencyStats"
+        }
+      },
+      "additionalProperties": false
+    },
+    "violationRatesBySLO": {
+      "type": "object",
+      "description": "Latency SLO violation rates by SLO value and contention level",
+      "required": ["100ms", "350ms", "500ms"],
+      "properties": {
+        "100ms": {
+          "$ref": "#/definitions/violationRatesByContention"
+        },
+        "350ms": {
+          "$ref": "#/definitions/violationRatesByContention"
+        },
+        "500ms": {
+          "$ref": "#/definitions/violationRatesByContention"
+        }
+      },
+      "additionalProperties": false
+    },
+    "memoryFootprint": {
+      "type": "number",
+      "description": "GPU memory usage in GB",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "latencyStats": {
+      "type": "object",
+      "description": "Latency mean and standard deviation",
+      "required": ["mean", "std"],
+      "properties": {
+        "mean": {
+          "type": "number",
+          "description": "Mean latency in milliseconds",
+          "minimum": 0
+        },
+        "std": {
+          "type": "number",
+          "description": "Standard deviation in milliseconds",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "violationRatesByContention": {
+      "type": "object",
+      "description": "Violation rates at different contention levels (percentage)",
+      "required": ["0", "38", "45", "64", "67"],
+      "properties": {
+        "0": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "38": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "45": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "64": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "67": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
