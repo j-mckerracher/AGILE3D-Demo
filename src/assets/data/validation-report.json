@@ -1,0 +1,107 @@
+{
+  "timestamp": "2025-10-16T22:15:48.471Z",
+  "budgets": {
+    "perSceneMB": 2.5,
+    "totalMB": 8
+  },
+  "scenes": [
+    {
+      "sceneName": "mixed_urban_01",
+      "files": [
+        {
+          "fileName": "mixed_urban_01_100k.bin",
+          "original": 1200000,
+          "compressed": 1088129,
+          "ratio": 90.67741666666666
+        },
+        {
+          "fileName": "mixed_urban_01_50k.bin",
+          "original": 600000,
+          "compressed": 544209,
+          "ratio": 90.7015
+        }
+      ],
+      "totalOriginalBytes": 1800000,
+      "totalCompressedBytes": 1632338,
+      "totalCompressedMB": 1.5567188262939453,
+      "passed": true,
+      "exceedsByBytes": 0
+    },
+    {
+      "sceneName": "parking_lot_01",
+      "files": [
+        {
+          "fileName": "parking_lot_01_100k.bin",
+          "original": 1200000,
+          "compressed": 1085732,
+          "ratio": 90.47766666666666
+        },
+        {
+          "fileName": "parking_lot_01_50k.bin",
+          "original": 600000,
+          "compressed": 543121,
+          "ratio": 90.52016666666667
+        }
+      ],
+      "totalOriginalBytes": 1800000,
+      "totalCompressedBytes": 1628853,
+      "totalCompressedMB": 1.5533952713012695,
+      "passed": true,
+      "exceedsByBytes": 0
+    },
+    {
+      "sceneName": "pedestrian_heavy_01",
+      "files": [
+        {
+          "fileName": "pedestrian_heavy_01_100k.bin",
+          "original": 1200000,
+          "compressed": 1091157,
+          "ratio": 90.92975
+        },
+        {
+          "fileName": "pedestrian_heavy_01_50k.bin",
+          "original": 600000,
+          "compressed": 545777,
+          "ratio": 90.96283333333334
+        }
+      ],
+      "totalOriginalBytes": 1800000,
+      "totalCompressedBytes": 1636934,
+      "totalCompressedMB": 1.5611019134521484,
+      "passed": true,
+      "exceedsByBytes": 0
+    },
+    {
+      "sceneName": "vehicle_heavy_01",
+      "files": [
+        {
+          "fileName": "vehicle_heavy_01_100k.bin",
+          "original": 1200000,
+          "compressed": 1088997,
+          "ratio": 90.74974999999999
+        },
+        {
+          "fileName": "vehicle_heavy_01_50k.bin",
+          "original": 600000,
+          "compressed": 544457,
+          "ratio": 90.74283333333332
+        }
+      ],
+      "totalOriginalBytes": 1800000,
+      "totalCompressedBytes": 1633454,
+      "totalCompressedMB": 1.5577831268310547,
+      "passed": true,
+      "exceedsByBytes": 0
+    }
+  ],
+  "summary": {
+    "totalScenesChecked": 4,
+    "totalOriginalBytes": 7200000,
+    "totalCompressedBytes": 6531579,
+    "totalCompressedMB": 6.228999137878418,
+    "compressionRatio": 90.716375,
+    "allScenesPassed": true,
+    "totalBudgetPassed": true,
+    "overallPassed": true
+  }
+}

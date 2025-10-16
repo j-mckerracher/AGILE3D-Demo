@@ -45,3 +45,45 @@ export interface SceneMetadata {
     optimalBranch: string;
   };
 }
+
+/**
+ * Scene registry entry for listing available scenes.
+ */
+export interface SceneRegistryEntry {
+  scene_id: string;
+  name: string;
+  description: string;
+  complexity: string;
+  pointCount: number;
+  hasFallback: boolean;
+}
+
+/**
+ * Scene registry containing all available scenes.
+ */
+export interface SceneRegistry {
+  version: string;
+  scenes: SceneRegistryEntry[];
+}
+
+/**
+ * Quality tier for point cloud data.
+ */
+export type QualityTier = 'full' | 'fallback';
+
+/**
+ * Worker message for parsing point cloud data.
+ */
+export interface WorkerParseMessage {
+  arrayBuffer: ArrayBuffer;
+  stride: number;
+}
+
+/**
+ * Worker response after parsing point cloud data.
+ */
+export interface WorkerParseResponse {
+  ok: boolean;
+  positions?: Float32Array;
+  error?: string;
+}
