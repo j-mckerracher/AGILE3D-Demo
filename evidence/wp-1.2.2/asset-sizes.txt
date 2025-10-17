@@ -1,0 +1,12 @@
+Wrote /home/josh/WebstormProjects/AGILE3D-Demo/evidence/wp-1.2.2/asset-sizes.csv
+file,bytes,gzip_bytes,brotli_bytes
+/home/josh/WebstormProjects/AGILE3D-Demo/src/assets/scenes/mixed_urban_01/mixed_urban_01_100k.bin,1200000,1117626,1088129
+/home/josh/WebstormProjects/AGILE3D-Demo/src/assets/scenes/mixed_urban_01/mixed_urban_01_50k.bin,600000,558809,544209
+/home/josh/WebstormProjects/AGILE3D-Demo/src/assets/scenes/parking_lot_01/parking_lot_01_100k.bin,1200000,1109019,1085732
+/home/josh/WebstormProjects/AGILE3D-Demo/src/assets/scenes/parking_lot_01/parking_lot_01_50k.bin,600000,554480,543121
+/home/josh/WebstormProjects/AGILE3D-Demo/src/assets/scenes/pedestrian_heavy_01/pedestrian_heavy_01_100k.bin,1200000,1116023,1091157
+/home/josh/WebstormProjects/AGILE3D-Demo/src/assets/scenes/pedestrian_heavy_01/pedestrian_heavy_01_50k.bin,600000,558103,545777
+/home/josh/WebstormProjects/AGILE3D-Demo/src/assets/scenes/vehicle_heavy_01/vehicle_heavy_01_100k.bin,1200000,1117934,1088997
+/home/josh/WebstormProjects/AGILE3D-Demo/src/assets/scenes/vehicle_heavy_01/vehicle_heavy_01_50k.bin,600000,558820,544457
+TOTAL,7200000,6690814,6531579
+

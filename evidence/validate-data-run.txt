@@ -1,0 +1,24 @@
+
+> agile3d-demo@0.0.0 validate:data
+> node tools/validate-data.mjs
+
+🔍 Starting data validation...
+
+Validating agile3d-branches.json against branch-config.schema.json...
+  ✅ agile3d-branches.json is valid
+
+Validating baseline-performance.json against baseline-performance.schema.json...
+  ✅ baseline-performance.json is valid
+
+Validating accuracy-vs-contention.json against accuracy-vs-contention.schema.json...
+  ✅ accuracy-vs-contention.json is valid
+
+Validating pareto-frontier.json against pareto-frontier.schema.json...
+  ✅ pareto-frontier.json is valid
+
+📊 Validation Summary:
+  Total: 4
+  Passed: 4
+  Failed: 0
+
+📄 Detailed report saved to: /home/josh/WebstormProjects/AGILE3D-Demo/assets/data/validation-report.json
