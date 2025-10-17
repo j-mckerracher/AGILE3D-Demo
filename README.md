@@ -197,6 +197,136 @@ export class ExampleComponent implements OnInit, OnDestroy {
 - Firefox (latest 2 versions)
 - Safari (latest 2 versions)
 
+## Adding New Scenes (JSON-Only Update)
+
+The application supports adding new 3D scenes without any code changes, demonstrating the extensibility requirement (FR-1.11).
+
+### Scene File Structure
+
+Each scene requires:
+
+```
+src/assets/scenes/{scene_id}/
+├── metadata.json                    # Scene metadata and annotations
+├── {scene_id}_100k.bin             # Full quality point cloud (100k points)
+└── {scene_id}_50k.bin              # Fallback quality (50k points)
+```
+
+### Metadata Schema
+
+Create a `metadata.json` file following this structure:
+
+```json
+{
+  "scene_id": "your_scene_id",
+  "name": "Display Name",
+  "description": "Scene description",
+  "pointsBin": "assets/scenes/your_scene_id/your_scene_id_100k.bin",
+  "pointCount": 100000,
+  "pointStride": 3,
+  "bounds": {
+    "min": [-50, -50, -2],
+    "max": [50, 50, 10]
+  },
+  "ground_truth": [],
+  "predictions": {
+    "DSVT_Voxel": [],
+    "AGILE3D_CP_Pillar_032": []
+  },
+  "metadata": {
+    "vehicleCount": 0,
+    "pedestrianCount": 0,
+    "cyclistCount": 0,
+    "complexity": "medium",
+    "optimalBranch": "AGILE3D_CP_Pillar_032"
+  }
+}
+```
+
+### Point Cloud Binary Format
+
+Point cloud files (`.bin`) must be:
+
+- **Format**: Little-endian Float32Array
+- **Stride**: 3 floats per point `[x, y, z]`
+- **Size**: 100k points = 1.17 MB (uncompressed), 50k points = 585 KB
+- **Compression**: Served with Brotli compression (≤2.5MB per scene compressed)
+
+### Registry Update
+
+Add your scene to `src/assets/scenes/registry.json`:
+
+```json
+{
+  "version": "1.0.0",
+  "scenes": [
+    {
+      "scene_id": "your_scene_id",
+      "name": "Display Name",
+      "description": "Scene description",
+      "complexity": "medium",
+      "pointCount": 100000,
+      "hasFallback": true
+    }
+  ]
+}
+```
+
+### Step-by-Step Guide
+
+1. **Create Scene Directory**:
+   ```bash
+   mkdir -p src/assets/scenes/my_scene_01
+   ```
+
+2. **Generate Point Cloud Data**:
+   - Use the provided generator script:
+     ```bash
+     node tools/generate-scene-data.mjs
+     ```
+   - Or create custom data matching the binary format
+
+3. **Create metadata.json**:
+   - Follow the schema above
+   - Include ground truth and prediction annotations
+
+4. **Update registry.json**:
+   - Add entry to the scenes array
+   - Set appropriate complexity level
+
+5. **Validate Asset Budgets**:
+   ```bash
+   node tools/validate-asset-budgets.mjs
+   ```
+   - Ensures compressed size ≤2.5MB per scene
+   - Ensures total compressed size ≤8MB
+
+6. **Test the Scene**:
+   - Restart dev server: `npm start`
+   - Scene automatically appears in scene selector
+   - No code changes required!
+
+### Budget Constraints
+
+- **Per-Scene**: ≤2.5MB compressed (Brotli)
+- **Total Assets**: ≤8MB compressed
+- **Validation**: Run `node tools/validate-asset-budgets.mjs` before committing
+
+### Example: Adding a Parking Lot Scene
+
+```bash
+# Generate the scene
+node tools/add-parking-lot-scene.mjs
+
+# Validate budgets
+node tools/validate-asset-budgets.mjs
+
+# Start server to test
+npm start
+```
+
+The scene will automatically appear in the application without any code changes.
+
 ## Accessibility
 
 - WCAG AA color contrast compliance

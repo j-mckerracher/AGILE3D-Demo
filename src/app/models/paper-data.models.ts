@@ -90,13 +90,9 @@ export interface BaselinePerformance {
 export type Dataset = 'Waymo' | 'nuScenes' | 'KITTI';
 export type SLOTarget = '100ms' | '350ms' | '500ms';
 
-export interface AccuracyByContention {
-  [contentionLevel: string]: number;  // mAP percentage
-}
+export type AccuracyByContention = Record<string, number>;
 
-export interface AccuracyBySLO {
-  [sloTarget: string]: AccuracyByContention;
-}
+export type AccuracyBySLO = Record<string, AccuracyByContention>;
 
 export interface AccuracyVsContention {
   dataset: Dataset;
