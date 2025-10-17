@@ -1,9 +1,14 @@
 import { Routes } from '@angular/router';
-import { DualViewerComponent } from './features/dual-viewer/dual-viewer.component';
+import { MainDemoComponent } from './features/main-demo/main-demo.component';
 
 export const routes: Routes = [
   {
     path: '',
-    component: DualViewerComponent,
+    component: MainDemoComponent,
+    title: 'AGILE3D Interactive Demo',
+  },
+  {
+    path: '**',
+    redirectTo: '',
   },
 ];
