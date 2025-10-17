@@ -145,16 +145,37 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['sharedPointGeometry'] && this.pointCloud && this.sharedPointGeometry) {
-      const oldGeom = this.pointCloud.geometry as THREE.BufferGeometry;
-      // Dispose old geometry only if we created it locally (tracked in disposables)
-      if (this.disposables.includes(oldGeom)) {
-        oldGeom.dispose();
-        // Remove from disposables list
-        const idx = this.disposables.indexOf(oldGeom);
-        if (idx >= 0) this.disposables.splice(idx, 1);
+    if (changes['sharedPointGeometry']) {
+      if (this.pointCloud && this.sharedPointGeometry) {
+        console.log('[SceneViewer]', this.viewerId, 'swapping to external geometry');
+        const oldGeom = this.pointCloud.geometry as THREE.BufferGeometry;
+        if (this.disposables.includes(oldGeom)) {
+          oldGeom.dispose();
+          const idx = this.disposables.indexOf(oldGeom);
+          if (idx >= 0) this.disposables.splice(idx, 1);
+        }
+        this.pointCloud.geometry = this.sharedPointGeometry;
+      } else {
+        console.log('[SceneViewer]', this.viewerId, 'sharedPointGeometry changed but pointCloud not ready');
       }
-      this.pointCloud.geometry = this.sharedPointGeometry;
+    }
+
+    if (changes['detections'] && this.scene) {
+      console.log('[SceneViewer]', this.viewerId, 'updating detections', this.detections?.length ?? 0);
+      // Remove existing mesh
+      if (this.instancedMesh) {
+        this.scene.remove(this.instancedMesh);
+        this.instancedMesh.geometry.dispose();
+        if (Array.isArray(this.instancedMesh.material)) {
+          this.instancedMesh.material.forEach((m) => m.dispose());
+        } else {
+          this.instancedMesh.material.dispose();
+        }
+        this.instancedMesh = undefined;
+      }
+      if (Array.isArray(this.detections) && this.detections.length > 0) {
+        this.addBoundingBoxes();
+      }
     }
   }
 
@@ -235,8 +256,10 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
     let geometry: THREE.BufferGeometry;
 
     if (this.sharedPointGeometry) {
+      console.log('[SceneViewer]', this.viewerId, 'using shared geometry');
       geometry = this.sharedPointGeometry;
     } else {
+      console.log('[SceneViewer]', this.viewerId, 'creating synthetic geometry');
       geometry = this.createSyntheticPointCloud(this.pointCount);
       this.disposables.push(geometry);
     }

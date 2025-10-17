@@ -147,6 +147,11 @@ export class DualViewerComponent implements OnInit {
 
   public ngOnInit(): void {
     // Use externally provided geometry if available; otherwise create synthetic
+    if (this.inputGeometry) {
+      console.log('[DualViewer] using external geometry');
+    } else {
+      console.log('[DualViewer] creating synthetic geometry');
+    }
     this.sharedGeometry = this.inputGeometry ?? this.createSharedPointCloud(this.pointCount);
   }
 
