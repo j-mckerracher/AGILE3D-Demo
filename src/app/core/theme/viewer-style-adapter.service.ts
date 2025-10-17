@@ -13,10 +13,10 @@
  * - UI-8.2: Consistent visual identity
  */
 
-import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Color } from 'three';
-import { Observable, combineLatest } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ThemeService } from './theme.service';
 import { ObjectClass, ObjectClassColor } from './theme.models';
@@ -58,16 +58,14 @@ export class ViewerStyleAdapterService {
   // Observable of viewer motion configuration
   public readonly viewerMotion$: Observable<ViewerMotionConfig>;
 
-  constructor(
-    @Inject(PLATFORM_ID) platformId: object,
-    private themeService: ThemeService
-  ) {
-    this.isBrowser = isPlatformBrowser(platformId);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly themeService = inject(ThemeService);
+
+  public constructor() {
+    this.isBrowser = isPlatformBrowser(this.platformId);
 
     // Create observable that updates when theme changes
-    this.viewerColors$ = this.themeService.activeTheme$.pipe(
-      map(() => this.getViewerColors())
-    );
+    this.viewerColors$ = this.themeService.activeTheme$.pipe(map(() => this.getViewerColors()));
 
     // Create observable that updates when reduced motion changes
     this.viewerMotion$ = this.themeService.reducedMotion$.pipe(

@@ -30,7 +30,7 @@ import * as THREE from 'three';
         <h2 id="baseline-viewer-label" class="viewer-label">DSVT-Voxel (Baseline)</h2>
         <app-scene-viewer
           viewerId="baseline"
-          [sharedPointGeometry]="sharedGeometry"
+          [sharedPointGeometry]="inputGeometry || sharedGeometry"
           [detections]="baselineDetections"
           [showFps]="showFps"
         />
@@ -40,7 +40,7 @@ import * as THREE from 'three';
         <h2 id="agile3d-viewer-label" class="viewer-label">AGILE3D</h2>
         <app-scene-viewer
           viewerId="agile3d"
-          [sharedPointGeometry]="sharedGeometry"
+          [sharedPointGeometry]="inputGeometry || sharedGeometry"
           [detections]="agile3dDetections"
           [showFps]="showFps"
         />
@@ -136,6 +136,9 @@ export class DualViewerComponent implements OnInit {
   /** Number of points in synthetic point cloud (default 50k) */
   @Input() public pointCount = 50_000;
 
+  /** Optional externally provided shared point geometry (from SceneDataService) */
+  @Input() public inputGeometry?: THREE.BufferGeometry;
+
   /** Show FPS overlay on both viewers */
   @Input() public showFps = true;
 
@@ -143,8 +146,8 @@ export class DualViewerComponent implements OnInit {
   protected sharedGeometry!: THREE.BufferGeometry;
 
   public ngOnInit(): void {
-    // Create shared synthetic point cloud for both viewers
-    this.sharedGeometry = this.createSharedPointCloud(this.pointCount);
+    // Use externally provided geometry if available; otherwise create synthetic
+    this.sharedGeometry = this.inputGeometry ?? this.createSharedPointCloud(this.pointCount);
   }
 
   /**

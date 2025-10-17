@@ -10,12 +10,11 @@
  * - UI-8.2: Consistent visual identity
  */
 
-import { Component, ChangeDetectionStrategy, Input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { ViewerStyleAdapterService } from '../../../core/theme/viewer-style-adapter.service';
-import { ObjectClassColor } from '../../../core/theme/theme.models';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -61,7 +60,9 @@ export class LegendComponent {
    */
   public readonly legendItems$: Observable<LegendItem[]>;
 
-  constructor(private viewerStyleAdapter: ViewerStyleAdapterService) {
+  private readonly viewerStyleAdapter = inject(ViewerStyleAdapterService);
+
+  public constructor() {
     this.legendItems$ = this.viewerStyleAdapter.viewerColors$.pipe(
       map(() => this.createLegendItems())
     );

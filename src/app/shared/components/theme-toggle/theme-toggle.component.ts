@@ -11,7 +11,7 @@
  * - NFR-3.6: Keyboard navigation support
  */
 
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -33,7 +33,9 @@ export class ThemeToggleComponent {
   public readonly themeMode$: Observable<ThemeMode>;
   public readonly activeTheme$: Observable<ActiveTheme>;
 
-  constructor(private themeService: ThemeService) {
+  private readonly themeService = inject(ThemeService);
+
+  public constructor() {
     this.themeMode$ = this.themeService.themeMode$;
     this.activeTheme$ = this.themeService.activeTheme$;
   }

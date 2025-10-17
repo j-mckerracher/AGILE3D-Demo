@@ -11,7 +11,7 @@
 import { TestBed } from '@angular/core/testing';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { ThemeService } from './theme.service';
-import { ThemeMode, ActiveTheme } from './theme.models';
+import {} from './theme.models';
 
 describe('ThemeService', () => {
   let service: ThemeService;
@@ -22,14 +22,14 @@ describe('ThemeService', () => {
     // Mock localStorage
     localStorageMock = {};
     const localStorageSpies = {
-      getItem: (key: string) => localStorageMock[key] || null,
-      setItem: (key: string, value: string) => {
+      getItem: (key: string): string | null => localStorageMock[key] || null,
+      setItem: (key: string, value: string): void => {
         localStorageMock[key] = value;
       },
-      removeItem: (key: string) => {
+      removeItem: (key: string): void => {
         delete localStorageMock[key];
       },
-      clear: () => {
+      clear: (): void => {
         localStorageMock = {};
       },
     };

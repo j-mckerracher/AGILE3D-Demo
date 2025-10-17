@@ -24,10 +24,10 @@ import { KeyboardNavDirective } from './keyboard-nav.directive';
   `,
 })
 class TestComponent {
-  navItems = '.nav-item';
-  orientation: 'horizontal' | 'vertical' | 'both' = 'horizontal';
-  wrap = true;
-  homeEndKeys = true;
+  public navItems = '.nav-item';
+  public orientation: 'horizontal' | 'vertical' | 'both' = 'horizontal';
+  public wrap = true;
+  public homeEndKeys = true;
 }
 
 describe('KeyboardNavDirective', () => {

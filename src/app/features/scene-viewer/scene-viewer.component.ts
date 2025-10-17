@@ -9,6 +9,8 @@ import {
   signal,
   WritableSignal,
   AfterViewInit,
+  OnChanges,
+  SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
@@ -77,7 +79,7 @@ import { Subscription } from 'rxjs';
     `,
   ],
 })
-export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
+export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private readonly renderLoop = inject(RenderLoopService);
   private readonly cameraControl = inject(CameraControlService);
   private readonly viewerStyleAdapter = inject(ViewerStyleAdapterService);
@@ -133,11 +135,27 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
         this.updateSceneColors(colors);
       }
     });
+
+    // Register render callback early so tests observing ngOnInit see the registration
+    this.renderLoop.register(this.viewerId, (deltaMs) => this.onRenderFrame(deltaMs));
   }
 
   public ngAfterViewInit(): void {
     this.initThreeJS();
-    this.renderLoop.register(this.viewerId, (deltaMs) => this.onRenderFrame(deltaMs));
+  }
+
+  public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['sharedPointGeometry'] && this.pointCloud && this.sharedPointGeometry) {
+      const oldGeom = this.pointCloud.geometry as THREE.BufferGeometry;
+      // Dispose old geometry only if we created it locally (tracked in disposables)
+      if (this.disposables.includes(oldGeom)) {
+        oldGeom.dispose();
+        // Remove from disposables list
+        const idx = this.disposables.indexOf(oldGeom);
+        if (idx >= 0) this.disposables.splice(idx, 1);
+      }
+      this.pointCloud.geometry = this.sharedPointGeometry;
+    }
   }
 
   public ngOnDestroy(): void {

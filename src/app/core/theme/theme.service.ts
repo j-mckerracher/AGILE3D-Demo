@@ -14,7 +14,7 @@
  * - UI-8.2: Consistent visual identity
  */
 
-import { Injectable, Inject, PLATFORM_ID, OnDestroy } from '@angular/core';
+import { Injectable, PLATFORM_ID, OnDestroy, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { BehaviorSubject, Observable, fromEvent, Subject } from 'rxjs';
@@ -60,12 +60,11 @@ export class ThemeService implements OnDestroy {
   public readonly reducedMotionChange$: Observable<ReducedMotionChangeEvent> =
     this.reducedMotionChangeSubject.asObservable();
 
-  constructor(
-    @Inject(PLATFORM_ID) platformId: object,
-    private overlayContainer: OverlayContainer
-  ) {
-    this.isBrowser = isPlatformBrowser(platformId);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly overlayContainer = inject(OverlayContainer);
 
+  public constructor() {
+    this.isBrowser = isPlatformBrowser(this.platformId);
     if (this.isBrowser) {
       this.initializeTheme();
       this.initializeReducedMotion();
@@ -246,7 +245,6 @@ export class ThemeService implements OnDestroy {
   private applyTheme(theme: ActiveTheme): void {
     if (!this.isBrowser) return;
 
-    const previousTheme = this.activeThemeSubject.value;
     this.activeThemeSubject.next(theme);
 
     // Update document element class

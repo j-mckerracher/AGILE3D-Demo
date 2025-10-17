@@ -118,7 +118,8 @@ export class CameraControlService implements OnDestroy {
 
     attachment.updating = true;
     try {
-      attachment.controls.object.position.set(pos[0], pos[1], pos[2]);
+      const position = (attachment.controls.object as unknown as { position?: Vec3Like }).position;
+      setVec3Like(position, pos);
       attachment.controls.update();
     } finally {
       attachment.updating = false;
@@ -135,10 +136,25 @@ export class CameraControlService implements OnDestroy {
 
     attachment.updating = true;
     try {
-      attachment.controls.target.set(target[0], target[1], target[2]);
+      const tgt = (attachment.controls as unknown as { target?: Vec3Like }).target;
+      setVec3Like(tgt, target);
       attachment.controls.update();
     } finally {
       attachment.updating = false;
     }
+  }
+}
+
+// Support both real THREE.Vector3-like objects (with set) and plain objects used in tests
+type Vec3Like = { set(x: number, y: number, z: number): void } | { x: number; y: number; z: number };
+
+function setVec3Like(obj: Vec3Like | undefined, v: Vec3): void {
+  if (!obj) return;
+  if (typeof (obj as { set?: (x: number, y: number, z: number) => void }).set === 'function') {
+    (obj as { set: (x: number, y: number, z: number) => void }).set(v[0], v[1], v[2]);
+  } else {
+    (obj as { x: number; y: number; z: number }).x = v[0];
+    (obj as { x: number; y: number; z: number }).y = v[1];
+    (obj as { x: number; y: number; z: number }).z = v[2];
   }
 }

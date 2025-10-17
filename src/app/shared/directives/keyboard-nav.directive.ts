@@ -23,6 +23,7 @@ import {
   Input,
   AfterViewInit,
   OnDestroy,
+  inject,
 } from '@angular/core';
 
 export type NavigationOrientation = 'horizontal' | 'vertical' | 'both';
@@ -56,7 +57,7 @@ export class KeyboardNavDirective implements AfterViewInit, OnDestroy {
   private currentIndex = 0;
   private mutationObserver?: MutationObserver;
 
-  constructor(private elementRef: ElementRef<HTMLElement>) {}
+  private readonly elementRef = inject(ElementRef<HTMLElement>);
 
   public ngAfterViewInit(): void {
     this.updateFocusableElements();
@@ -165,14 +166,22 @@ export class KeyboardNavDirective implements AfterViewInit, OnDestroy {
    */
   private updateFocusableElements(): void {
     const host = this.elementRef.nativeElement;
-    const elements = Array.from(host.querySelectorAll<HTMLElement>(this.navItems));
+    const nodeList = host.querySelectorAll(this.navItems);
+    const elements = Array.from(nodeList) as Element[];
 
-    this.focusableElements = elements.filter(
-      (el) =>
-        !el.hasAttribute('disabled') &&
-        el.getAttribute('aria-hidden') !== 'true' &&
-        getComputedStyle(el).display !== 'none'
-    );
+    const focusables: HTMLElement[] = [];
+    for (const el of elements) {
+      if (isHTMLElement(el)) {
+        if (
+          !el.hasAttribute('disabled') &&
+          el.getAttribute('aria-hidden') !== 'true' &&
+          getComputedStyle(el).display !== 'none'
+        ) {
+          focusables.push(el);
+        }
+      }
+    }
+    this.focusableElements = focusables;
   }
 
   /**
@@ -210,4 +219,8 @@ export class KeyboardNavDirective implements AfterViewInit, OnDestroy {
       attributeFilter: ['disabled', 'aria-hidden', 'style'],
     });
   }
+}
+
+function isHTMLElement(el: Element): el is HTMLElement {
+  return el instanceof HTMLElement;
 }
