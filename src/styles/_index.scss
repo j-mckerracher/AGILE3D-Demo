@@ -1,0 +1,375 @@
+/**
+ * AGILE3D Design System - Main Entry Point
+ *
+ * This file orchestrates the AGILE3D design system by importing all design tokens,
+ * theme configurations, and accessibility utilities in the correct order.
+ *
+ * Import order is critical:
+ * 1. Design Tokens (foundation)
+ * 2. Theme Configurations (light/dark)
+ * 3. Material Theme Integration
+ * 4. Accessibility Utilities
+ *
+ * PRD References:
+ * - WP-1.3.1: Visual Design System & Theme
+ * - NFR-3.5: WCAG 2.2 AA compliance
+ * - UI-8.2: Consistent visual identity
+ */
+
+// ============================================================================
+// 1. Design Tokens (Foundation)
+// ============================================================================
+
+// Import all design tokens - these define CSS variables as source of truth
+@import 'tokens/colors';
+@import 'tokens/typography';
+@import 'tokens/spacing';
+@import 'tokens/radius';
+@import 'tokens/elevation';
+@import 'tokens/motion';
+
+// ============================================================================
+// 2. Theme Configurations
+// ============================================================================
+
+// Import theme-specific overrides
+@import 'theme/light'; // Light theme (default)
+@import 'theme/dark'; // Dark theme
+
+// ============================================================================
+// 3. Angular Material Theme Integration
+// ============================================================================
+
+@import 'theme/material-theme';
+
+// Apply Material theme with AGILE3D palettes
+html {
+  @include ag3d-material-theme();
+}
+
+// Apply dark theme to elements with .ag3d-theme-dark class
+.ag3d-theme-dark {
+  @include ag3d-material-dark-theme();
+}
+
+// ============================================================================
+// 4. Accessibility Utilities & Overrides
+// ============================================================================
+
+@import 'accessibility';
+
+// ============================================================================
+// 5. Global Base Styles
+// ============================================================================
+
+/**
+ * Global reset and base styles applying AGILE3D design tokens.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  // Set base font size for rem calculations (1rem = 16px)
+  font-size: 16px;
+
+  // Enable smooth scrolling (respects prefers-reduced-motion)
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--ag3d-font-family-base);
+  font-size: var(--ag3d-font-size-body-large);
+  line-height: var(--ag3d-line-height-body-large);
+  font-weight: var(--ag3d-font-weight-regular);
+  color: var(--ag3d-color-text-primary);
+  background-color: var(--ag3d-color-surface-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  // Prevent horizontal scrolling
+  overflow-x: hidden;
+}
+
+// Heading defaults
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-weight: var(--ag3d-font-weight-regular);
+  color: var(--ag3d-color-text-primary);
+}
+
+// Paragraph defaults
+p {
+  margin: 0 0 var(--ag3d-space-16) 0;
+}
+
+// Link defaults (enhanced in _accessibility.scss)
+a {
+  color: var(--ag3d-color-primary-600);
+  text-decoration: none;
+  transition: var(--ag3d-transition-color);
+}
+
+// Button reset
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+}
+
+// Input reset
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+// List reset
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// ============================================================================
+// 6. Utility Classes
+// ============================================================================
+
+/**
+ * Common utility classes for spacing, layout, and typography.
+ */
+
+// Spacing utilities
+.ag3d-mt-0 {
+  margin-top: var(--ag3d-space-0);
+}
+.ag3d-mt-xs {
+  margin-top: var(--ag3d-space-xs);
+}
+.ag3d-mt-sm {
+  margin-top: var(--ag3d-space-sm);
+}
+.ag3d-mt-md {
+  margin-top: var(--ag3d-space-md);
+}
+.ag3d-mt-lg {
+  margin-top: var(--ag3d-space-lg);
+}
+.ag3d-mt-xl {
+  margin-top: var(--ag3d-space-xl);
+}
+
+.ag3d-mb-0 {
+  margin-bottom: var(--ag3d-space-0);
+}
+.ag3d-mb-xs {
+  margin-bottom: var(--ag3d-space-xs);
+}
+.ag3d-mb-sm {
+  margin-bottom: var(--ag3d-space-sm);
+}
+.ag3d-mb-md {
+  margin-bottom: var(--ag3d-space-md);
+}
+.ag3d-mb-lg {
+  margin-bottom: var(--ag3d-space-lg);
+}
+.ag3d-mb-xl {
+  margin-bottom: var(--ag3d-space-xl);
+}
+
+// Padding utilities
+.ag3d-p-xs {
+  padding: var(--ag3d-space-xs);
+}
+.ag3d-p-sm {
+  padding: var(--ag3d-space-sm);
+}
+.ag3d-p-md {
+  padding: var(--ag3d-space-md);
+}
+.ag3d-p-lg {
+  padding: var(--ag3d-space-lg);
+}
+.ag3d-p-xl {
+  padding: var(--ag3d-space-xl);
+}
+
+// Text utilities
+.ag3d-text-primary {
+  color: var(--ag3d-color-text-primary);
+}
+.ag3d-text-secondary {
+  color: var(--ag3d-color-text-secondary);
+}
+.ag3d-text-disabled {
+  color: var(--ag3d-color-text-disabled);
+}
+
+.ag3d-text-center {
+  text-align: center;
+}
+.ag3d-text-left {
+  text-align: left;
+}
+.ag3d-text-right {
+  text-align: right;
+}
+
+.ag3d-font-bold {
+  font-weight: var(--ag3d-font-weight-bold);
+}
+.ag3d-font-medium {
+  font-weight: var(--ag3d-font-weight-medium);
+}
+.ag3d-font-regular {
+  font-weight: var(--ag3d-font-weight-regular);
+}
+
+// Layout utilities
+.ag3d-container {
+  max-width: var(--ag3d-container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--ag3d-section-padding-x);
+  padding-right: var(--ag3d-section-padding-x);
+}
+
+.ag3d-flex {
+  display: flex;
+}
+.ag3d-flex-column {
+  display: flex;
+  flex-direction: column;
+}
+.ag3d-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ag3d-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ag3d-grid {
+  display: grid;
+}
+
+// Gap utilities
+.ag3d-gap-xs {
+  gap: var(--ag3d-gap-xs);
+}
+.ag3d-gap-sm {
+  gap: var(--ag3d-gap-sm);
+}
+.ag3d-gap-md {
+  gap: var(--ag3d-gap-md);
+}
+.ag3d-gap-lg {
+  gap: var(--ag3d-gap-lg);
+}
+
+// Surface utilities
+.ag3d-surface-base {
+  background-color: var(--ag3d-color-surface-base);
+}
+.ag3d-surface-raised {
+  background-color: var(--ag3d-color-surface-raised);
+}
+
+// Elevation utilities
+.ag3d-elevation-1 {
+  box-shadow: var(--ag3d-elevation-1);
+}
+.ag3d-elevation-2 {
+  box-shadow: var(--ag3d-elevation-2);
+}
+.ag3d-elevation-3 {
+  box-shadow: var(--ag3d-elevation-3);
+}
+.ag3d-elevation-4 {
+  box-shadow: var(--ag3d-elevation-4);
+}
+
+// Border radius utilities
+.ag3d-rounded-sm {
+  border-radius: var(--ag3d-radius-sm);
+}
+.ag3d-rounded-md {
+  border-radius: var(--ag3d-radius-md);
+}
+.ag3d-rounded-lg {
+  border-radius: var(--ag3d-radius-lg);
+}
+.ag3d-rounded-full {
+  border-radius: var(--ag3d-radius-full);
+}
+
+// Object class color utilities (for legend, badges, etc.)
+.ag3d-color-vehicle {
+  color: var(--ag3d-color-class-vehicle);
+}
+.ag3d-bg-vehicle {
+  background-color: var(--ag3d-color-class-vehicle);
+}
+
+.ag3d-color-pedestrian {
+  color: var(--ag3d-color-class-pedestrian);
+}
+.ag3d-bg-pedestrian {
+  background-color: var(--ag3d-color-class-pedestrian);
+}
+
+.ag3d-color-cyclist {
+  color: var(--ag3d-color-class-cyclist);
+}
+.ag3d-bg-cyclist {
+  background-color: var(--ag3d-color-class-cyclist);
+}
+
+// Semantic color utilities
+.ag3d-color-success {
+  color: var(--ag3d-color-success);
+}
+.ag3d-bg-success {
+  background-color: var(--ag3d-color-success-surface);
+}
+
+.ag3d-color-warning {
+  color: var(--ag3d-color-warning);
+}
+.ag3d-bg-warning {
+  background-color: var(--ag3d-color-warning-surface);
+}
+
+.ag3d-color-error {
+  color: var(--ag3d-color-error);
+}
+.ag3d-bg-error {
+  background-color: var(--ag3d-color-error-surface);
+}
+
+.ag3d-color-info {
+  color: var(--ag3d-color-info);
+}
+.ag3d-bg-info {
+  background-color: var(--ag3d-color-info-surface);
+}

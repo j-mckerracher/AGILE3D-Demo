@@ -1,0 +1,53 @@
+<section
+  id="main-content"
+  class="main-demo"
+  role="main"
+  aria-labelledby="demo-title"
+  tabindex="-1"
+>
+  <h2 id="demo-title" class="ag3d-sr-only">AGILE3D Interactive Demonstration</h2>
+
+  <!-- Dual Viewer Section -->
+  <div class="dual-viewer-section" role="region" aria-labelledby="viewer-title">
+    <h3 id="viewer-title" class="ag3d-sr-only">3D Scene Viewers</h3>
+    <app-dual-viewer
+      [baselineDetections]="baselineDetections"
+      [agile3dDetections]="agile3dDetections"
+    />
+  </div>
+
+  <!-- Control Panel Section -->
+  <div class="control-panel-section" role="region" aria-labelledby="controls-title">
+    <h3 id="controls-title" class="section-title">Scene Controls</h3>
+    <div class="placeholder-content">
+      <p>Control panel will be implemented in a future work package.</p>
+      <ul>
+        <li>Scene selection</li>
+        <li>Detection threshold adjustment</li>
+        <li>Visualization options</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Metrics Dashboard Section -->
+  <div class="metrics-section" role="region" aria-labelledby="metrics-title">
+    <h3 id="metrics-title" class="section-title">Performance Metrics</h3>
+    <div class="placeholder-content">
+      <p>Metrics dashboard will be implemented in a future work package.</p>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-label">FPS</span>
+          <span class="metric-value">--</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Latency</span>
+          <span class="metric-value">-- ms</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Accuracy</span>
+          <span class="metric-value">--%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

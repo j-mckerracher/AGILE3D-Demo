@@ -25,24 +25,26 @@ import * as THREE from 'three';
   imports: [CommonModule, SceneViewerComponent],
   template: `
     <div class="dual-viewer-container">
-      <div class="viewer-panel">
-        <div class="viewer-label">DSVT-Voxel (Baseline)</div>
+      <!-- Baseline Viewer Region (NFR-3.3, NFR-3.4) -->
+      <section class="viewer-panel" role="region" aria-labelledby="baseline-viewer-label">
+        <h2 id="baseline-viewer-label" class="viewer-label">DSVT-Voxel (Baseline)</h2>
         <app-scene-viewer
           viewerId="baseline"
           [sharedPointGeometry]="sharedGeometry"
           [detections]="baselineDetections"
           [showFps]="showFps"
         />
-      </div>
-      <div class="viewer-panel">
-        <div class="viewer-label">AGILE3D</div>
+      </section>
+      <!-- AGILE3D Viewer Region (NFR-3.3, NFR-3.4) -->
+      <section class="viewer-panel" role="region" aria-labelledby="agile3d-viewer-label">
+        <h2 id="agile3d-viewer-label" class="viewer-label">AGILE3D</h2>
         <app-scene-viewer
           viewerId="agile3d"
           [sharedPointGeometry]="sharedGeometry"
           [detections]="agile3dDetections"
           [showFps]="showFps"
         />
-      </div>
+      </section>
     </div>
   `,
   styles: [
@@ -79,6 +81,7 @@ import * as THREE from 'three';
         background: rgba(0, 0, 0, 0.8);
         color: #fff;
         padding: 6px 12px;
+        margin: 0; /* Reset h2 default margin */
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         font-size: 14px;
         font-weight: 600;
@@ -93,15 +96,10 @@ import * as THREE from 'three';
       }
 
       /* Responsive breakpoints */
+      /* Tablet breakpoint - Stack viewers at 1024x768 per PRD UI §8.1.2 */
       @media (max-width: 1024px) {
         :host {
           width: 95%;
-        }
-      }
-
-      @media (max-width: 768px) {
-        :host {
-          width: 100%;
         }
 
         .dual-viewer-container {
@@ -111,6 +109,17 @@ import * as THREE from 'three';
 
         .viewer-panel {
           max-width: 100%;
+          height: 350px; /* Adjusted for ~768px tall displays */
+        }
+      }
+
+      /* Mobile optimization */
+      @media (max-width: 768px) {
+        :host {
+          width: 100%;
+        }
+
+        .viewer-panel {
           height: 400px;
         }
       }

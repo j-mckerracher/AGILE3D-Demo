@@ -1,0 +1,33 @@
+/**
+ * Theme Toggle Component Styles
+ */
+
+.theme-toggle-button {
+  transition: var(--ag3d-transition-button);
+
+  &:hover {
+    background-color: var(--ag3d-color-hover-overlay);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ag3d-color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.theme-toggle-menu {
+  .mat-mdc-menu-item {
+    &.selected {
+      background-color: var(--ag3d-color-hover-overlay);
+      font-weight: var(--ag3d-font-weight-medium);
+
+      mat-icon {
+        color: var(--ag3d-color-primary-600);
+      }
+    }
+
+    mat-icon {
+      margin-right: var(--ag3d-space-8);
+    }
+  }
+}

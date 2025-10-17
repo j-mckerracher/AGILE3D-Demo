@@ -1,0 +1,142 @@
+/**
+ * Object Class Legend Component Styles
+ */
+
+.legend {
+  padding: var(--ag3d-space-md);
+  background-color: var(--ag3d-color-surface-raised);
+  border-radius: var(--ag3d-radius-lg);
+  box-shadow: var(--ag3d-shadow-card);
+}
+
+.legend-title {
+  margin: 0 0 var(--ag3d-space-sm) 0;
+  font-size: var(--ag3d-font-size-title-medium);
+  font-weight: var(--ag3d-font-weight-medium);
+  color: var(--ag3d-color-text-primary);
+}
+
+.legend-items {
+  display: flex;
+  gap: var(--ag3d-gap-sm);
+}
+
+// Horizontal layout (default)
+.legend-horizontal {
+  .legend-items {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    flex: 0 1 auto;
+  }
+}
+
+// Vertical layout
+.legend-vertical {
+  .legend-items {
+    flex-direction: column;
+  }
+
+  .legend-item {
+    width: 100%;
+  }
+}
+
+.legend-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ag3d-space-2);
+}
+
+.legend-item-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ag3d-space-4);
+  padding: var(--ag3d-space-4) var(--ag3d-space-8);
+  background-color: var(--ag3d-color-surface-base);
+  border: 1px solid var(--ag3d-color-border);
+  border-radius: var(--ag3d-radius-chip);
+  transition: var(--ag3d-transition-card);
+
+  &:hover {
+    box-shadow: var(--ag3d-shadow-card-hover);
+    transform: translateY(-1px);
+  }
+}
+
+.legend-color-indicator {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--ag3d-radius-full);
+  border: 2px solid var(--ag3d-color-border);
+  flex-shrink: 0;
+}
+
+.legend-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  color: var(--ag3d-color-text-secondary);
+  flex-shrink: 0;
+}
+
+.legend-label {
+  font-size: var(--ag3d-font-size-label-medium);
+  font-weight: var(--ag3d-font-weight-medium);
+  color: var(--ag3d-color-text-primary);
+  white-space: nowrap;
+}
+
+.legend-description {
+  margin: 0;
+  padding-left: var(--ag3d-space-8);
+  font-size: var(--ag3d-font-size-body-small);
+  color: var(--ag3d-color-text-secondary);
+  line-height: var(--ag3d-line-height-body-small);
+}
+
+// Specific class styling for visual consistency
+.legend-item[data-class='vehicle'] {
+  .legend-color-indicator {
+    // Color set via inline style from component
+  }
+}
+
+.legend-item[data-class='pedestrian'] {
+  .legend-color-indicator {
+    // Color set via inline style from component
+  }
+}
+
+.legend-item[data-class='cyclist'] {
+  .legend-color-indicator {
+    // Color set via inline style from component
+  }
+}
+
+// Accessibility: High contrast mode support
+@media (prefers-contrast: high) {
+  .legend-item-chip {
+    border-width: 2px;
+  }
+
+  .legend-color-indicator {
+    border-width: 3px;
+  }
+}
+
+// Responsive design
+@media (max-width: 640px) {
+  .legend-horizontal {
+    .legend-items {
+      flex-direction: column;
+    }
+
+    .legend-item {
+      width: 100%;
+    }
+  }
+}

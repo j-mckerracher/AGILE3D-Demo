@@ -1,0 +1,318 @@
+/**
+ * AGILE3D Angular Material Theme Integration
+ *
+ * Integrates AGILE3D design tokens with Angular Material theming system.
+ * Uses Material Design 3 modern theming API with CSS variables.
+ *
+ * PRD References:
+ * - UI-8.2: Consistent visual identity
+ * - NFR-5.1: Modular Angular component architecture
+ */
+
+@use '@angular/material' as mat;
+
+// ============================================================================
+// Custom Material Theme Configuration
+// ============================================================================
+
+/**
+ * Define custom color palettes based on AGILE3D tokens.
+ * Material 3 uses a different palette structure, so we map our tokens.
+ */
+
+// Define primary palette using AGILE3D primary colors
+$ag3d-primary-palette: (
+  0: hsl(0, 0%, 0%),
+  10: hsl(222, 84%, 16%),
+  20: hsl(222, 84%, 26%),
+  25: hsl(222, 84%, 31%),
+  30: hsl(222, 84%, 36%),
+  35: hsl(222, 84%, 41%),
+  40: hsl(222, 84%, 46%),
+  50: hsl(222, 84%, 56%),
+  60: hsl(222, 84%, 66%),
+  70: hsl(222, 84%, 76%),
+  80: hsl(222, 84%, 86%),
+  90: hsl(222, 84%, 93%),
+  95: hsl(222, 84%, 97%),
+  98: hsl(222, 84%, 99%),
+  99: hsl(222, 84%, 99.5%),
+  100: hsl(0, 0%, 100%),
+);
+
+// Define secondary palette using AGILE3D secondary colors
+$ag3d-secondary-palette: (
+  0: hsl(0, 0%, 0%),
+  10: hsl(173, 80%, 10%),
+  20: hsl(173, 80%, 16%),
+  25: hsl(173, 80%, 21%),
+  30: hsl(173, 80%, 26%),
+  35: hsl(173, 80%, 31%),
+  40: hsl(173, 80%, 36%),
+  50: hsl(173, 80%, 46%),
+  60: hsl(173, 80%, 56%),
+  70: hsl(173, 80%, 66%),
+  80: hsl(173, 80%, 76%),
+  90: hsl(173, 80%, 93%),
+  95: hsl(173, 80%, 97%),
+  98: hsl(173, 80%, 99%),
+  99: hsl(173, 80%, 99.5%),
+  100: hsl(0, 0%, 100%),
+);
+
+// Define tertiary palette (for accent elements)
+$ag3d-tertiary-palette: (
+  0: hsl(0, 0%, 0%),
+  10: hsl(142, 71%, 15%),
+  20: hsl(142, 71%, 25%),
+  25: hsl(142, 71%, 30%),
+  30: hsl(142, 71%, 35%),
+  35: hsl(142, 71%, 40%),
+  40: hsl(142, 71%, 45%),
+  50: hsl(142, 71%, 55%),
+  60: hsl(142, 71%, 65%),
+  70: hsl(142, 71%, 75%),
+  80: hsl(142, 71%, 85%),
+  90: hsl(142, 71%, 93%),
+  95: hsl(142, 71%, 97%),
+  98: hsl(142, 71%, 99%),
+  99: hsl(142, 71%, 99.5%),
+  100: hsl(0, 0%, 100%),
+);
+
+// Define neutral palette
+$ag3d-neutral-palette: (
+  0: hsl(0, 0%, 0%),
+  4: hsl(0, 0%, 4%),
+  6: hsl(0, 0%, 6%),
+  10: hsl(0, 0%, 8%),
+  12: hsl(0, 0%, 12%),
+  17: hsl(0, 0%, 16%),
+  20: hsl(0, 0%, 20%),
+  22: hsl(0, 0%, 22%),
+  24: hsl(0, 0%, 24%),
+  25: hsl(0, 0%, 25%),
+  30: hsl(0, 0%, 28%),
+  35: hsl(0, 0%, 35%),
+  40: hsl(0, 0%, 40%),
+  50: hsl(0, 0%, 50%),
+  60: hsl(0, 0%, 64%),
+  70: hsl(0, 0%, 70%),
+  80: hsl(0, 0%, 80%),
+  87: hsl(0, 0%, 87%),
+  90: hsl(0, 0%, 90%),
+  92: hsl(0, 0%, 92%),
+  94: hsl(0, 0%, 94%),
+  95: hsl(0, 0%, 95%),
+  96: hsl(0, 0%, 96%),
+  98: hsl(0, 0%, 98%),
+  99: hsl(0, 0%, 99%),
+  100: hsl(0, 0%, 100%),
+);
+
+// Define error palette
+$ag3d-error-palette: (
+  0: hsl(0, 0%, 0%),
+  10: hsl(0, 84%, 10%),
+  20: hsl(0, 84%, 20%),
+  25: hsl(0, 84%, 25%),
+  30: hsl(0, 84%, 30%),
+  35: hsl(0, 84%, 35%),
+  40: hsl(0, 84%, 40%),
+  50: hsl(0, 84%, 50%),
+  60: hsl(0, 84%, 60%),
+  70: hsl(0, 84%, 70%),
+  80: hsl(0, 84%, 80%),
+  90: hsl(0, 84%, 90%),
+  95: hsl(0, 84%, 95%),
+  98: hsl(0, 84%, 98%),
+  99: hsl(0, 84%, 99%),
+  100: hsl(0, 0%, 100%),
+);
+
+// ============================================================================
+// Material Theme Mixin
+// ============================================================================
+
+/**
+ * Apply Material theme with AGILE3D color palettes.
+ * This creates CSS variables that Material components will use.
+ */
+@mixin ag3d-material-theme() {
+  @include mat.theme(
+    (
+      color: (
+        primary: $ag3d-primary-palette,
+        secondary: $ag3d-secondary-palette,
+        tertiary: $ag3d-tertiary-palette,
+        neutral: $ag3d-neutral-palette,
+        error: $ag3d-error-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+// ============================================================================
+// Dark Theme Override
+// ============================================================================
+
+/**
+ * Dark theme variant with adjusted Material colors.
+ */
+@mixin ag3d-material-dark-theme() {
+  @include mat.theme(
+    (
+      color: (
+        primary: $ag3d-primary-palette,
+        secondary: $ag3d-secondary-palette,
+        tertiary: $ag3d-tertiary-palette,
+        neutral: $ag3d-neutral-palette,
+        error: $ag3d-error-palette,
+        theme-type: dark,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+// ============================================================================
+// Material Component Customizations
+// ============================================================================
+
+/**
+ * Custom overrides for Material components to match AGILE3D design system.
+ */
+
+// Override Material button styles
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-outlined-button {
+  border-radius: var(--ag3d-radius-button);
+  transition: var(--ag3d-transition-button);
+
+  &:focus-visible {
+    outline: 2px solid var(--ag3d-color-focus);
+    outline-offset: 2px;
+  }
+}
+
+// Override Material card styles
+.mat-mdc-card {
+  border-radius: var(--ag3d-radius-card);
+  box-shadow: var(--ag3d-shadow-card);
+
+  &:hover {
+    box-shadow: var(--ag3d-shadow-card-hover);
+  }
+}
+
+// Override Material input styles
+.mat-mdc-form-field {
+  .mat-mdc-text-field-wrapper {
+    border-radius: var(--ag3d-radius-input);
+  }
+
+  &.mat-focused {
+    .mat-mdc-text-field-wrapper {
+      box-shadow: var(--ag3d-shadow-focus);
+    }
+  }
+}
+
+// Override Material chip styles
+.mat-mdc-chip {
+  border-radius: var(--ag3d-radius-chip);
+}
+
+// Override Material dialog styles
+.mat-mdc-dialog-container {
+  border-radius: var(--ag3d-radius-dialog);
+  box-shadow: var(--ag3d-shadow-dialog);
+}
+
+// Override Material tooltip styles
+.mat-mdc-tooltip {
+  border-radius: var(--ag3d-radius-tooltip);
+  font-size: var(--ag3d-font-size-label-small);
+}
+
+// Override Material menu/select panel
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel {
+  border-radius: var(--ag3d-radius-md);
+  box-shadow: var(--ag3d-shadow-dropdown);
+}
+
+// ============================================================================
+// Typography Integration
+// ============================================================================
+
+/**
+ * Map AGILE3D typography tokens to Material typography.
+ */
+.mat-typography {
+  h1,
+  .mat-headline-1 {
+    font-size: var(--ag3d-font-size-display-large);
+    line-height: var(--ag3d-line-height-display-large);
+    font-weight: var(--ag3d-font-weight-display-large);
+  }
+
+  h2,
+  .mat-headline-2 {
+    font-size: var(--ag3d-font-size-display-medium);
+    line-height: var(--ag3d-line-height-display-medium);
+    font-weight: var(--ag3d-font-weight-display-medium);
+  }
+
+  h3,
+  .mat-headline-3 {
+    font-size: var(--ag3d-font-size-headline-large);
+    line-height: var(--ag3d-line-height-headline-large);
+    font-weight: var(--ag3d-font-weight-headline-large);
+  }
+
+  h4,
+  .mat-headline-4 {
+    font-size: var(--ag3d-font-size-headline-medium);
+    line-height: var(--ag3d-line-height-headline-medium);
+    font-weight: var(--ag3d-font-weight-headline-medium);
+  }
+
+  h5,
+  .mat-headline-5 {
+    font-size: var(--ag3d-font-size-headline-small);
+    line-height: var(--ag3d-line-height-headline-small);
+    font-weight: var(--ag3d-font-weight-headline-small);
+  }
+
+  h6,
+  .mat-headline-6 {
+    font-size: var(--ag3d-font-size-title-large);
+    line-height: var(--ag3d-line-height-title-large);
+    font-weight: var(--ag3d-font-weight-title-large);
+  }
+
+  body,
+  .mat-body,
+  .mat-body-1 {
+    font-size: var(--ag3d-font-size-body-large);
+    line-height: var(--ag3d-line-height-body-large);
+    font-weight: var(--ag3d-font-weight-body-large);
+  }
+
+  .mat-body-2 {
+    font-size: var(--ag3d-font-size-body-medium);
+    line-height: var(--ag3d-line-height-body-medium);
+    font-weight: var(--ag3d-font-weight-body-medium);
+  }
+
+  .mat-caption {
+    font-size: var(--ag3d-font-size-body-small);
+    line-height: var(--ag3d-line-height-body-small);
+    font-weight: var(--ag3d-font-weight-body-small);
+  }
+}
