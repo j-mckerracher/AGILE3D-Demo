@@ -11,7 +11,10 @@
     "lint": "ng lint",
     "lint:fix": "ng lint --fix || true",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
-    "validate:data": "node tools/validate-data.mjs"
+    "validate:data": "node tools/validate-data.mjs",
+    "gen:scenes": "node tools/generate-scene-data.mjs",
+    "gen:scene": "node tools/generate-scene.mjs",
+    "add:scene:parking": "node tools/add-parking-lot-scene.mjs"
   },
   "prettier": {
     "singleQuote": true,
