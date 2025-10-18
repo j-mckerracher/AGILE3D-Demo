@@ -253,6 +253,110 @@ Feature extraction backbone network:
 
 ---
 
+## Current Configuration Display (WP-2.2.4)
+
+The application provides a live display of the current system configuration, showing both the baseline and AGILE3D settings along with all active control knob values.
+
+### Purpose
+
+The Current Configuration Display gives users immediate visibility into:
+- Which detection algorithms are currently active
+- What parameter values are driving the simulation
+- When AGILE3D switches between branches (adaptive behavior indicator)
+
+This component complements the control panel by providing real-time feedback on the system's current state.
+
+### Displayed Information
+
+#### Baseline Configuration
+- **Model Name**: "DSVT-Voxel (fixed)"
+- **Status**: Always static (non-adaptive baseline)
+
+#### AGILE3D Configuration
+- **Active Branch**: Current branch ID (e.g., "CP-Pillar-032")
+- **Branch Change Indicator**: Visual indicator (●) appears when AGILE3D switches branches
+  - Auto-clears after 2 seconds
+  - Respects `prefers-reduced-motion` (no pulse animation if reduced motion is active)
+
+#### Control Knob Settings (5 Parameters)
+
+1. **Encoding Format**: Voxel or Pillar
+2. **Spatial Resolution**: Voxel/pillar size in meters (e.g., "0.32 m")
+3. **Spatial Encoding**: HV (horizontal-vertical) or DV (depth-vertical)
+4. **Feature Extractor**: Transformer, Sparse CNN, or 2D CNN
+5. **Detection Head**: Anchor-based or Center-based
+
+### Data Sources
+
+The component reactively combines data from multiple services:
+- **StateService**: Advanced knobs (encoding format, detection head, feature extractor), voxel size
+- **SimulationService**: Active branch selection (branch ID)
+- **PaperDataService**: Full branch configuration including spatial encoding
+
+All values update automatically when upstream state changes, with updates rendering within <100ms (per NFR-1.3).
+
+### Branch Change Indicator
+
+The visual indicator provides real-time feedback when AGILE3D adapts by switching branches:
+
+**Behavior:**
+- **Appears**: When `SimulationService.activeBranch$` emits a new branch ID
+- **Auto-Clears**: After 2 seconds
+- **Accessibility**: Uses `role="status"` and `aria-label="Branch changed"` for screen readers
+- **Reduced Motion**: Pulse animation disabled when `prefers-reduced-motion: reduce` is active (simple opacity change only)
+
+**Implementation:**
+```typescript
+// Branch change detection with auto-clear
+branchId$.pipe(
+  distinctUntilChanged(),
+  switchMap((branchId, index) => {
+    if (index === 0) return [false]; // No indicator on initial load
+    return timer(0, 2000).pipe(
+      map((tick) => tick === 0), // true for 0ms, false for 2000ms
+      startWith(true)
+    );
+  })
+)
+```
+
+### Fallback Handling
+
+If branch configuration data is unavailable (e.g., branch not found in data service), the component displays "—" for the spatial encoding field.
+
+**Example:**
+```typescript
+spatialEncoding: branch?.controlKnobs.spatialEncoding ?? '—'
+```
+
+### Accessibility
+
+Per WCAG 2.2 AA standards (NFR-3.1–3.5):
+- **Live Region**: Container uses `aria-live="polite"` for screen reader announcements
+- **High Contrast**: All labels meet 4.5:1 contrast ratio (WCAG AA)
+- **Clear Hierarchy**: Semantic headings and structured layout
+- **Responsive**: Stacks knobs vertically on narrow screens (<480px)
+
+### PRD Requirements Satisfied
+
+- **FR-2.10**: Show active AGILE3D branch name ✅
+- **FR-2.11**: Display baseline model name ("DSVT-Voxel (fixed)") ✅
+- **FR-2.12**: Display all 5 control knob settings ✅
+- **FR-2.13**: Visual indicator when AGILE3D switches branches ✅
+- **NFR-3.1**: Intuitive display requiring minimal instruction ✅
+- **NFR-3.2**: Clear labels and visual hierarchy ✅
+- **NFR-3.4**: Keyboard navigation (read-only, but navigable) ✅
+- **NFR-3.5**: Accessible color contrast (WCAG AA) ✅
+- **NFR-3.7**: Respects `prefers-reduced-motion` ✅
+
+### Code Location
+
+- Component: `src/app/features/current-configuration/`
+- State Management: `src/app/core/services/state/state.service.ts`, `src/app/core/services/simulation/simulation.service.ts`
+- Types: `src/app/core/models/config-and-metrics.ts`, `src/app/core/models/branch.models.ts`
+
+---
+
 ## Camera Sync & Independent Mode (WP-2.1.3)
 
 The application provides flexible camera control modes for comparing scenes from different viewpoints or maintaining synchronized views.
