@@ -1,0 +1,131 @@
+/**
+ * AGILE3D Design Tokens - Spacing
+ *
+ * Spacing scale based on 8px grid system for consistent layouts.
+ * Provides predictable and harmonious spacing throughout the application.
+ *
+ * PRD References:
+ * - UI-8.2: Consistent visual identity
+ */
+
+// ============================================================================
+// Foundation: CSS Variables (Source of Truth)
+// ============================================================================
+
+:root {
+  // ---------------------------------------------------------------------------
+  // Base Unit (8px grid)
+  // ---------------------------------------------------------------------------
+  --ag3d-space-base: 0.5rem; // 8px
+
+  // ---------------------------------------------------------------------------
+  // Spacing Scale (8px increments)
+  // ---------------------------------------------------------------------------
+  --ag3d-space-0: 0; // 0px
+  --ag3d-space-1: 0.125rem; // 2px
+  --ag3d-space-2: 0.25rem; // 4px
+  --ag3d-space-4: 0.5rem; // 8px (1 unit)
+  --ag3d-space-8: 1rem; // 16px (2 units)
+  --ag3d-space-12: 1.5rem; // 24px (3 units)
+  --ag3d-space-16: 2rem; // 32px (4 units)
+  --ag3d-space-20: 2.5rem; // 40px (5 units)
+  --ag3d-space-24: 3rem; // 48px (6 units)
+  --ag3d-space-32: 4rem; // 64px (8 units)
+  --ag3d-space-40: 5rem; // 80px (10 units)
+  --ag3d-space-48: 6rem; // 96px (12 units)
+  --ag3d-space-64: 8rem; // 128px (16 units)
+  --ag3d-space-80: 10rem; // 160px (20 units)
+  --ag3d-space-96: 12rem; // 192px (24 units)
+  --ag3d-space-128: 16rem; // 256px (32 units)
+
+  // ---------------------------------------------------------------------------
+  // Semantic Spacing (For specific use cases)
+  // ---------------------------------------------------------------------------
+  --ag3d-space-xs: var(--ag3d-space-4); // 8px
+  --ag3d-space-sm: var(--ag3d-space-8); // 16px
+  --ag3d-space-md: var(--ag3d-space-16); // 32px
+  --ag3d-space-lg: var(--ag3d-space-24); // 48px
+  --ag3d-space-xl: var(--ag3d-space-32); // 64px
+  --ag3d-space-2xl: var(--ag3d-space-48); // 96px
+  --ag3d-space-3xl: var(--ag3d-space-64); // 128px
+
+  // ---------------------------------------------------------------------------
+  // Component-Specific Spacing
+  // ---------------------------------------------------------------------------
+
+  // Padding
+  --ag3d-padding-button: var(--ag3d-space-8) var(--ag3d-space-16);
+  --ag3d-padding-button-sm: var(--ag3d-space-4) var(--ag3d-space-12);
+  --ag3d-padding-button-lg: var(--ag3d-space-12) var(--ag3d-space-24);
+
+  --ag3d-padding-card: var(--ag3d-space-16);
+  --ag3d-padding-card-sm: var(--ag3d-space-12);
+  --ag3d-padding-card-lg: var(--ag3d-space-24);
+
+  --ag3d-padding-input: var(--ag3d-space-8) var(--ag3d-space-12);
+
+  // Gap (for flexbox/grid)
+  --ag3d-gap-xs: var(--ag3d-space-4); // 8px
+  --ag3d-gap-sm: var(--ag3d-space-8); // 16px
+  --ag3d-gap-md: var(--ag3d-space-16); // 32px
+  --ag3d-gap-lg: var(--ag3d-space-24); // 48px
+
+  // Layout sections
+  --ag3d-section-padding-y: var(--ag3d-space-64);
+  --ag3d-section-padding-x: var(--ag3d-space-16);
+  --ag3d-container-max-width: 75rem; // 1200px
+}
+
+// ============================================================================
+// SCSS Variables (Mirror CSS Variables for Build-Time Use)
+// ============================================================================
+
+// Base
+$ag3d-space-base: var(--ag3d-space-base);
+
+// Spacing Scale
+$ag3d-space-0: var(--ag3d-space-0);
+$ag3d-space-1: var(--ag3d-space-1);
+$ag3d-space-2: var(--ag3d-space-2);
+$ag3d-space-4: var(--ag3d-space-4);
+$ag3d-space-8: var(--ag3d-space-8);
+$ag3d-space-12: var(--ag3d-space-12);
+$ag3d-space-16: var(--ag3d-space-16);
+$ag3d-space-20: var(--ag3d-space-20);
+$ag3d-space-24: var(--ag3d-space-24);
+$ag3d-space-32: var(--ag3d-space-32);
+$ag3d-space-40: var(--ag3d-space-40);
+$ag3d-space-48: var(--ag3d-space-48);
+$ag3d-space-64: var(--ag3d-space-64);
+$ag3d-space-80: var(--ag3d-space-80);
+$ag3d-space-96: var(--ag3d-space-96);
+$ag3d-space-128: var(--ag3d-space-128);
+
+// Semantic Spacing
+$ag3d-space-xs: var(--ag3d-space-xs);
+$ag3d-space-sm: var(--ag3d-space-sm);
+$ag3d-space-md: var(--ag3d-space-md);
+$ag3d-space-lg: var(--ag3d-space-lg);
+$ag3d-space-xl: var(--ag3d-space-xl);
+$ag3d-space-2xl: var(--ag3d-space-2xl);
+$ag3d-space-3xl: var(--ag3d-space-3xl);
+
+// Component Padding
+$ag3d-padding-button: var(--ag3d-padding-button);
+$ag3d-padding-button-sm: var(--ag3d-padding-button-sm);
+$ag3d-padding-button-lg: var(--ag3d-padding-button-lg);
+$ag3d-padding-card: var(--ag3d-padding-card);
+$ag3d-padding-card-sm: var(--ag3d-padding-card-sm);
+$ag3d-padding-card-lg: var(--ag3d-padding-card-lg);
+$ag3d-padding-input: var(--ag3d-padding-input);
+
+// Gaps
+$ag3d-gap-xs: var(--ag3d-gap-xs);
+$ag3d-gap-sm: var(--ag3d-gap-sm);
+$ag3d-gap-md: var(--ag3d-gap-md);
+$ag3d-gap-lg: var(--ag3d-gap-lg);
+
+// Layout
+$ag3d-section-padding-y: var(--ag3d-section-padding-y);
+$ag3d-section-padding-x: var(--ag3d-section-padding-x);
+$ag3d-container-max-width: var(--ag3d-container-max-width);

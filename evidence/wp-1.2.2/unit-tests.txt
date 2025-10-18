@@ -1,0 +1,48 @@
+
+> agile3d-demo@0.0.0 test
+> ng test --watch=false --browsers=FirefoxHeadless
+
+❯ Building...
+✔ Building...
+Initial chunk files                                            | Names                                                       |  Raw size
+chunk-3BTTLWKR.js                                              | -                                                           |   2.28 MB | 
+chunk-TY5L5GVR.js                                              | -                                                           |   1.19 MB | 
+polyfills.js                                                   | polyfills                                                   |   1.03 MB | 
+spec-app-app.spec.js                                           | spec-app-app.spec                                           | 211.67 kB | 
+chunk-XIDDO54R.js                                              | -                                                           | 192.49 kB | 
+chunk-JY6OJWYS.js                                              | -                                                           |  96.43 kB | 
+jasmine-cleanup-1.js                                           | jasmine-cleanup-1                                           |  67.20 kB | 
+chunk-LB5SBDCS.js                                              | -                                                           |  43.35 kB | 
+spec-app-core-services-data-scene-data.service.spec.js         | spec-app-core-services-data-scene-data.service.spec         |  28.61 kB | 
+test_main.js                                                   | test_main                                                   |  21.88 kB | 
+spec-app-features-dual-viewer-dual-viewer.component.spec.js    | spec-app-features-dual-viewer-dual-viewer.component.spec    |  14.29 kB | 
+spec-app-core-services-reduced-motion.service.spec.js          | spec-app-core-services-reduced-motion.service.spec          |   9.26 kB | 
+styles.css                                                     | styles                                                      |   9.21 kB | 
+spec-app-core-services-data-scene-tier-manager.service.spec.js | spec-app-core-services-data-scene-tier-manager.service.spec |   8.99 kB | 
+spec-app-core-services-state-state.service.spec.js             | spec-app-core-services-state-state.service.spec             |   8.02 kB | 
+spec-app-features-scene-viewer-scene-viewer.component.spec.js  | spec-app-features-scene-viewer-scene-viewer.component.spec  |   7.23 kB | 
+chunk-RO2LXGCG.js                                              | -                                                           |   5.41 kB | 
+spec-app-core-services-controls-camera-control.service.spec.js | spec-app-core-services-controls-camera-control.service.spec |   4.73 kB | 
+chunk-CL76UCDB.js                                              | -                                                           |   4.50 kB | 
+spec-app-core-services-rendering-render-loop.service.spec.js   | spec-app-core-services-rendering-render-loop.service.spec   |   3.00 kB | 
+chunk-EKVONNVD.js                                              | -                                                           |   2.79 kB | 
+chunk-TTULUY32.js                                              | -                                                           |   1.99 kB | 
+chunk-JTWZGPLI.js                                              | -                                                           | 935 bytes | 
+jasmine-cleanup-0.js                                           | jasmine-cleanup-0                                           | 519 bytes | 
+
+                                                               | Initial total                                               |   5.24 MB
+
+Lazy chunk files                                               | Names                                                       |  Raw size
+worker-YB75OF3M.js                                             | point-cloud-worker                                          |   1.16 kB | 
+
+Application bundle generation complete. [27.285 seconds] - 2025-10-17T01:40:48.816Z
+
+[32m16 10 2025 19:40:50.719:INFO [karma-server]: [39mKarma v6.4.4 server started at http://localhost:9876/
+[32m16 10 2025 19:40:50.724:INFO [launcher]: [39mLaunching browsers FirefoxHeadless with concurrency unlimited
+[32m16 10 2025 19:40:50.748:INFO [launcher]: [39mStarting browser Firefox
+[33m16 10 2025 19:41:50.750:WARN [launcher]: [39mFirefox has not captured in 60000 ms, killing.
+[32m16 10 2025 19:41:50.771:INFO [launcher]: [39mTrying to start Firefox again (1/2).
+[33m16 10 2025 19:42:50.773:WARN [launcher]: [39mFirefox has not captured in 60000 ms, killing.
+[32m16 10 2025 19:42:50.798:INFO [launcher]: [39mTrying to start Firefox again (2/2).
+[33m16 10 2025 19:43:50.800:WARN [launcher]: [39mFirefox has not captured in 60000 ms, killing.
+[91m16 10 2025 19:43:50.817:ERROR [launcher]: [39mFirefox failed 2 times (timeout). Giving up.

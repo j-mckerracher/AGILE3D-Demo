@@ -1,0 +1,223 @@
+/**
+ * AGILE3D Design Tokens - Colors
+ *
+ * Color palette and semantic color definitions following WCAG 2.2 AA compliance.
+ * Uses HSL color space for easier manipulation and CSS variables as source of truth.
+ *
+ * PRD References:
+ * - NFR-3.5: WCAG 2.2 AA compliance
+ * - FR-1.3: 3D bounding box color coding
+ * - UI-8.2: Consistent visual identity
+ */
+
+// ============================================================================
+// Foundation: CSS Variables (Source of Truth)
+// ============================================================================
+
+:root {
+  // ---------------------------------------------------------------------------
+  // Primary Colors - Deep Blue (Trust & Technical Credibility)
+  // ---------------------------------------------------------------------------
+  --ag3d-color-primary-50: hsl(222 84% 97%);
+  --ag3d-color-primary-100: hsl(222 84% 93%);
+  --ag3d-color-primary-200: hsl(222 84% 86%);
+  --ag3d-color-primary-300: hsl(222 84% 76%);
+  --ag3d-color-primary-400: hsl(222 84% 66%);
+  --ag3d-color-primary-500: hsl(222 84% 56%); // Base primary
+  --ag3d-color-primary-600: hsl(222 84% 46%); // #1e3a8a
+  --ag3d-color-primary-700: hsl(222 84% 36%);
+  --ag3d-color-primary-800: hsl(222 84% 26%);
+  --ag3d-color-primary-900: hsl(222 84% 16%);
+
+  // ---------------------------------------------------------------------------
+  // Secondary Colors - Teal (Technology & Clarity)
+  // ---------------------------------------------------------------------------
+  --ag3d-color-secondary-50: hsl(173 80% 97%);
+  --ag3d-color-secondary-100: hsl(173 80% 93%);
+  --ag3d-color-secondary-200: hsl(173 80% 86%);
+  --ag3d-color-secondary-300: hsl(173 80% 76%);
+  --ag3d-color-secondary-400: hsl(173 80% 56%);
+  --ag3d-color-secondary-500: hsl(173 80% 46%);
+  --ag3d-color-secondary-600: hsl(173 80% 36%); // #0d9488
+  --ag3d-color-secondary-700: hsl(173 80% 26%);
+  --ag3d-color-secondary-800: hsl(173 80% 16%);
+  --ag3d-color-secondary-900: hsl(173 80% 10%);
+
+  // ---------------------------------------------------------------------------
+  // Object Classification Colors (CVD-Safe)
+  // PRD FR-1.3: Blue (Vehicles), Red→Amber (Pedestrians), Orange→Green (Cyclists)
+  // ---------------------------------------------------------------------------
+
+  // Vehicles - Blue family
+  --ag3d-color-class-vehicle: hsl(217 91% 60%); // #3b82f6
+  --ag3d-color-class-vehicle-light: hsl(217 91% 70%);
+  --ag3d-color-class-vehicle-dark: hsl(217 91% 50%);
+
+  // Pedestrians - Red family (PRD §8.2.1)
+  --ag3d-color-class-pedestrian: hsl(0 84% 60%); // #ef4444
+  --ag3d-color-class-pedestrian-light: hsl(0 84% 70%);
+  --ag3d-color-class-pedestrian-dark: hsl(0 84% 50%);
+
+  // Cyclists - Orange family (PRD §8.2.1)
+  --ag3d-color-class-cyclist: hsl(25 95% 53%); // #f97316
+  --ag3d-color-class-cyclist-light: hsl(25 95% 63%);
+  --ag3d-color-class-cyclist-dark: hsl(25 95% 43%);
+
+  // ---------------------------------------------------------------------------
+  // Neutral Scale (9-step grayscale)
+  // ---------------------------------------------------------------------------
+  --ag3d-color-neutral-0: hsl(0 0% 100%); // White
+  --ag3d-color-neutral-50: hsl(0 0% 98%);
+  --ag3d-color-neutral-100: hsl(0 0% 96%);
+  --ag3d-color-neutral-200: hsl(0 0% 90%);
+  --ag3d-color-neutral-300: hsl(0 0% 80%);
+  --ag3d-color-neutral-400: hsl(0 0% 64%);
+  --ag3d-color-neutral-500: hsl(0 0% 50%);
+  --ag3d-color-neutral-600: hsl(0 0% 40%);
+  --ag3d-color-neutral-700: hsl(0 0% 28%);
+  --ag3d-color-neutral-800: hsl(0 0% 16%);
+  --ag3d-color-neutral-900: hsl(0 0% 8%);
+  --ag3d-color-neutral-1000: hsl(0 0% 4%); // Near-black
+
+  // ---------------------------------------------------------------------------
+  // Semantic State Colors
+  // ---------------------------------------------------------------------------
+
+  // Success - Green
+  --ag3d-color-success-light: hsl(142 71% 55%);
+  --ag3d-color-success: hsl(142 71% 45%); // #16a34a
+  --ag3d-color-success-dark: hsl(142 71% 35%);
+
+  // Warning - Yellow/Amber
+  --ag3d-color-warning-light: hsl(45 93% 57%);
+  --ag3d-color-warning: hsl(45 93% 47%); // #eab308
+  --ag3d-color-warning-dark: hsl(45 93% 37%);
+
+  // Error - Red
+  --ag3d-color-error-light: hsl(0 84% 65%);
+  --ag3d-color-error: hsl(0 84% 60%); // #ef4444
+  --ag3d-color-error-dark: hsl(0 84% 50%);
+
+  // Info - Cyan
+  --ag3d-color-info-light: hsl(199 89% 58%);
+  --ag3d-color-info: hsl(199 89% 48%); // #06b6d4
+  --ag3d-color-info-dark: hsl(199 89% 38%);
+
+  // ---------------------------------------------------------------------------
+  // Surface & UI Colors (Theme-specific, defaults to light)
+  // ---------------------------------------------------------------------------
+  --ag3d-color-surface-base: var(--ag3d-color-neutral-0);
+  --ag3d-color-surface-raised: var(--ag3d-color-neutral-50);
+  --ag3d-color-surface-overlay: var(--ag3d-color-neutral-0);
+  --ag3d-color-surface-disabled: var(--ag3d-color-neutral-100);
+
+  --ag3d-color-border: var(--ag3d-color-neutral-200);
+  --ag3d-color-border-strong: var(--ag3d-color-neutral-300);
+  --ag3d-color-divider: var(--ag3d-color-neutral-200);
+
+  --ag3d-color-text-primary: var(--ag3d-color-neutral-900);
+  --ag3d-color-text-secondary: var(--ag3d-color-neutral-600);
+  --ag3d-color-text-disabled: var(--ag3d-color-neutral-400);
+  --ag3d-color-text-on-primary: var(--ag3d-color-neutral-0);
+
+  --ag3d-color-focus: var(--ag3d-color-primary-500);
+  --ag3d-color-focus-ring: hsla(222 84% 56% / 0.2);
+
+  // ---------------------------------------------------------------------------
+  // 3D Viewer Specific Colors
+  // ---------------------------------------------------------------------------
+  --ag3d-color-viewer-background: hsl(210 20% 12%); // Dark background for 3D
+  --ag3d-color-viewer-grid: hsla(0 0% 100% / 0.1);
+  --ag3d-color-viewer-axis-x: hsl(0 100% 50%); // Red
+  --ag3d-color-viewer-axis-y: hsl(120 100% 40%); // Green
+  --ag3d-color-viewer-axis-z: hsl(240 100% 60%); // Blue
+}
+
+// ============================================================================
+// SCSS Variables (Mirror CSS Variables for Build-Time Use)
+// ============================================================================
+
+// Primary
+$ag3d-color-primary-50: var(--ag3d-color-primary-50);
+$ag3d-color-primary-100: var(--ag3d-color-primary-100);
+$ag3d-color-primary-200: var(--ag3d-color-primary-200);
+$ag3d-color-primary-300: var(--ag3d-color-primary-300);
+$ag3d-color-primary-400: var(--ag3d-color-primary-400);
+$ag3d-color-primary-500: var(--ag3d-color-primary-500);
+$ag3d-color-primary-600: var(--ag3d-color-primary-600);
+$ag3d-color-primary-700: var(--ag3d-color-primary-700);
+$ag3d-color-primary-800: var(--ag3d-color-primary-800);
+$ag3d-color-primary-900: var(--ag3d-color-primary-900);
+
+// Secondary
+$ag3d-color-secondary-50: var(--ag3d-color-secondary-50);
+$ag3d-color-secondary-100: var(--ag3d-color-secondary-100);
+$ag3d-color-secondary-200: var(--ag3d-color-secondary-200);
+$ag3d-color-secondary-300: var(--ag3d-color-secondary-300);
+$ag3d-color-secondary-400: var(--ag3d-color-secondary-400);
+$ag3d-color-secondary-500: var(--ag3d-color-secondary-500);
+$ag3d-color-secondary-600: var(--ag3d-color-secondary-600);
+$ag3d-color-secondary-700: var(--ag3d-color-secondary-700);
+$ag3d-color-secondary-800: var(--ag3d-color-secondary-800);
+$ag3d-color-secondary-900: var(--ag3d-color-secondary-900);
+
+// Object Classes
+$ag3d-color-class-vehicle: var(--ag3d-color-class-vehicle);
+$ag3d-color-class-vehicle-light: var(--ag3d-color-class-vehicle-light);
+$ag3d-color-class-vehicle-dark: var(--ag3d-color-class-vehicle-dark);
+$ag3d-color-class-pedestrian: var(--ag3d-color-class-pedestrian);
+$ag3d-color-class-pedestrian-light: var(--ag3d-color-class-pedestrian-light);
+$ag3d-color-class-pedestrian-dark: var(--ag3d-color-class-pedestrian-dark);
+$ag3d-color-class-cyclist: var(--ag3d-color-class-cyclist);
+$ag3d-color-class-cyclist-light: var(--ag3d-color-class-cyclist-light);
+$ag3d-color-class-cyclist-dark: var(--ag3d-color-class-cyclist-dark);
+
+// Neutral
+$ag3d-color-neutral-0: var(--ag3d-color-neutral-0);
+$ag3d-color-neutral-50: var(--ag3d-color-neutral-50);
+$ag3d-color-neutral-100: var(--ag3d-color-neutral-100);
+$ag3d-color-neutral-200: var(--ag3d-color-neutral-200);
+$ag3d-color-neutral-300: var(--ag3d-color-neutral-300);
+$ag3d-color-neutral-400: var(--ag3d-color-neutral-400);
+$ag3d-color-neutral-500: var(--ag3d-color-neutral-500);
+$ag3d-color-neutral-600: var(--ag3d-color-neutral-600);
+$ag3d-color-neutral-700: var(--ag3d-color-neutral-700);
+$ag3d-color-neutral-800: var(--ag3d-color-neutral-800);
+$ag3d-color-neutral-900: var(--ag3d-color-neutral-900);
+$ag3d-color-neutral-1000: var(--ag3d-color-neutral-1000);
+
+// Semantic
+$ag3d-color-success: var(--ag3d-color-success);
+$ag3d-color-success-light: var(--ag3d-color-success-light);
+$ag3d-color-success-dark: var(--ag3d-color-success-dark);
+$ag3d-color-warning: var(--ag3d-color-warning);
+$ag3d-color-warning-light: var(--ag3d-color-warning-light);
+$ag3d-color-warning-dark: var(--ag3d-color-warning-dark);
+$ag3d-color-error: var(--ag3d-color-error);
+$ag3d-color-error-light: var(--ag3d-color-error-light);
+$ag3d-color-error-dark: var(--ag3d-color-error-dark);
+$ag3d-color-info: var(--ag3d-color-info);
+$ag3d-color-info-light: var(--ag3d-color-info-light);
+$ag3d-color-info-dark: var(--ag3d-color-info-dark);
+
+// Surface & UI
+$ag3d-color-surface-base: var(--ag3d-color-surface-base);
+$ag3d-color-surface-raised: var(--ag3d-color-surface-raised);
+$ag3d-color-surface-overlay: var(--ag3d-color-surface-overlay);
+$ag3d-color-surface-disabled: var(--ag3d-color-surface-disabled);
+$ag3d-color-border: var(--ag3d-color-border);
+$ag3d-color-border-strong: var(--ag3d-color-border-strong);
+$ag3d-color-divider: var(--ag3d-color-divider);
+$ag3d-color-text-primary: var(--ag3d-color-text-primary);
+$ag3d-color-text-secondary: var(--ag3d-color-text-secondary);
+$ag3d-color-text-disabled: var(--ag3d-color-text-disabled);
+$ag3d-color-text-on-primary: var(--ag3d-color-text-on-primary);
+$ag3d-color-focus: var(--ag3d-color-focus);
+$ag3d-color-focus-ring: var(--ag3d-color-focus-ring);
+
+// 3D Viewer
+$ag3d-color-viewer-background: var(--ag3d-color-viewer-background);
+$ag3d-color-viewer-grid: var(--ag3d-color-viewer-grid);
+$ag3d-color-viewer-axis-x: var(--ag3d-color-viewer-axis-x);
+$ag3d-color-viewer-axis-y: var(--ag3d-color-viewer-axis-y);
+$ag3d-color-viewer-axis-z: var(--ag3d-color-viewer-axis-z);

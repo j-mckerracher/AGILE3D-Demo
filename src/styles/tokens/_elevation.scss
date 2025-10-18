@@ -1,0 +1,85 @@
+/**
+ * AGILE3D Design Tokens - Elevation (Shadows)
+ *
+ * Box shadow scale for depth and elevation levels.
+ * Based on Material Design 3 elevation system.
+ *
+ * PRD References:
+ * - UI-8.2: Consistent visual identity
+ */
+
+// ============================================================================
+// Foundation: CSS Variables (Source of Truth)
+// ============================================================================
+
+:root {
+  // ---------------------------------------------------------------------------
+  // Elevation Scale (Material Design 3 inspired)
+  // ---------------------------------------------------------------------------
+
+  // Level 0 - No elevation
+  --ag3d-elevation-0: none;
+
+  // Level 1 - Subtle lift (cards, chips)
+  --ag3d-elevation-1: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  // Level 2 - Low elevation (raised buttons, cards on hover)
+  --ag3d-elevation-2: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+
+  // Level 3 - Medium elevation (dropdowns, popovers)
+  --ag3d-elevation-3: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+
+  // Level 4 - High elevation (dialogs, sheets)
+  --ag3d-elevation-4: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  // Level 5 - Very high elevation (modals, overlays)
+  --ag3d-elevation-5: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+  // Level 6 - Maximum elevation (tooltips, notifications)
+  --ag3d-elevation-6: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  // ---------------------------------------------------------------------------
+  // Component-Specific Shadows
+  // ---------------------------------------------------------------------------
+  --ag3d-shadow-card: var(--ag3d-elevation-1);
+  --ag3d-shadow-card-hover: var(--ag3d-elevation-2);
+  --ag3d-shadow-button: var(--ag3d-elevation-1);
+  --ag3d-shadow-button-hover: var(--ag3d-elevation-2);
+  --ag3d-shadow-dropdown: var(--ag3d-elevation-3);
+  --ag3d-shadow-dialog: var(--ag3d-elevation-4);
+  --ag3d-shadow-modal: var(--ag3d-elevation-5);
+  --ag3d-shadow-tooltip: var(--ag3d-elevation-6);
+
+  // ---------------------------------------------------------------------------
+  // Focus Shadow (for accessibility)
+  // ---------------------------------------------------------------------------
+  --ag3d-shadow-focus: 0 0 0 3px var(--ag3d-color-focus-ring);
+  --ag3d-shadow-focus-error: 0 0 0 3px hsla(0, 84%, 60%, 0.2);
+}
+
+// ============================================================================
+// SCSS Variables (Mirror CSS Variables for Build-Time Use)
+// ============================================================================
+
+// Elevation Scale
+$ag3d-elevation-0: var(--ag3d-elevation-0);
+$ag3d-elevation-1: var(--ag3d-elevation-1);
+$ag3d-elevation-2: var(--ag3d-elevation-2);
+$ag3d-elevation-3: var(--ag3d-elevation-3);
+$ag3d-elevation-4: var(--ag3d-elevation-4);
+$ag3d-elevation-5: var(--ag3d-elevation-5);
+$ag3d-elevation-6: var(--ag3d-elevation-6);
+
+// Component-Specific
+$ag3d-shadow-card: var(--ag3d-shadow-card);
+$ag3d-shadow-card-hover: var(--ag3d-shadow-card-hover);
+$ag3d-shadow-button: var(--ag3d-shadow-button);
+$ag3d-shadow-button-hover: var(--ag3d-shadow-button-hover);
+$ag3d-shadow-dropdown: var(--ag3d-shadow-dropdown);
+$ag3d-shadow-dialog: var(--ag3d-shadow-dialog);
+$ag3d-shadow-modal: var(--ag3d-shadow-modal);
+$ag3d-shadow-tooltip: var(--ag3d-shadow-tooltip);
+
+// Focus Shadows
+$ag3d-shadow-focus: var(--ag3d-shadow-focus);
+$ag3d-shadow-focus-error: var(--ag3d-shadow-focus-error);

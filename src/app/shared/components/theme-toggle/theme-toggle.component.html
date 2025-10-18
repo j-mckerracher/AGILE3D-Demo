@@ -1,0 +1,41 @@
+<button
+  mat-icon-button
+  [matMenuTriggerFor]="themeMenu"
+  [matTooltip]="getTooltip((themeMode$ | async)!)"
+  [attr.aria-label]="getThemeLabel((themeMode$ | async)!, (activeTheme$ | async)!)"
+  class="theme-toggle-button"
+>
+  <mat-icon>{{ getThemeIcon((themeMode$ | async)!, (activeTheme$ | async)!) }}</mat-icon>
+</button>
+
+<mat-menu #themeMenu="matMenu" class="theme-toggle-menu">
+  <button
+    mat-menu-item
+    (click)="setThemeMode('light')"
+    [class.selected]="isSelected((themeMode$ | async)!, 'light')"
+    [attr.aria-pressed]="isSelected((themeMode$ | async)!, 'light')"
+  >
+    <mat-icon>light_mode</mat-icon>
+    <span>Light theme</span>
+  </button>
+
+  <button
+    mat-menu-item
+    (click)="setThemeMode('dark')"
+    [class.selected]="isSelected((themeMode$ | async)!, 'dark')"
+    [attr.aria-pressed]="isSelected((themeMode$ | async)!, 'dark')"
+  >
+    <mat-icon>dark_mode</mat-icon>
+    <span>Dark theme</span>
+  </button>
+
+  <button
+    mat-menu-item
+    (click)="setThemeMode('system')"
+    [class.selected]="isSelected((themeMode$ | async)!, 'system')"
+    [attr.aria-pressed]="isSelected((themeMode$ | async)!, 'system')"
+  >
+    <mat-icon>brightness_auto</mat-icon>
+    <span>System theme</span>
+  </button>
+</mat-menu>

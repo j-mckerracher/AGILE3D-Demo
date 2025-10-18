@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { DualViewerComponent } from './dual-viewer.component';
 import { SceneViewerComponent } from '../scene-viewer/scene-viewer.component';
 import { RenderLoopService } from '../../core/services/rendering/render-loop.service';
@@ -122,9 +123,12 @@ describe('DualViewerComponent', () => {
     component.showFps = false;
     fixture.detectChanges();
 
-    // Verify the template binding (showFps is bound to both viewers)
-    const template = fixture.debugElement.nativeElement.outerHTML;
-    expect(template).toContain('showFps');
+    const childDes = fixture.debugElement.queryAll(By.directive(SceneViewerComponent));
+    expect(childDes.length).toBe(2);
+    const baselineCmp = childDes[0]!.componentInstance as SceneViewerComponent;
+    const agileCmp = childDes[1]!.componentInstance as SceneViewerComponent;
+    expect(baselineCmp.showFps).toBeFalse();
+    expect(agileCmp.showFps).toBeFalse();
   });
 
   it('should display viewer labels', () => {

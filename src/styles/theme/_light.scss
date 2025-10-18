@@ -1,0 +1,94 @@
+/**
+ * AGILE3D Light Theme
+ *
+ * Light theme color overrides for surface, text, and UI elements.
+ * Applied when theme is set to 'light' or system preference is 'light'.
+ *
+ * PRD References:
+ * - UI-8.2: Consistent visual identity
+ * - NFR-3.5: WCAG 2.2 AA compliance
+ */
+
+:root,
+.ag3d-theme-light {
+  // ---------------------------------------------------------------------------
+  // Surface Colors (Light Theme)
+  // ---------------------------------------------------------------------------
+  --ag3d-color-surface-base: var(--ag3d-color-neutral-0); // White
+  --ag3d-color-surface-raised: var(--ag3d-color-neutral-50); // Off-white
+  --ag3d-color-surface-overlay: var(--ag3d-color-neutral-0); // White
+  --ag3d-color-surface-disabled: var(--ag3d-color-neutral-100);
+
+  // ---------------------------------------------------------------------------
+  // Border & Divider Colors (Light Theme)
+  // ---------------------------------------------------------------------------
+  --ag3d-color-border: var(--ag3d-color-neutral-200);
+  --ag3d-color-border-strong: var(--ag3d-color-neutral-300);
+  --ag3d-color-divider: var(--ag3d-color-neutral-200);
+
+  // ---------------------------------------------------------------------------
+  // Text Colors (Light Theme)
+  // WCAG 2.2 AA Compliant contrast ratios on white background
+  // ---------------------------------------------------------------------------
+  --ag3d-color-text-primary: var(--ag3d-color-neutral-900); // 4.5:1+ on white
+  --ag3d-color-text-secondary: var(--ag3d-color-neutral-600); // 4.5:1+ on white
+  --ag3d-color-text-disabled: var(--ag3d-color-neutral-400);
+  --ag3d-color-text-on-primary: var(--ag3d-color-neutral-0); // White on primary
+  --ag3d-color-text-on-secondary: var(--ag3d-color-neutral-0); // White on secondary
+
+  // ---------------------------------------------------------------------------
+  // Interactive Colors (Light Theme)
+  // ---------------------------------------------------------------------------
+  --ag3d-color-focus: var(--ag3d-color-primary-500);
+  --ag3d-color-focus-ring: hsla(222, 84%, 56%, 0.2);
+
+  --ag3d-color-hover-overlay: hsla(0, 0%, 0%, 0.04);
+  --ag3d-color-pressed-overlay: hsla(0, 0%, 0%, 0.08);
+
+  // ---------------------------------------------------------------------------
+  // Semantic Colors (Light Theme) - Adjusted for contrast
+  // ---------------------------------------------------------------------------
+
+  // Success - Darker green for better contrast
+  --ag3d-color-success: hsl(142, 71%, 35%); // Darker for WCAG AA
+  --ag3d-color-success-light: hsl(142, 71%, 45%);
+  --ag3d-color-success-dark: hsl(142, 71%, 25%);
+  --ag3d-color-success-surface: hsl(142, 71%, 95%);
+
+  // Warning - Darker amber for better contrast
+  --ag3d-color-warning: hsl(45, 93%, 37%); // Darker for WCAG AA
+  --ag3d-color-warning-light: hsl(45, 93%, 47%);
+  --ag3d-color-warning-dark: hsl(45, 93%, 27%);
+  --ag3d-color-warning-surface: hsl(45, 93%, 95%);
+
+  // Error - Good contrast as-is
+  --ag3d-color-error: hsl(0, 84%, 50%);
+  --ag3d-color-error-light: hsl(0, 84%, 60%);
+  --ag3d-color-error-dark: hsl(0, 84%, 40%);
+  --ag3d-color-error-surface: hsl(0, 84%, 95%);
+
+  // Info
+  --ag3d-color-info: hsl(199, 89%, 38%); // Darker for WCAG AA
+  --ag3d-color-info-light: hsl(199, 89%, 48%);
+  --ag3d-color-info-dark: hsl(199, 89%, 28%);
+  --ag3d-color-info-surface: hsl(199, 89%, 95%);
+
+  // ---------------------------------------------------------------------------
+  // 3D Viewer Colors (Light Theme)
+  // ---------------------------------------------------------------------------
+  --ag3d-color-viewer-background: hsl(210, 20%, 12%); // Keep dark for 3D
+  --ag3d-color-viewer-grid: hsla(0, 0%, 100%, 0.1);
+
+  // ---------------------------------------------------------------------------
+  // Component Backgrounds (Light Theme)
+  // ---------------------------------------------------------------------------
+  --ag3d-color-card-background: var(--ag3d-color-neutral-0);
+  --ag3d-color-header-background: var(--ag3d-color-neutral-0);
+  --ag3d-color-footer-background: var(--ag3d-color-neutral-50);
+  --ag3d-color-sidebar-background: var(--ag3d-color-neutral-0);
+
+  // ---------------------------------------------------------------------------
+  // Material Design System Variables
+  // ---------------------------------------------------------------------------
+  color-scheme: light;
+}

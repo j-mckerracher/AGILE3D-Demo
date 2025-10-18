@@ -54,22 +54,32 @@ export class SceneDataService implements OnDestroy {
     // Check cache first
     const cached = this.metadataCache.get(sceneId);
     if (cached) {
+      console.log('[SceneDataService] loadMetadata (cache hit)', sceneId);
       return cached;
     }
 
     try {
       const metadataPath = `assets/scenes/${sceneId}/metadata.json`;
+      console.log('[SceneDataService] GET', metadataPath);
       const metadata = await firstValueFrom(
         this.http.get<SceneMetadata>(metadataPath)
       );
 
       // Validate required fields
       this.validateMetadata(metadata);
+      console.log('[SceneDataService] metadata loaded', {
+        scene_id: metadata.scene_id,
+        pointCount: metadata.pointCount,
+        stride: metadata.pointStride,
+        pointsBin: metadata.pointsBin,
+        preds: Object.keys(metadata.predictions || {}),
+      });
 
       // Cache and return
       this.metadataCache.set(sceneId, metadata);
       return metadata;
     } catch (error) {
+      console.error('[SceneDataService] loadMetadata error', error);
       throw new Error(
         `Failed to load metadata for scene '${sceneId}': ${
           error instanceof Error ? error.message : 'Unknown error'
@@ -87,8 +97,12 @@ export class SceneDataService implements OnDestroy {
   public async loadRegistry(): Promise<SceneRegistry> {
     try {
       const registryPath = 'assets/scenes/registry.json';
-      return await firstValueFrom(this.http.get<SceneRegistry>(registryPath));
+      console.log('[SceneDataService] GET', registryPath);
+      const reg = await firstValueFrom(this.http.get<SceneRegistry>(registryPath));
+      console.log('[SceneDataService] registry scenes', reg.scenes?.length ?? 0);
+      return reg;
     } catch (error) {
+      console.error('[SceneDataService] loadRegistry error', error);
       throw new Error(
         `Failed to load scene registry: ${
           error instanceof Error ? error.message : 'Unknown error'
@@ -116,23 +130,40 @@ export class SceneDataService implements OnDestroy {
     // Check cache first
     const cached = this.pointsCache.get(cacheKey);
     if (cached) {
+      console.log('[SceneDataService] loadPoints (cache hit)', cacheKey);
       return cached;
     }
 
     try {
+      console.log('[SceneDataService] GET', binPath, { stride, cacheKey });
       // Fetch binary data
       const arrayBuffer = await firstValueFrom(
         this.http.get(binPath, { responseType: 'arraybuffer' })
       );
+      console.log('[SceneDataService] fetched bytes', arrayBuffer.byteLength);
 
-      // Parse in worker
-      const positions = await this.parseInWorker(arrayBuffer, stride);
+      // Try worker parse with a transferable copy; fall back to main-thread parse on failure
+      let positions: Float32Array;
+      const workerBuffer = arrayBuffer.slice(0); // keep original for fallback
+      try {
+        positions = await this.parseInWorker(workerBuffer, stride);
+        console.log('[SceneDataService] parsed via worker', positions.length);
+      } catch (e) {
+        console.warn('[SceneDataService] worker parse failed, falling back to main thread', e);
+        positions = new Float32Array(arrayBuffer);
+        if (positions.length % stride !== 0) {
+          throw new Error(
+            `Fallback parse produced misaligned length ${positions.length} for stride ${stride}`
+          );
+        }
+      }
 
       // Cache result
       this.pointsCache.set(cacheKey, positions);
 
       return positions;
     } catch (error) {
+      console.error('[SceneDataService] loadPoints error', error);
       throw new Error(
         `Failed to load points from '${binPath}': ${
           error instanceof Error ? error.message : 'Unknown error'
@@ -160,9 +191,9 @@ export class SceneDataService implements OnDestroy {
       // Create worker if not exists
       if (!this.worker) {
         try {
-          this.worker = new Worker(
-            new URL('../../../../assets/workers/point-cloud-worker.js', import.meta.url)
-          );
+          // Use static asset path to avoid bundler URL issues
+          this.worker = new Worker('/assets/workers/point-cloud-worker.js');
+          console.log('[SceneDataService] worker created');
         } catch (error) {
           reject(
             new Error(
@@ -186,15 +217,19 @@ export class SceneDataService implements OnDestroy {
       }, this.WORKER_TIMEOUT_MS);
 
       // Set up message handler
-      const messageHandler = (event: MessageEvent<WorkerParseResponse>): void => {
+      const messageHandler = (event: MessageEvent<WorkerParseResponse | { ready?: boolean }>): void => {
+        // Ignore worker ready pings
+        if ((event.data as any)?.ready) {
+          return;
+        }
+
         clearTimeout(timeoutId);
 
-        if (event.data.ok && event.data.positions) {
-          resolve(event.data.positions);
+        const data = event.data as WorkerParseResponse;
+        if (data.ok && data.positions) {
+          resolve(data.positions);
         } else {
-          reject(
-            new Error(event.data.error || 'Unknown worker parsing error')
-          );
+          reject(new Error((data as any).error || 'Unknown worker parsing error'));
         }
 
         // Clean up listener

@@ -9,13 +9,17 @@ import {
   signal,
   WritableSignal,
   AfterViewInit,
+  OnChanges,
+  SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RenderLoopService } from '../../core/services/rendering/render-loop.service';
 import { CameraControlService } from '../../core/services/controls/camera-control.service';
+import { ViewerStyleAdapterService, ViewerColorConfig } from '../../core/theme/viewer-style-adapter.service';
 import { Detection } from '../../core/models/scene.models';
+import { Subscription } from 'rxjs';
 
 /**
  * SceneViewer renders a Three.js scene using direct Three.js APIs.
@@ -75,9 +79,10 @@ import { Detection } from '../../core/models/scene.models';
     `,
   ],
 })
-export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
+export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   private readonly renderLoop = inject(RenderLoopService);
   private readonly cameraControl = inject(CameraControlService);
+  private readonly viewerStyleAdapter = inject(ViewerStyleAdapterService);
 
   /** Unique identifier for this viewer instance (required for RenderLoopService and CameraControlService) */
   @Input({ required: true }) public viewerId!: string;
@@ -110,6 +115,10 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
   private fpsHistory: number[] = [];
   private readonly fpsHistorySize = 60;
 
+  // Theme colors
+  private viewerColors?: ViewerColorConfig;
+  private colorSubscription?: Subscription;
+
   // Cleanup references
   private readonly disposables: (THREE.BufferGeometry | THREE.Material)[] = [];
 
@@ -117,11 +126,57 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.viewerId) {
       throw new Error('SceneViewer: viewerId is required');
     }
+
+    // Subscribe to viewer colors
+    this.colorSubscription = this.viewerStyleAdapter.viewerColors$.subscribe((colors) => {
+      this.viewerColors = colors;
+      // Update scene colors if already initialized
+      if (this.scene) {
+        this.updateSceneColors(colors);
+      }
+    });
+
+    // Register render callback early so tests observing ngOnInit see the registration
+    this.renderLoop.register(this.viewerId, (deltaMs) => this.onRenderFrame(deltaMs));
   }
 
   public ngAfterViewInit(): void {
     this.initThreeJS();
-    this.renderLoop.register(this.viewerId, (deltaMs) => this.onRenderFrame(deltaMs));
+  }
+
+  public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['sharedPointGeometry']) {
+      if (this.pointCloud && this.sharedPointGeometry) {
+        console.log('[SceneViewer]', this.viewerId, 'swapping to external geometry');
+        const oldGeom = this.pointCloud.geometry as THREE.BufferGeometry;
+        if (this.disposables.includes(oldGeom)) {
+          oldGeom.dispose();
+          const idx = this.disposables.indexOf(oldGeom);
+          if (idx >= 0) this.disposables.splice(idx, 1);
+        }
+        this.pointCloud.geometry = this.sharedPointGeometry;
+      } else {
+        console.log('[SceneViewer]', this.viewerId, 'sharedPointGeometry changed but pointCloud not ready');
+      }
+    }
+
+    if (changes['detections'] && this.scene) {
+      console.log('[SceneViewer]', this.viewerId, 'updating detections', this.detections?.length ?? 0);
+      // Remove existing mesh
+      if (this.instancedMesh) {
+        this.scene.remove(this.instancedMesh);
+        this.instancedMesh.geometry.dispose();
+        if (Array.isArray(this.instancedMesh.material)) {
+          this.instancedMesh.material.forEach((m) => m.dispose());
+        } else {
+          this.instancedMesh.material.dispose();
+        }
+        this.instancedMesh = undefined;
+      }
+      if (Array.isArray(this.detections) && this.detections.length > 0) {
+        this.addBoundingBoxes();
+      }
+    }
   }
 
   public ngOnDestroy(): void {
@@ -129,6 +184,11 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
     this.renderLoop.unregister(this.viewerId);
     if (this.controls) {
       this.cameraControl.detach(this.viewerId);
+    }
+
+    // Unsubscribe from color updates
+    if (this.colorSubscription) {
+      this.colorSubscription.unsubscribe();
     }
 
     // Dispose Three.js resources
@@ -151,7 +211,9 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1a1a1a);
+    // Use theme background color (NFR-3.5, UI 8.2)
+    const bgColor = this.viewerColors?.background ?? new THREE.Color(0x1a1a1a);
+    this.scene.background = bgColor;
 
     // Camera
     this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
@@ -194,13 +256,17 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
     let geometry: THREE.BufferGeometry;
 
     if (this.sharedPointGeometry) {
+      console.log('[SceneViewer]', this.viewerId, 'using shared geometry');
       geometry = this.sharedPointGeometry;
     } else {
+      console.log('[SceneViewer]', this.viewerId, 'creating synthetic geometry');
       geometry = this.createSyntheticPointCloud(this.pointCount);
       this.disposables.push(geometry);
     }
 
-    const material = new THREE.PointsMaterial({ color: 0x888888, size: 0.05 });
+    // Use neutral color for points (NFR-3.5, UI 8.2)
+    const pointColor = new THREE.Color(0x888888); // Default gray
+    const material = new THREE.PointsMaterial({ color: pointColor, size: 0.05 });
     this.disposables.push(material);
 
     this.pointCloud = new THREE.Points(geometry, material);
@@ -266,6 +332,41 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
+   * Update scene colors when theme changes (NFR-3.5, UI 8.2).
+   */
+  private updateSceneColors(colors: ViewerColorConfig): void {
+    if (this.scene) {
+      this.scene.background = colors.background;
+    }
+
+    // Update point cloud color if it exists
+    if (this.pointCloud && this.pointCloud.material instanceof THREE.PointsMaterial) {
+      // For now, keep points as neutral gray (could be enhanced to use theme color)
+      // this.pointCloud.material.color = colors.grid;
+    }
+
+    // Update bounding box colors if they exist
+    if (this.instancedMesh) {
+      const classColors: Record<string, THREE.Color> = {
+        vehicle: colors.vehicle,
+        pedestrian: colors.pedestrian,
+        cyclist: colors.cyclist,
+      };
+
+      const color = new THREE.Color();
+      this.detections.forEach((det, i) => {
+        const detColor = classColors[det.class] ?? new THREE.Color(0xffffff);
+        color.copy(detColor);
+        this.instancedMesh?.setColorAt(i, color);
+      });
+
+      if (this.instancedMesh.instanceColor) {
+        this.instancedMesh.instanceColor.needsUpdate = true;
+      }
+    }
+  }
+
+  /**
    * Create synthetic point cloud with random positions.
    */
   private createSyntheticPointCloud(count: number): THREE.BufferGeometry {
@@ -285,6 +386,7 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /**
    * Create InstancedMesh of bounding boxes with class-based coloring.
+   * Colors sourced from design tokens via ViewerStyleAdapterService (NFR-3.5, UI 8.2).
    */
   private createInstancedBoundingBoxes(detections: Detection[]): THREE.InstancedMesh {
     const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
@@ -292,10 +394,11 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const mesh = new THREE.InstancedMesh(boxGeometry, material, detections.length);
 
+    // Get colors from theme system - PRD §8.2.1
     const classColors: Record<string, THREE.Color> = {
-      vehicle: new THREE.Color(0x3b82f6), // Blue (#3B82F6) - PRD §8.2.1
-      pedestrian: new THREE.Color(0xef4444), // Red (#EF4444) - PRD §8.2.1
-      cyclist: new THREE.Color(0xf97316), // Orange (#F97316) - PRD §8.2.1
+      vehicle: this.viewerColors?.vehicle ?? new THREE.Color(0x3b82f6),
+      pedestrian: this.viewerColors?.pedestrian ?? new THREE.Color(0xef4444),
+      cyclist: this.viewerColors?.cyclist ?? new THREE.Color(0xf97316),
     };
 
     const matrix = new THREE.Matrix4();

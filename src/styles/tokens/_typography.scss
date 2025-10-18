@@ -1,0 +1,308 @@
+/**
+ * AGILE3D Design Tokens - Typography
+ *
+ * Font families, type scale, weights, and line heights.
+ * Based on Material Design 3 type scale with Roboto font family.
+ *
+ * PRD References:
+ * - UI-8.2: Consistent visual identity
+ * - NFR-3.5: WCAG 2.2 AA compliance (readability)
+ */
+
+// ============================================================================
+// Foundation: CSS Variables (Source of Truth)
+// ============================================================================
+
+:root {
+  // ---------------------------------------------------------------------------
+  // Font Families
+  // ---------------------------------------------------------------------------
+  --ag3d-font-family-base: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --ag3d-font-family-mono: 'Roboto Mono', 'Consolas', 'Monaco', monospace;
+
+  // ---------------------------------------------------------------------------
+  // Font Weights
+  // ---------------------------------------------------------------------------
+  --ag3d-font-weight-light: 300;
+  --ag3d-font-weight-regular: 400;
+  --ag3d-font-weight-medium: 500;
+  --ag3d-font-weight-semibold: 600;
+  --ag3d-font-weight-bold: 700;
+
+  // ---------------------------------------------------------------------------
+  // Type Scale (Material Design 3 inspired)
+  // ---------------------------------------------------------------------------
+
+  // Display - For hero sections and large headlines
+  --ag3d-font-size-display-large: 3.5rem; // 56px
+  --ag3d-line-height-display-large: 4rem; // 64px
+  --ag3d-font-weight-display-large: var(--ag3d-font-weight-regular);
+
+  --ag3d-font-size-display-medium: 2.8125rem; // 45px
+  --ag3d-line-height-display-medium: 3.25rem; // 52px
+  --ag3d-font-weight-display-medium: var(--ag3d-font-weight-regular);
+
+  --ag3d-font-size-display-small: 2.25rem; // 36px
+  --ag3d-line-height-display-small: 2.75rem; // 44px
+  --ag3d-font-weight-display-small: var(--ag3d-font-weight-regular);
+
+  // Headline - For section headers
+  --ag3d-font-size-headline-large: 2rem; // 32px
+  --ag3d-line-height-headline-large: 2.5rem; // 40px
+  --ag3d-font-weight-headline-large: var(--ag3d-font-weight-regular);
+
+  --ag3d-font-size-headline-medium: 1.75rem; // 28px
+  --ag3d-line-height-headline-medium: 2.25rem; // 36px
+  --ag3d-font-weight-headline-medium: var(--ag3d-font-weight-regular);
+
+  --ag3d-font-size-headline-small: 1.5rem; // 24px
+  --ag3d-line-height-headline-small: 2rem; // 32px
+  --ag3d-font-weight-headline-small: var(--ag3d-font-weight-regular);
+
+  // Title - For card headers and subsection titles
+  --ag3d-font-size-title-large: 1.375rem; // 22px
+  --ag3d-line-height-title-large: 1.75rem; // 28px
+  --ag3d-font-weight-title-large: var(--ag3d-font-weight-regular);
+
+  --ag3d-font-size-title-medium: 1rem; // 16px
+  --ag3d-line-height-title-medium: 1.5rem; // 24px
+  --ag3d-font-weight-title-medium: var(--ag3d-font-weight-medium);
+
+  --ag3d-font-size-title-small: 0.875rem; // 14px
+  --ag3d-line-height-title-small: 1.25rem; // 20px
+  --ag3d-font-weight-title-small: var(--ag3d-font-weight-medium);
+
+  // Body - For main content
+  --ag3d-font-size-body-large: 1rem; // 16px
+  --ag3d-line-height-body-large: 1.5rem; // 24px
+  --ag3d-font-weight-body-large: var(--ag3d-font-weight-regular);
+
+  --ag3d-font-size-body-medium: 0.875rem; // 14px
+  --ag3d-line-height-body-medium: 1.25rem; // 20px
+  --ag3d-font-weight-body-medium: var(--ag3d-font-weight-regular);
+
+  --ag3d-font-size-body-small: 0.75rem; // 12px
+  --ag3d-line-height-body-small: 1rem; // 16px
+  --ag3d-font-weight-body-small: var(--ag3d-font-weight-regular);
+
+  // Label - For buttons, chips, and form labels
+  --ag3d-font-size-label-large: 0.875rem; // 14px
+  --ag3d-line-height-label-large: 1.25rem; // 20px
+  --ag3d-font-weight-label-large: var(--ag3d-font-weight-medium);
+
+  --ag3d-font-size-label-medium: 0.75rem; // 12px
+  --ag3d-line-height-label-medium: 1rem; // 16px
+  --ag3d-font-weight-label-medium: var(--ag3d-font-weight-medium);
+
+  --ag3d-font-size-label-small: 0.6875rem; // 11px
+  --ag3d-line-height-label-small: 1rem; // 16px
+  --ag3d-font-weight-label-small: var(--ag3d-font-weight-medium);
+
+  // ---------------------------------------------------------------------------
+  // Letter Spacing
+  // ---------------------------------------------------------------------------
+  --ag3d-letter-spacing-tight: -0.02em;
+  --ag3d-letter-spacing-normal: 0;
+  --ag3d-letter-spacing-wide: 0.02em;
+  --ag3d-letter-spacing-wider: 0.05em;
+}
+
+// ============================================================================
+// SCSS Variables (Mirror CSS Variables for Build-Time Use)
+// ============================================================================
+
+// Font Families
+$ag3d-font-family-base: var(--ag3d-font-family-base);
+$ag3d-font-family-mono: var(--ag3d-font-family-mono);
+
+// Font Weights
+$ag3d-font-weight-light: var(--ag3d-font-weight-light);
+$ag3d-font-weight-regular: var(--ag3d-font-weight-regular);
+$ag3d-font-weight-medium: var(--ag3d-font-weight-medium);
+$ag3d-font-weight-semibold: var(--ag3d-font-weight-semibold);
+$ag3d-font-weight-bold: var(--ag3d-font-weight-bold);
+
+// Display
+$ag3d-font-size-display-large: var(--ag3d-font-size-display-large);
+$ag3d-line-height-display-large: var(--ag3d-line-height-display-large);
+$ag3d-font-weight-display-large: var(--ag3d-font-weight-display-large);
+$ag3d-font-size-display-medium: var(--ag3d-font-size-display-medium);
+$ag3d-line-height-display-medium: var(--ag3d-line-height-display-medium);
+$ag3d-font-weight-display-medium: var(--ag3d-font-weight-display-medium);
+$ag3d-font-size-display-small: var(--ag3d-font-size-display-small);
+$ag3d-line-height-display-small: var(--ag3d-line-height-display-small);
+$ag3d-font-weight-display-small: var(--ag3d-font-weight-display-small);
+
+// Headline
+$ag3d-font-size-headline-large: var(--ag3d-font-size-headline-large);
+$ag3d-line-height-headline-large: var(--ag3d-line-height-headline-large);
+$ag3d-font-weight-headline-large: var(--ag3d-font-weight-headline-large);
+$ag3d-font-size-headline-medium: var(--ag3d-font-size-headline-medium);
+$ag3d-line-height-headline-medium: var(--ag3d-line-height-headline-medium);
+$ag3d-font-weight-headline-medium: var(--ag3d-font-weight-headline-medium);
+$ag3d-font-size-headline-small: var(--ag3d-font-size-headline-small);
+$ag3d-line-height-headline-small: var(--ag3d-line-height-headline-small);
+$ag3d-font-weight-headline-small: var(--ag3d-font-weight-headline-small);
+
+// Title
+$ag3d-font-size-title-large: var(--ag3d-font-size-title-large);
+$ag3d-line-height-title-large: var(--ag3d-line-height-title-large);
+$ag3d-font-weight-title-large: var(--ag3d-font-weight-title-large);
+$ag3d-font-size-title-medium: var(--ag3d-font-size-title-medium);
+$ag3d-line-height-title-medium: var(--ag3d-line-height-title-medium);
+$ag3d-font-weight-title-medium: var(--ag3d-font-weight-title-medium);
+$ag3d-font-size-title-small: var(--ag3d-font-size-title-small);
+$ag3d-line-height-title-small: var(--ag3d-line-height-title-small);
+$ag3d-font-weight-title-small: var(--ag3d-font-weight-title-small);
+
+// Body
+$ag3d-font-size-body-large: var(--ag3d-font-size-body-large);
+$ag3d-line-height-body-large: var(--ag3d-line-height-body-large);
+$ag3d-font-weight-body-large: var(--ag3d-font-weight-body-large);
+$ag3d-font-size-body-medium: var(--ag3d-font-size-body-medium);
+$ag3d-line-height-body-medium: var(--ag3d-line-height-body-medium);
+$ag3d-font-weight-body-medium: var(--ag3d-font-weight-body-medium);
+$ag3d-font-size-body-small: var(--ag3d-font-size-body-small);
+$ag3d-line-height-body-small: var(--ag3d-line-height-body-small);
+$ag3d-font-weight-body-small: var(--ag3d-font-weight-body-small);
+
+// Label
+$ag3d-font-size-label-large: var(--ag3d-font-size-label-large);
+$ag3d-line-height-label-large: var(--ag3d-line-height-label-large);
+$ag3d-font-weight-label-large: var(--ag3d-font-weight-label-large);
+$ag3d-font-size-label-medium: var(--ag3d-font-size-label-medium);
+$ag3d-line-height-label-medium: var(--ag3d-line-height-label-medium);
+$ag3d-font-weight-label-medium: var(--ag3d-font-weight-label-medium);
+$ag3d-font-size-label-small: var(--ag3d-font-size-label-small);
+$ag3d-line-height-label-small: var(--ag3d-line-height-label-small);
+$ag3d-font-weight-label-small: var(--ag3d-font-weight-label-small);
+
+// Letter Spacing
+$ag3d-letter-spacing-tight: var(--ag3d-letter-spacing-tight);
+$ag3d-letter-spacing-normal: var(--ag3d-letter-spacing-normal);
+$ag3d-letter-spacing-wide: var(--ag3d-letter-spacing-wide);
+$ag3d-letter-spacing-wider: var(--ag3d-letter-spacing-wider);
+
+// ============================================================================
+// Typography Utility Mixins
+// ============================================================================
+
+@mixin ag3d-typography-display-large {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-display-large;
+  line-height: $ag3d-line-height-display-large;
+  font-weight: $ag3d-font-weight-display-large;
+  letter-spacing: $ag3d-letter-spacing-tight;
+}
+
+@mixin ag3d-typography-display-medium {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-display-medium;
+  line-height: $ag3d-line-height-display-medium;
+  font-weight: $ag3d-font-weight-display-medium;
+  letter-spacing: $ag3d-letter-spacing-tight;
+}
+
+@mixin ag3d-typography-display-small {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-display-small;
+  line-height: $ag3d-line-height-display-small;
+  font-weight: $ag3d-font-weight-display-small;
+  letter-spacing: $ag3d-letter-spacing-normal;
+}
+
+@mixin ag3d-typography-headline-large {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-headline-large;
+  line-height: $ag3d-line-height-headline-large;
+  font-weight: $ag3d-font-weight-headline-large;
+  letter-spacing: $ag3d-letter-spacing-normal;
+}
+
+@mixin ag3d-typography-headline-medium {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-headline-medium;
+  line-height: $ag3d-line-height-headline-medium;
+  font-weight: $ag3d-font-weight-headline-medium;
+  letter-spacing: $ag3d-letter-spacing-normal;
+}
+
+@mixin ag3d-typography-headline-small {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-headline-small;
+  line-height: $ag3d-line-height-headline-small;
+  font-weight: $ag3d-font-weight-headline-small;
+  letter-spacing: $ag3d-letter-spacing-normal;
+}
+
+@mixin ag3d-typography-title-large {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-title-large;
+  line-height: $ag3d-line-height-title-large;
+  font-weight: $ag3d-font-weight-title-large;
+  letter-spacing: $ag3d-letter-spacing-normal;
+}
+
+@mixin ag3d-typography-title-medium {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-title-medium;
+  line-height: $ag3d-line-height-title-medium;
+  font-weight: $ag3d-font-weight-title-medium;
+  letter-spacing: $ag3d-letter-spacing-wide;
+}
+
+@mixin ag3d-typography-title-small {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-title-small;
+  line-height: $ag3d-line-height-title-small;
+  font-weight: $ag3d-font-weight-title-small;
+  letter-spacing: $ag3d-letter-spacing-wide;
+}
+
+@mixin ag3d-typography-body-large {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-body-large;
+  line-height: $ag3d-line-height-body-large;
+  font-weight: $ag3d-font-weight-body-large;
+  letter-spacing: $ag3d-letter-spacing-normal;
+}
+
+@mixin ag3d-typography-body-medium {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-body-medium;
+  line-height: $ag3d-line-height-body-medium;
+  font-weight: $ag3d-font-weight-body-medium;
+  letter-spacing: $ag3d-letter-spacing-normal;
+}
+
+@mixin ag3d-typography-body-small {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-body-small;
+  line-height: $ag3d-line-height-body-small;
+  font-weight: $ag3d-font-weight-body-small;
+  letter-spacing: $ag3d-letter-spacing-normal;
+}
+
+@mixin ag3d-typography-label-large {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-label-large;
+  line-height: $ag3d-line-height-label-large;
+  font-weight: $ag3d-font-weight-label-large;
+  letter-spacing: $ag3d-letter-spacing-wide;
+}
+
+@mixin ag3d-typography-label-medium {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-label-medium;
+  line-height: $ag3d-line-height-label-medium;
+  font-weight: $ag3d-font-weight-label-medium;
+  letter-spacing: $ag3d-letter-spacing-wide;
+}
+
+@mixin ag3d-typography-label-small {
+  font-family: $ag3d-font-family-base;
+  font-size: $ag3d-font-size-label-small;
+  line-height: $ag3d-line-height-label-small;
+  font-weight: $ag3d-font-weight-label-small;
+  letter-spacing: $ag3d-letter-spacing-wider;
+}

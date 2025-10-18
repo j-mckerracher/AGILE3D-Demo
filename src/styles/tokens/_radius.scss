@@ -1,0 +1,61 @@
+/**
+ * AGILE3D Design Tokens - Border Radius
+ *
+ * Border radius scale for consistent rounded corners throughout the application.
+ * Based on Material Design 3 principles.
+ *
+ * PRD References:
+ * - UI-8.2: Consistent visual identity
+ */
+
+// ============================================================================
+// Foundation: CSS Variables (Source of Truth)
+// ============================================================================
+
+:root {
+  // ---------------------------------------------------------------------------
+  // Border Radius Scale
+  // ---------------------------------------------------------------------------
+  --ag3d-radius-none: 0;
+  --ag3d-radius-xs: 0.125rem; // 2px
+  --ag3d-radius-sm: 0.25rem; // 4px
+  --ag3d-radius-md: 0.375rem; // 6px
+  --ag3d-radius-lg: 0.5rem; // 8px
+  --ag3d-radius-xl: 0.75rem; // 12px
+  --ag3d-radius-2xl: 1rem; // 16px
+  --ag3d-radius-3xl: 1.5rem; // 24px
+  --ag3d-radius-full: 9999px; // Fully rounded (pills, circles)
+
+  // ---------------------------------------------------------------------------
+  // Component-Specific Radius
+  // ---------------------------------------------------------------------------
+  --ag3d-radius-button: var(--ag3d-radius-md);
+  --ag3d-radius-card: var(--ag3d-radius-lg);
+  --ag3d-radius-input: var(--ag3d-radius-sm);
+  --ag3d-radius-chip: var(--ag3d-radius-full);
+  --ag3d-radius-dialog: var(--ag3d-radius-xl);
+  --ag3d-radius-tooltip: var(--ag3d-radius-sm);
+}
+
+// ============================================================================
+// SCSS Variables (Mirror CSS Variables for Build-Time Use)
+// ============================================================================
+
+// Border Radius Scale
+$ag3d-radius-none: var(--ag3d-radius-none);
+$ag3d-radius-xs: var(--ag3d-radius-xs);
+$ag3d-radius-sm: var(--ag3d-radius-sm);
+$ag3d-radius-md: var(--ag3d-radius-md);
+$ag3d-radius-lg: var(--ag3d-radius-lg);
+$ag3d-radius-xl: var(--ag3d-radius-xl);
+$ag3d-radius-2xl: var(--ag3d-radius-2xl);
+$ag3d-radius-3xl: var(--ag3d-radius-3xl);
+$ag3d-radius-full: var(--ag3d-radius-full);
+
+// Component-Specific
+$ag3d-radius-button: var(--ag3d-radius-button);
+$ag3d-radius-card: var(--ag3d-radius-card);
+$ag3d-radius-input: var(--ag3d-radius-input);
+$ag3d-radius-chip: var(--ag3d-radius-chip);
+$ag3d-radius-dialog: var(--ag3d-radius-dialog);
+$ag3d-radius-tooltip: var(--ag3d-radius-tooltip);

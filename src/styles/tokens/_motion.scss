@@ -1,0 +1,130 @@
+/**
+ * AGILE3D Design Tokens - Motion & Animation
+ *
+ * Animation timing, easing curves, and duration tokens.
+ * Respects `prefers-reduced-motion` for accessibility.
+ *
+ * PRD References:
+ * - NFR-3.7: Respect prefers-reduced-motion
+ * - FR-1.15: Smooth animation transitions
+ */
+
+// ============================================================================
+// Foundation: CSS Variables (Source of Truth)
+// ============================================================================
+
+:root {
+  // ---------------------------------------------------------------------------
+  // Duration Scale
+  // ---------------------------------------------------------------------------
+  --ag3d-duration-instant: 0ms;
+  --ag3d-duration-fast: 100ms;
+  --ag3d-duration-normal: 200ms;
+  --ag3d-duration-slow: 300ms;
+  --ag3d-duration-slower: 500ms;
+
+  // ---------------------------------------------------------------------------
+  // Easing Curves (Material Design inspired)
+  // ---------------------------------------------------------------------------
+
+  // Standard - Default easing for most animations
+  --ag3d-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Decelerate - Enter animations (elements appearing)
+  --ag3d-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+
+  // Accelerate - Exit animations (elements disappearing)
+  --ag3d-easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+
+  // Sharp - Quick, decisive movements
+  --ag3d-easing-sharp: cubic-bezier(0.4, 0, 0.6, 1);
+
+  // Linear - Constant speed
+  --ag3d-easing-linear: linear;
+
+  // ---------------------------------------------------------------------------
+  // Component-Specific Transitions
+  // ---------------------------------------------------------------------------
+
+  // Hover/Focus states
+  --ag3d-transition-button: background-color var(--ag3d-duration-fast) var(--ag3d-easing-standard),
+    box-shadow var(--ag3d-duration-fast) var(--ag3d-easing-standard);
+
+  --ag3d-transition-card: box-shadow var(--ag3d-duration-normal) var(--ag3d-easing-standard),
+    transform var(--ag3d-duration-normal) var(--ag3d-easing-standard);
+
+  --ag3d-transition-input: border-color var(--ag3d-duration-fast) var(--ag3d-easing-standard),
+    box-shadow var(--ag3d-duration-fast) var(--ag3d-easing-standard);
+
+  // Opacity transitions
+  --ag3d-transition-fade: opacity var(--ag3d-duration-normal) var(--ag3d-easing-standard);
+
+  // Transform transitions
+  --ag3d-transition-slide: transform var(--ag3d-duration-normal) var(--ag3d-easing-decelerate);
+  --ag3d-transition-scale: transform var(--ag3d-duration-fast) var(--ag3d-easing-standard);
+
+  // Color transitions
+  --ag3d-transition-color: color var(--ag3d-duration-fast) var(--ag3d-easing-standard),
+    background-color var(--ag3d-duration-fast) var(--ag3d-easing-standard);
+
+  // ---------------------------------------------------------------------------
+  // 3D Viewer Animation Settings
+  // ---------------------------------------------------------------------------
+  --ag3d-viewer-camera-duration: var(--ag3d-duration-slower);
+  --ag3d-viewer-camera-easing: var(--ag3d-easing-decelerate);
+  --ag3d-viewer-object-duration: var(--ag3d-duration-normal);
+  --ag3d-viewer-object-easing: var(--ag3d-easing-standard);
+}
+
+// ============================================================================
+// SCSS Variables (Mirror CSS Variables for Build-Time Use)
+// ============================================================================
+
+// Duration
+$ag3d-duration-instant: var(--ag3d-duration-instant);
+$ag3d-duration-fast: var(--ag3d-duration-fast);
+$ag3d-duration-normal: var(--ag3d-duration-normal);
+$ag3d-duration-slow: var(--ag3d-duration-slow);
+$ag3d-duration-slower: var(--ag3d-duration-slower);
+
+// Easing
+$ag3d-easing-standard: var(--ag3d-easing-standard);
+$ag3d-easing-decelerate: var(--ag3d-easing-decelerate);
+$ag3d-easing-accelerate: var(--ag3d-easing-accelerate);
+$ag3d-easing-sharp: var(--ag3d-easing-sharp);
+$ag3d-easing-linear: var(--ag3d-easing-linear);
+
+// Component Transitions
+$ag3d-transition-button: var(--ag3d-transition-button);
+$ag3d-transition-card: var(--ag3d-transition-card);
+$ag3d-transition-input: var(--ag3d-transition-input);
+$ag3d-transition-fade: var(--ag3d-transition-fade);
+$ag3d-transition-slide: var(--ag3d-transition-slide);
+$ag3d-transition-scale: var(--ag3d-transition-scale);
+$ag3d-transition-color: var(--ag3d-transition-color);
+
+// 3D Viewer
+$ag3d-viewer-camera-duration: var(--ag3d-viewer-camera-duration);
+$ag3d-viewer-camera-easing: var(--ag3d-viewer-camera-easing);
+$ag3d-viewer-object-duration: var(--ag3d-viewer-object-duration);
+$ag3d-viewer-object-easing: var(--ag3d-viewer-object-easing);
+
+// ============================================================================
+// Reduced Motion Override
+// ============================================================================
+
+/**
+ * Disable animations for users who prefer reduced motion.
+ * PRD NFR-3.7: WCAG 2.1 Success Criterion 2.3.3 - Animation from Interactions
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ag3d-duration-fast: 0.01ms;
+    --ag3d-duration-normal: 0.01ms;
+    --ag3d-duration-slow: 0.01ms;
+    --ag3d-duration-slower: 0.01ms;
+
+    --ag3d-viewer-camera-duration: 0.01ms;
+    --ag3d-viewer-object-duration: 0.01ms;
+  }
+}

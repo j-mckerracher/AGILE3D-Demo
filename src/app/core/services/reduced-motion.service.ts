@@ -81,7 +81,7 @@ export class ReducedMotionService {
    * @returns true if user prefers reduced motion, false otherwise
    */
   public getCurrentPreference(): boolean {
-    return this.mediaQuery.matches;
+    return this.reducedMotionSignal();
   }
 
   /**

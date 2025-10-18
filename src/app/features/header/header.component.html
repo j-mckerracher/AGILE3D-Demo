@@ -1,0 +1,21 @@
+<header class="header" role="banner">
+  <div class="header-container">
+    <div class="branding">
+      <h1 class="logo">
+        <span class="logo-text">AGILE3D</span>
+      </h1>
+      <p class="tagline">Adaptive 3D Perception for Autonomous Vehicles</p>
+    </div>
+
+    <nav
+      class="header-nav"
+      role="navigation"
+      aria-label="Main navigation"
+      appKeyboardNav
+      [navItems]="'button, a'"
+      [orientation]="'horizontal'"
+    >
+      <app-theme-toggle />
+    </nav>
+  </div>
+</header>
