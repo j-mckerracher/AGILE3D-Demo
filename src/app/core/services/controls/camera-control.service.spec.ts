@@ -193,4 +193,152 @@ describe('CameraControlService', () => {
     service.detach('test-1');
     service.detach('test-2');
   });
+
+  // WP-2.1.3: Independent Camera Mode Tests
+
+  it('should not push to global state when independent mode is ON', (done: DoneFn) => {
+    const controls = new MockOrbitControls() as unknown as OrbitControlsLike;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    service.attach('test-1', controls as any);
+
+    // Enable independent mode
+    stateService.setIndependentCamera(true);
+
+    // Wait for mode change to propagate
+    setTimeout(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const initialPos = [...(stateService.cameraPos$ as any).value] as Vec3;
+
+      // Update controls
+      controls.object.position = { x: 100, y: 200, z: 300 };
+      controls.target = { x: 10, y: 20, z: 30 };
+      controls.triggerChange();
+
+      // State should NOT update (independent mode)
+      setTimeout(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const currentPos = [...(stateService.cameraPos$ as any).value] as Vec3;
+        expect(currentPos).toEqual(initialPos);
+
+        service.detach('test-1');
+        done();
+      }, 10);
+    }, 10);
+  });
+
+  it('should not update controls from global state when independent mode is ON', (done: DoneFn) => {
+    const controls = new MockOrbitControls() as unknown as OrbitControlsLike;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    service.attach('test-1', controls as any);
+
+    // Set initial position
+    controls.object.position = { x: 5, y: 5, z: 5 };
+
+    // Enable independent mode
+    stateService.setIndependentCamera(true);
+
+    // Wait for mode change to propagate
+    setTimeout(() => {
+      // Update global state
+      stateService.setCameraPos([99, 88, 77]);
+
+      // Controls should NOT update (independent mode)
+      setTimeout(() => {
+        expect(controls.object.position.x).toBe(5);
+        expect(controls.object.position.y).toBe(5);
+        expect(controls.object.position.z).toBe(5);
+
+        service.detach('test-1');
+        done();
+      }, 10);
+    }, 10);
+  });
+
+  it('should resync cameras when toggling from independent back to sync', (done: DoneFn) => {
+    const controls1 = new MockOrbitControls() as unknown as OrbitControlsLike;
+    const controls2 = new MockOrbitControls() as unknown as OrbitControlsLike;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    service.attach('viewer-1', controls1 as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    service.attach('viewer-2', controls2 as any);
+
+    // Enable independent mode
+    stateService.setIndependentCamera(true);
+
+    setTimeout(() => {
+      // Move each viewer to different positions
+      controls1.object.position = { x: 10, y: 10, z: 10 };
+      controls2.object.position = { x: 20, y: 20, z: 20 };
+
+      // Toggle back to sync mode
+      stateService.setIndependentCamera(false);
+
+      // Wait for resync to complete
+      setTimeout(() => {
+        // Both controls should now be synced (using viewer-1 as canonical source)
+        // State should be updated to canonical pose
+        stateService.cameraPos$.subscribe((pos) => {
+          expect(pos[0]).toBe(10);
+          expect(pos[1]).toBe(10);
+          expect(pos[2]).toBe(10);
+
+          service.detach('viewer-1');
+          service.detach('viewer-2');
+          done();
+        });
+      }, 20);
+    }, 10);
+  });
+
+  it('should prevent feedback loops in sync mode (existing behavior)', () => {
+    const controls = new MockOrbitControls() as unknown as OrbitControlsLike;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    service.attach('test-1', controls as any);
+
+    let stateUpdateCount = 0;
+
+    // Count state updates
+    stateService.cameraPos$.subscribe(() => {
+      stateUpdateCount++;
+    });
+
+    // Trigger controls change which updates state
+    controls.object.position = { x: 100, y: 200, z: 300 };
+    controls.triggerChange();
+
+    // Should not create feedback loop
+    // Initial subscription + one from triggerChange
+    expect(stateUpdateCount).toBeLessThanOrEqual(2);
+
+    service.detach('test-1');
+  });
+
+  it('should prevent feedback loops in independent mode', (done: DoneFn) => {
+    const controls = new MockOrbitControls() as unknown as OrbitControlsLike;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    service.attach('test-1', controls as any);
+
+    // Enable independent mode
+    stateService.setIndependentCamera(true);
+
+    setTimeout(() => {
+      let stateUpdateCount = 0;
+
+      stateService.cameraPos$.subscribe(() => {
+        stateUpdateCount++;
+      });
+
+      // Trigger controls change (should NOT update state in independent mode)
+      controls.object.position = { x: 100, y: 200, z: 300 };
+      controls.triggerChange();
+
+      setTimeout(() => {
+        // State should only emit initial subscription value, no update from controls
+        expect(stateUpdateCount).toBe(1); // Only initial subscription
+        service.detach('test-1');
+        done();
+      }, 10);
+    }, 10);
+  });
 });

@@ -30,6 +30,7 @@ export class StateService implements OnDestroy {
   // Camera synchronization (private subjects)
   private readonly cameraPosSubject = new BehaviorSubject<Vec3>([0, 0, 10]);
   private readonly cameraTargetSubject = new BehaviorSubject<Vec3>([0, 0, 0]);
+  private readonly independentCameraSubject = new BehaviorSubject<boolean>(false);
 
   // Public observables for configuration controls
   public readonly scene$: Observable<SceneId> = this.sceneSubject.asObservable();
@@ -49,6 +50,7 @@ export class StateService implements OnDestroy {
   public readonly activeBranch$: Observable<string> = this.activeBranchSubject.asObservable();
   public readonly cameraPos$: Observable<Vec3> = this.cameraPosSubject.asObservable();
   public readonly cameraTarget$: Observable<Vec3> = this.cameraTargetSubject.asObservable();
+  public readonly independentCamera$: Observable<boolean> = this.independentCameraSubject.asObservable();
 
   // Backwards compatibility: expose raw subjects for existing consumers
   /** @deprecated Use scene$ observable instead */
@@ -145,6 +147,15 @@ export class StateService implements OnDestroy {
   }
 
   /**
+   * Set independent camera mode.
+   * When true, each viewer controls its camera independently.
+   * When false (default), cameras are synchronized across viewers.
+   */
+  public setIndependentCamera(value: boolean): void {
+    if (this.independentCameraSubject.value !== value) this.independentCameraSubject.next(value);
+  }
+
+  /**
    * Cleanup lifecycle hook. Completes all BehaviorSubjects to prevent potential
    * memory leaks if service scoping changes in the future.
    */
@@ -156,6 +167,7 @@ export class StateService implements OnDestroy {
     this.activeBranchSubject.complete();
     this.cameraPosSubject.complete();
     this.cameraTargetSubject.complete();
+    this.independentCameraSubject.complete();
   }
 }
 

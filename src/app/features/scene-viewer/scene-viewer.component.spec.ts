@@ -104,10 +104,12 @@ describe('SceneViewerComponent', () => {
     component.ngOnInit();
     fixture.detectChanges(); // Trigger AfterViewInit
 
-    const mesh = component['instancedMesh'];
-    expect(mesh).toBeDefined();
-    expect(mesh).toBeInstanceOf(THREE.InstancedMesh);
-    expect(mesh?.count).toBe(2);
+    const batches = component['classBatches'];
+    expect(batches).toBeDefined();
+    expect(batches?.vehicle).toBeInstanceOf(THREE.InstancedMesh);
+    expect(batches?.vehicle?.count).toBe(1);
+    expect(batches?.pedestrian).toBeInstanceOf(THREE.InstancedMesh);
+    expect(batches?.pedestrian?.count).toBe(1);
   });
 
   it('should dispose Three.js resources on destroy', () => {
@@ -200,8 +202,10 @@ describe('SceneViewerComponent', () => {
     component.ngOnInit();
     fixture.detectChanges(); // Trigger AfterViewInit
 
-    const mesh = component['instancedMesh'];
-    expect(mesh).toBeDefined();
-    expect(mesh?.count).toBe(3);
+    const batches = component['classBatches'];
+    expect(batches).toBeDefined();
+    expect(batches?.vehicle?.count).toBe(1);
+    expect(batches?.pedestrian?.count).toBe(1);
+    expect(batches?.cyclist?.count).toBe(1);
   });
 });

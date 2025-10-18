@@ -9,6 +9,10 @@ import { Vec3 } from '../../models/scene.models';
  * in both directions: controls -> state and state -> controls.
  * Prevents feedback loops via an 'updating' guard per attached control instance.
  *
+ * Supports independent camera mode (WP-2.1.3):
+ * - When independent mode is OFF (default): cameras sync across all viewers
+ * - When independent mode is ON: each viewer controls its camera independently
+ *
  * Usage:
  *   const controls = new OrbitControls(camera, domElement);
  *   cameraControlService.attach('viewer-1', controls);
@@ -28,6 +32,9 @@ export class CameraControlService implements OnDestroy {
       updating: boolean;
     }
   >();
+
+  private independentMode = false;
+  private modeSubscription?: Subscription;
 
   /**
    * Attach OrbitControls for bidirectional sync with StateService.
@@ -61,6 +68,13 @@ export class CameraControlService implements OnDestroy {
     );
 
     this.attachments.set(id, attachment);
+
+    // Subscribe to independent camera mode on first attachment
+    if (!this.modeSubscription) {
+      this.modeSubscription = this.state.independentCamera$.subscribe((independent) => {
+        this.onModeChange(independent);
+      });
+    }
   }
 
   /**
@@ -78,6 +92,11 @@ export class CameraControlService implements OnDestroy {
   }
 
   public ngOnDestroy(): void {
+    // Unsubscribe from mode changes
+    if (this.modeSubscription) {
+      this.modeSubscription.unsubscribe();
+    }
+
     // Detach all on service destruction (defensive, as service is providedIn: 'root')
     const ids = Array.from(this.attachments.keys());
     ids.forEach((id) => this.detach(id));
@@ -86,10 +105,14 @@ export class CameraControlService implements OnDestroy {
   /**
    * Called when OrbitControls 'change' event fires.
    * Pushes camera position and target to StateService, guarded by 'updating'.
+   * In independent mode, skips pushing to global state.
    */
   private onControlsChange(id: string): void {
     const attachment = this.attachments.get(id);
     if (!attachment || attachment.updating) return;
+
+    // In independent mode, don't push to global state
+    if (this.independentMode) return;
 
     attachment.updating = true;
     try {
@@ -111,10 +134,14 @@ export class CameraControlService implements OnDestroy {
   /**
    * Called when StateService cameraPos$ emits a new value.
    * Updates controls camera position, guarded by 'updating'.
+   * In independent mode, skips updates from global state.
    */
   private onStatePositionChange(id: string, pos: Vec3): void {
     const attachment = this.attachments.get(id);
     if (!attachment || attachment.updating) return;
+
+    // In independent mode, don't update from global state
+    if (this.independentMode) return;
 
     attachment.updating = true;
     try {
@@ -129,10 +156,14 @@ export class CameraControlService implements OnDestroy {
   /**
    * Called when StateService cameraTarget$ emits a new value.
    * Updates controls target, guarded by 'updating'.
+   * In independent mode, skips updates from global state.
    */
   private onStateTargetChange(id: string, target: Vec3): void {
     const attachment = this.attachments.get(id);
     if (!attachment || attachment.updating) return;
+
+    // In independent mode, don't update from global state
+    if (this.independentMode) return;
 
     attachment.updating = true;
     try {
@@ -142,6 +173,49 @@ export class CameraControlService implements OnDestroy {
     } finally {
       attachment.updating = false;
     }
+  }
+
+  /**
+   * Called when independent camera mode changes.
+   * When switching from independent → sync, re-syncs all cameras to a canonical pose.
+   */
+  private onModeChange(independent: boolean): void {
+    const wasIndependent = this.independentMode;
+    this.independentMode = independent;
+
+    // When switching from independent back to sync, re-sync cameras
+    if (wasIndependent && !independent) {
+      this.resyncCameras();
+    }
+  }
+
+  /**
+   * Re-sync all cameras to a canonical pose.
+   * Uses the first attached viewer's camera as the canonical source.
+   */
+  private resyncCameras(): void {
+    const ids = Array.from(this.attachments.keys());
+    if (ids.length === 0) return;
+
+    // Use first viewer as canonical source
+    const canonicalId = ids[0];
+    if (!canonicalId) return;
+
+    const canonical = this.attachments.get(canonicalId);
+    if (!canonical) return;
+
+    const cam = canonical.controls.object;
+    const pos: Vec3 = [cam.position.x, cam.position.y, cam.position.z];
+    const target: Vec3 = [
+      canonical.controls.target.x,
+      canonical.controls.target.y,
+      canonical.controls.target.z,
+    ];
+
+    // Push canonical pose to global state once
+    // This will trigger onStatePositionChange/onStateTargetChange for all viewers
+    this.state.setCameraPos(pos);
+    this.state.setCameraTarget(target);
   }
 }
 

@@ -11,15 +11,26 @@ import {
   AfterViewInit,
   OnChanges,
   SimpleChanges,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RenderLoopService } from '../../core/services/rendering/render-loop.service';
 import { CameraControlService } from '../../core/services/controls/camera-control.service';
-import { ViewerStyleAdapterService, ViewerColorConfig } from '../../core/theme/viewer-style-adapter.service';
-import { Detection } from '../../core/models/scene.models';
+import { ViewerStyleAdapterService, ViewerColorConfig, ViewerMotionConfig } from '../../core/theme/viewer-style-adapter.service';
+import { ReducedMotionService } from '../../core/services/reduced-motion.service';
+import { Detection, DetectionClass } from '../../core/models/scene.models';
 import { Subscription } from 'rxjs';
+import {
+  buildClassBatches,
+  disposeClassBatches,
+  getInstanceMetadata,
+  ClassBatches,
+  DiffMode,
+  ClassColors,
+  InstanceMetadata,
+} from '../../core/services/visualization/bbox-instancing';
 
 /**
  * SceneViewer renders a Three.js scene using direct Three.js APIs.
@@ -46,6 +57,29 @@ import { Subscription } from 'rxjs';
       <!-- FPS Overlay -->
       <div class="fps-overlay" *ngIf="showFps">FPS: {{ currentFps() }}</div>
 
+      <!-- Detection Tooltip -->
+      <div
+        class="detection-tooltip"
+        *ngIf="tooltipVisible()"
+        [style.left.px]="tooltipPosition().x + 10"
+        [style.top.px]="tooltipPosition().y + 10"
+        role="tooltip"
+        aria-live="polite"
+      >
+        <div class="tooltip-row">
+          <span class="tooltip-label">Class:</span>
+          <span class="tooltip-value">{{ tooltipContent().class }}</span>
+        </div>
+        <div class="tooltip-row">
+          <span class="tooltip-label">Confidence:</span>
+          <span class="tooltip-value">{{ (tooltipContent().confidence * 100).toFixed(1) }}%</span>
+        </div>
+        <div class="tooltip-row" *ngIf="tooltipContent().matchesGt">
+          <span class="tooltip-label">Matches GT:</span>
+          <span class="tooltip-value">{{ tooltipContent().matchesGt }}</span>
+        </div>
+      </div>
+
       <!-- Three.js Canvas -->
       <canvas #canvas></canvas>
     </div>
@@ -71,6 +105,37 @@ import { Subscription } from 'rxjs';
         border-radius: 3px;
       }
 
+      .detection-tooltip {
+        position: fixed;
+        background: rgba(0, 0, 0, 0.9);
+        color: #fff;
+        padding: 8px 12px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 12px;
+        z-index: 1001;
+        border-radius: 4px;
+        pointer-events: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        min-width: 150px;
+      }
+
+      .tooltip-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 2px 0;
+      }
+
+      .tooltip-label {
+        font-weight: 600;
+        opacity: 0.8;
+      }
+
+      .tooltip-value {
+        font-weight: 400;
+        text-align: right;
+      }
+
       canvas {
         width: 100%;
         height: 100%;
@@ -83,6 +148,7 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
   private readonly renderLoop = inject(RenderLoopService);
   private readonly cameraControl = inject(CameraControlService);
   private readonly viewerStyleAdapter = inject(ViewerStyleAdapterService);
+  private readonly reducedMotion = inject(ReducedMotionService);
 
   /** Unique identifier for this viewer instance (required for RenderLoopService and CameraControlService) */
   @Input({ required: true }) public viewerId!: string;
@@ -92,6 +158,12 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
 
   /** Optional: detections to render as instanced bounding boxes */
   @Input() public detections: Detection[] = [];
+
+  /** Diff mode for visual encoding (TP/FP/FN highlighting) */
+  @Input() public diffMode: DiffMode = 'off';
+
+  /** Optional: diff classification map (detection ID -> 'tp'|'fp'|'fn') */
+  @Input() public diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
 
   /** Number of synthetic points to generate if no sharedPointGeometry provided (default 50k) */
   @Input() public pointCount = 50_000;
@@ -108,16 +180,31 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
   private renderer?: THREE.WebGLRenderer;
   private controls?: OrbitControls;
   private pointCloud?: THREE.Points;
-  private instancedMesh?: THREE.InstancedMesh;
+  private classBatches?: ClassBatches;
+
+  // Raycaster for hover interactions
+  private raycaster = new THREE.Raycaster();
+  private mouse = new THREE.Vector2();
+  private hoveredInstance?: InstanceMetadata;
+
+  // Tooltip state
+  protected tooltipVisible = signal(false);
+  protected tooltipContent = signal<{ class: string; confidence: number; matchesGt?: string }>({
+    class: '',
+    confidence: 0,
+  });
+  protected tooltipPosition = signal({ x: 0, y: 0 });
 
   // Performance tracking
   protected currentFps: WritableSignal<number> = signal(60);
   private fpsHistory: number[] = [];
   private readonly fpsHistorySize = 60;
 
-  // Theme colors
+  // Theme colors and motion config
   private viewerColors?: ViewerColorConfig;
+  private viewerMotion?: ViewerMotionConfig;
   private colorSubscription?: Subscription;
+  private motionSubscription?: Subscription;
 
   // Cleanup references
   private readonly disposables: (THREE.BufferGeometry | THREE.Material)[] = [];
@@ -134,6 +221,11 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
       if (this.scene) {
         this.updateSceneColors(colors);
       }
+    });
+
+    // Subscribe to viewer motion config
+    this.motionSubscription = this.viewerStyleAdapter.viewerMotion$.subscribe((motion) => {
+      this.viewerMotion = motion;
     });
 
     // Register render callback early so tests observing ngOnInit see the registration
@@ -160,22 +252,13 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
       }
     }
 
-    if (changes['detections'] && this.scene) {
-      console.log('[SceneViewer]', this.viewerId, 'updating detections', this.detections?.length ?? 0);
-      // Remove existing mesh
-      if (this.instancedMesh) {
-        this.scene.remove(this.instancedMesh);
-        this.instancedMesh.geometry.dispose();
-        if (Array.isArray(this.instancedMesh.material)) {
-          this.instancedMesh.material.forEach((m) => m.dispose());
-        } else {
-          this.instancedMesh.material.dispose();
-        }
-        this.instancedMesh = undefined;
-      }
-      if (Array.isArray(this.detections) && this.detections.length > 0) {
-        this.addBoundingBoxes();
-      }
+    // Update bounding boxes if detections, diffMode, or diffClassification changes
+    if ((changes['detections'] || changes['diffMode'] || changes['diffClassification']) && this.scene) {
+      console.log('[SceneViewer]', this.viewerId, 'updating detections/diffMode', {
+        detections: this.detections?.length ?? 0,
+        diffMode: this.diffMode,
+      });
+      this.updateBoundingBoxes();
     }
   }
 
@@ -186,9 +269,17 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
       this.cameraControl.detach(this.viewerId);
     }
 
-    // Unsubscribe from color updates
+    // Unsubscribe from updates
     if (this.colorSubscription) {
       this.colorSubscription.unsubscribe();
+    }
+    if (this.motionSubscription) {
+      this.motionSubscription.unsubscribe();
+    }
+
+    // Dispose class batches
+    if (this.classBatches) {
+      disposeClassBatches(this.classBatches);
     }
 
     // Dispose Three.js resources
@@ -242,7 +333,7 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
 
     // Bounding boxes
     if (this.detections.length > 0) {
-      this.addBoundingBoxes();
+      this.updateBoundingBoxes();
     }
 
     // Handle window resize
@@ -274,18 +365,46 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
   }
 
   /**
-   * Add bounding boxes as instanced mesh to the scene.
+   * Update bounding boxes in the scene with current detections and diff mode.
+   * Disposes old batches and creates new ones.
    */
-  private addBoundingBoxes(): void {
-    const mesh = this.createInstancedBoundingBoxes(this.detections);
-    this.instancedMesh = mesh;
-    this.scene?.add(mesh);
+  private updateBoundingBoxes(): void {
+    // Remove and dispose existing batches
+    if (this.classBatches && this.scene) {
+      for (const classType of ['vehicle', 'pedestrian', 'cyclist'] as DetectionClass[]) {
+        const mesh = this.classBatches[classType];
+        if (mesh) {
+          this.scene.remove(mesh);
+        }
+      }
+      disposeClassBatches(this.classBatches);
+      this.classBatches = undefined;
+    }
 
-    this.disposables.push(mesh.geometry);
-    if (Array.isArray(mesh.material)) {
-      this.disposables.push(...mesh.material);
-    } else {
-      this.disposables.push(mesh.material);
+    // Create new batches if detections exist
+    if (this.detections.length > 0 && this.viewerColors) {
+      const colors: ClassColors = {
+        vehicle: this.viewerColors.vehicle,
+        pedestrian: this.viewerColors.pedestrian,
+        cyclist: this.viewerColors.cyclist,
+      };
+
+      this.classBatches = buildClassBatches(
+        this.detections,
+        colors,
+        this.diffMode,
+        this.diffClassification
+      );
+
+      // Add batches to scene
+      if (this.scene) {
+        for (const classType of ['vehicle', 'pedestrian', 'cyclist'] as DetectionClass[]) {
+          const mesh = this.classBatches[classType];
+          if (mesh) {
+            this.scene.add(mesh);
+          }
+        }
+      }
     }
   }
 
@@ -339,30 +458,9 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
       this.scene.background = colors.background;
     }
 
-    // Update point cloud color if it exists
-    if (this.pointCloud && this.pointCloud.material instanceof THREE.PointsMaterial) {
-      // For now, keep points as neutral gray (could be enhanced to use theme color)
-      // this.pointCloud.material.color = colors.grid;
-    }
-
-    // Update bounding box colors if they exist
-    if (this.instancedMesh) {
-      const classColors: Record<string, THREE.Color> = {
-        vehicle: colors.vehicle,
-        pedestrian: colors.pedestrian,
-        cyclist: colors.cyclist,
-      };
-
-      const color = new THREE.Color();
-      this.detections.forEach((det, i) => {
-        const detColor = classColors[det.class] ?? new THREE.Color(0xffffff);
-        color.copy(detColor);
-        this.instancedMesh?.setColorAt(i, color);
-      });
-
-      if (this.instancedMesh.instanceColor) {
-        this.instancedMesh.instanceColor.needsUpdate = true;
-      }
+    // Update bounding box colors - rebuild batches with new colors
+    if (this.classBatches && this.detections.length > 0) {
+      this.updateBoundingBoxes();
     }
   }
 
@@ -385,42 +483,76 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
   }
 
   /**
-   * Create InstancedMesh of bounding boxes with class-based coloring.
-   * Colors sourced from design tokens via ViewerStyleAdapterService (NFR-3.5, UI 8.2).
+   * Handle mouse move for raycasting and hover detection.
    */
-  private createInstancedBoundingBoxes(detections: Detection[]): THREE.InstancedMesh {
-    const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ wireframe: true });
+  @HostListener('mousemove', ['$event'])
+  public onMouseMove(event: MouseEvent): void {
+    if (!this.canvasRef || !this.camera || !this.classBatches) return;
 
-    const mesh = new THREE.InstancedMesh(boxGeometry, material, detections.length);
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
 
-    // Get colors from theme system - PRD §8.2.1
-    const classColors: Record<string, THREE.Color> = {
-      vehicle: this.viewerColors?.vehicle ?? new THREE.Color(0x3b82f6),
-      pedestrian: this.viewerColors?.pedestrian ?? new THREE.Color(0xef4444),
-      cyclist: this.viewerColors?.cyclist ?? new THREE.Color(0xf97316),
-    };
+    // Normalize mouse coordinates to [-1, 1]
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    const matrix = new THREE.Matrix4();
-    const color = new THREE.Color();
+    this.performRaycast(event.clientX, event.clientY);
+  }
 
-    detections.forEach((det, i) => {
-      const { center, dimensions, yaw } = det;
-      matrix.makeRotationZ(yaw);
-      matrix.setPosition(center[0], center[1], center[2]);
-      matrix.scale(new THREE.Vector3(dimensions.width, dimensions.length, dimensions.height));
-      mesh.setMatrixAt(i, matrix);
+  /**
+   * Perform raycasting to detect hovered detection.
+   */
+  private performRaycast(clientX: number, clientY: number): void {
+    if (!this.camera || !this.classBatches) return;
 
-      const detColor = classColors[det.class] ?? new THREE.Color(0xffffff);
-      color.copy(detColor);
-      mesh.setColorAt(i, color);
-    });
+    this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) {
-      mesh.instanceColor.needsUpdate = true;
+    // Collect all meshes for raycasting
+    const meshes: THREE.InstancedMesh[] = [];
+    for (const classType of ['vehicle', 'pedestrian', 'cyclist'] as DetectionClass[]) {
+      const mesh = this.classBatches[classType];
+      if (mesh) {
+        meshes.push(mesh);
+      }
     }
 
-    return mesh;
+    const intersects = this.raycaster.intersectObjects(meshes, false);
+
+    if (intersects.length > 0) {
+      const intersection = intersects[0];
+      if (!intersection) return;
+
+      const metadata = getInstanceMetadata(intersection);
+
+      if (metadata) {
+        this.hoveredInstance = metadata;
+        this.showTooltip(metadata, clientX, clientY);
+      } else {
+        this.hideTooltip();
+      }
+    } else {
+      this.hideTooltip();
+    }
+  }
+
+  /**
+   * Show tooltip with detection information.
+   */
+  private showTooltip(metadata: InstanceMetadata, x: number, y: number): void {
+    this.tooltipContent.set({
+      class: metadata.detection.class,
+      confidence: metadata.detection.confidence,
+      matchesGt: metadata.detection.matches_gt,
+    });
+    this.tooltipPosition.set({ x, y });
+    this.tooltipVisible.set(true);
+  }
+
+  /**
+   * Hide tooltip.
+   */
+  private hideTooltip(): void {
+    this.tooltipVisible.set(false);
+    this.hoveredInstance = undefined;
   }
 }

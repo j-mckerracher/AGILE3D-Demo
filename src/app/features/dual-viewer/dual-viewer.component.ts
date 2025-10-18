@@ -1,7 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SceneViewerComponent } from '../scene-viewer/scene-viewer.component';
+import { CameraSyncControlsComponent } from '../camera-controls/camera-sync-controls.component';
 import { Detection } from '../../core/models/scene.models';
+import { DiffMode } from '../../core/services/visualization/bbox-instancing';
 import * as THREE from 'three';
 
 /**
@@ -29,7 +31,7 @@ import * as THREE from 'three';
 @Component({
   selector: 'app-dual-viewer',
   standalone: true,
-  imports: [CommonModule, SceneViewerComponent],
+  imports: [CommonModule, SceneViewerComponent, CameraSyncControlsComponent],
   template: `
     <div class="dual-viewer-container">
       <!-- Baseline Viewer Region (NFR-3.3, NFR-3.4) -->
@@ -46,6 +48,8 @@ import * as THREE from 'three';
           viewerId="baseline"
           [sharedPointGeometry]="sharedGeometry"
           [detections]="baselineDetections"
+          [diffMode]="diffMode"
+          [diffClassification]="baselineDiffClassification"
           [showFps]="showFps"
         />
       </section>
@@ -65,6 +69,23 @@ import * as THREE from 'three';
         </span>
       </button>
 
+      <!-- Camera Sync Controls (WP-2.1.3) -->
+      <div class="camera-controls-container">
+        <app-camera-sync-controls />
+      </div>
+
+      <!-- Ground Truth Toggle (Placeholder for future WP) -->
+      <button
+        class="gt-toggle"
+        type="button"
+        [disabled]="true"
+        title="Ground Truth overlay (Coming soon)"
+        aria-label="Toggle ground truth overlay (not yet implemented)"
+      >
+        <span class="toggle-icon" aria-hidden="true">GT</span>
+        <span class="toggle-text">Ground Truth</span>
+      </button>
+
       <!-- AGILE3D Viewer Region (NFR-3.3, NFR-3.4) -->
       <section
         class="viewer-panel"
@@ -79,6 +100,8 @@ import * as THREE from 'three';
           viewerId="agile3d"
           [sharedPointGeometry]="sharedGeometry"
           [detections]="agile3dDetections"
+          [diffMode]="diffMode"
+          [diffClassification]="agile3dDiffClassification"
           [showFps]="showFps"
         />
       </section>
@@ -180,6 +203,49 @@ import * as THREE from 'three';
         letter-spacing: 0.5px;
       }
 
+      /* Camera Sync Controls (WP-2.1.3) */
+      .camera-controls-container {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1003;
+      }
+
+      /* Ground Truth Toggle (Placeholder) */
+      .gt-toggle {
+        position: absolute;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1002;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 16px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #999;
+        border: 2px solid #555;
+        border-radius: 6px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      .gt-toggle .toggle-icon {
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      .gt-toggle .toggle-text {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
       .viewer-label {
         position: absolute;
         top: 40px;
@@ -233,6 +299,14 @@ import * as THREE from 'three';
           top: 50%;
           left: 50%;
         }
+
+        .camera-controls-container {
+          top: 12px;
+        }
+
+        .gt-toggle {
+          top: 80px;
+        }
       }
 
       /* Mobile optimization */
@@ -257,6 +331,16 @@ import * as THREE from 'three';
         .toggle-text {
           font-size: 10px;
         }
+
+        .camera-controls-container {
+          top: 8px;
+          left: 50%;
+          transform: translateX(-50%) scale(0.9);
+        }
+
+        .gt-toggle {
+          top: 70px;
+        }
       }
     `,
   ],
@@ -267,6 +351,18 @@ export class DualViewerComponent implements OnInit {
 
   /** Detections to display in the AGILE3D viewer */
   @Input() public agile3dDetections: Detection[] = [];
+
+  /** Diff mode for visual encoding (TP/FP/FN highlighting) */
+  @Input() public diffMode: DiffMode = 'off';
+
+  /** Optional: diff classification map (detection ID -> 'tp'|'fp'|'fn') */
+  @Input() public baselineDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
+
+  /** Optional: diff classification map for AGILE3D viewer */
+  @Input() public agile3dDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
+
+  /** Show ground truth overlay (placeholder for future WP) */
+  @Input() public showGroundTruth = false;
 
   /** Number of points in synthetic point cloud (default 50k) */
   @Input() public pointCount = 50_000;

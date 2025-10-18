@@ -18,6 +18,7 @@ describe('StateService', () => {
     expect(await firstValueFrom(service.activeBranch$.pipe(take(1)))).toBe('CP_Pillar_032');
     expect(await firstValueFrom(service.cameraPos$.pipe(take(1)))).toEqual([0, 0, 10]);
     expect(await firstValueFrom(service.cameraTarget$.pipe(take(1)))).toEqual([0, 0, 0]);
+    expect(await firstValueFrom(service.independentCamera$.pipe(take(1)))).toBe(false);
   });
 
   it('has correct initial values for debounced observables', fakeAsync(() => {
@@ -134,6 +135,39 @@ describe('StateService', () => {
     expect(await firstValueFrom(service.cameraPos$.pipe(take(1)))).toEqual([1, 2, 3]);
   });
 
+  it('updates independent camera mode correctly (WP-2.1.3)', async () => {
+    // Default is false (sync mode)
+    expect(await firstValueFrom(service.independentCamera$.pipe(take(1)))).toBe(false);
+
+    // Set to independent mode
+    service.setIndependentCamera(true);
+    expect(await firstValueFrom(service.independentCamera$.pipe(take(1)))).toBe(true);
+
+    // Set back to sync mode
+    service.setIndependentCamera(false);
+    expect(await firstValueFrom(service.independentCamera$.pipe(take(1)))).toBe(false);
+  });
+
+  it('does not emit independentCamera$ if value unchanged', async () => {
+    const emissions: boolean[] = [];
+    const sub = service.independentCamera$.subscribe((v) => emissions.push(v));
+
+    // Initial emission
+    expect(emissions.length).toBe(1);
+    expect(emissions[0]).toBe(false);
+
+    // Set same value
+    service.setIndependentCamera(false);
+    expect(emissions.length).toBe(1); // No new emission
+
+    // Change value
+    service.setIndependentCamera(true);
+    expect(emissions.length).toBe(2);
+    expect(emissions[1]).toBe(true);
+
+    sub.unsubscribe();
+  });
+
   it('debounces contention$ emissions', fakeAsync(() => {
     const emissions: number[] = [];
     const sub = service.contention$.subscribe((v) => emissions.push(v));
@@ -233,7 +267,7 @@ describe('StateService', () => {
 
   it('completes all subjects on ngOnDestroy', (done) => {
     let completionCount = 0;
-    const expectedCompletions = 7; // All 7 BehaviorSubjects
+    const expectedCompletions = 8; // All 8 BehaviorSubjects (added independentCamera in WP-2.1.3)
 
     // Subscribe to all observables and count completions
     service.scene$.subscribe({ complete: () => completionCount++ });
@@ -243,6 +277,7 @@ describe('StateService', () => {
     service.activeBranch$.subscribe({ complete: () => completionCount++ });
     service.cameraPos$.subscribe({ complete: () => completionCount++ });
     service.cameraTarget$.subscribe({ complete: () => completionCount++ });
+    service.independentCamera$.subscribe({ complete: () => completionCount++ });
 
     // Trigger cleanup
     service.ngOnDestroy();

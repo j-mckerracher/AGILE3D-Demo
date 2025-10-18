@@ -70,6 +70,168 @@ Per WP-2.1.1 requirements:
 - ✅ **60fps Sustained**: Both viewers maintain target frame rate during interaction
 - ✅ **Accessibility**: WCAG 2.2 AA compliant with reduced-motion support
 
+## Detection Visualization (WP-2.1.2)
+
+The application renders 3D object detection bounding boxes with high-performance instancing and interactive diff highlighting.
+
+### Class-Based Color Coding
+
+Each detection class uses a distinct color for visual identification:
+
+| Class | Color | Hex Code |
+|-------|-------|----------|
+| **Vehicle** | Blue | `#3B82F6` |
+| **Pedestrian** | Red | `#EF4444` |
+| **Cyclist** | Orange | `#F97316` |
+
+Colors are sourced from the design system (`ViewerStyleAdapterService`) and update automatically when the theme changes.
+
+### Diff Modes
+
+The application supports multiple diff modes for comparing detection results between baseline and AGILE3D:
+
+- **`off`**: No diff highlighting, show all detections with full opacity
+- **`tp`** (True Positives): Show only detections that match ground truth
+- **`fp`** (False Positives): Show only detections that don't match ground truth (reduced opacity: 0.4)
+- **`fn`** (False Negatives): Ground truth detections not matched by predictions
+- **`all`**: Show all detections with TP/FP visual encoding
+
+**Visual Encoding:**
+- True Positives (TP): Full opacity (1.0), normal color
+- False Positives (FP): Reduced opacity (0.4) for visual distinction
+- False Negatives (FN): Handled separately as ground truth overlay (future WP)
+
+**Implementation:**
+```typescript
+// Enable diff mode with classification
+<app-dual-viewer
+  [baselineDetections]="baselineDetections"
+  [agile3dDetections]="agile3dDetections"
+  [diffMode]="'all'"
+  [baselineDiffClassification]="baselineDiffMap"
+  [agile3dDiffClassification]="agile3dDiffMap"
+/>
+```
+
+### Interactive Tooltips
+
+Hover over any detection bounding box to view detailed information:
+
+**Tooltip Content:**
+- **Class**: Detection class (vehicle, pedestrian, cyclist)
+- **Confidence**: Prediction confidence score (0-100%)
+- **Matches GT**: Ground truth ID matched by this detection (if available)
+
+**Accessibility:**
+- Tooltips use `role="tooltip"` and `aria-live="polite"` for screen readers
+- Keyboard accessible via click/Enter fallback
+- Positioned to avoid viewport edges
+
+### Performance Optimizations
+
+Per WP-2.1.2 requirements:
+
+- ✅ **Per-Class Instancing**: One `InstancedMesh` per class minimizes material switches
+- ✅ **Shared Geometry**: All detections use a single `BoxGeometry(1,1,1)` with matrix transforms
+- ✅ **Efficient Updates**: Detections rebuild only when arrays change, not per-frame
+- ✅ **Raycasting**: Fast hover detection using Three.js raycaster on instanced meshes
+
+### Reduced Motion Support
+
+The application respects the user's `prefers-reduced-motion` setting (WCAG 2.2 AA):
+
+- **Animations Disabled**: Bounding box transitions disabled when reduced motion is active
+- **Instant Updates**: Detection changes appear immediately without fade effects
+- **Service Integration**: `ReducedMotionService` provides reactive motion state
+- **Viewer Motion Config**: `ViewerStyleAdapterService` applies motion preferences to Three.js animations
+
+**Implementation:**
+```typescript
+// Automatic via ViewerMotionConfig
+this.viewerStyleAdapter.viewerMotion$.subscribe((motion) => {
+  // motion.enabled = false when prefers-reduced-motion: reduce
+  // motion.objectDuration = 0.01ms (effectively instant)
+});
+```
+
+### Ground Truth Overlay
+
+A placeholder toggle button is present in the UI for future ground truth overlay visualization (deferred to a later work package). This feature will allow users to compare predicted detections against ground truth annotations.
+
+**Current State:**
+- UI toggle button visible but disabled
+- Marked as "Coming soon" with tooltip
+- FN (False Negative) diff mode reserved for GT overlay
+
+## Camera Sync & Independent Mode (WP-2.1.3)
+
+The application provides flexible camera control modes for comparing scenes from different viewpoints or maintaining synchronized views.
+
+### Synchronized Cameras (Default)
+
+By default, both viewers share a synchronized camera. Moving the camera in either viewer instantly mirrors the movement in the other viewer, enabling side-by-side comparison from identical viewpoints.
+
+**Features:**
+- **Bidirectional Sync**: Camera changes in either viewer immediately propagate to the other
+- **Frame-Accurate**: Synchronization happens within a single frame via reactive state management
+- **Feedback Prevention**: Guard mechanisms prevent infinite update loops
+- **Zero Configuration**: Automatic setup through `CameraControlService` and `StateService`
+
+### Independent Camera Mode
+
+Toggle "Independent Cameras" to control each viewer's camera separately, allowing comparison from different angles or distances.
+
+**Location**: Camera controls panel at the top center of the dual viewer interface
+
+**Behavior:**
+- **Independent Mode ON**: Each viewer maintains its own camera pose; moving one viewer does NOT affect the other
+- **Independent Mode OFF** (default): Cameras are synchronized across both viewers
+- **Re-sync**: When toggling back from independent to sync mode, both viewers automatically align to a common camera pose without visual jumps
+
+**Implementation Details:**
+- Mode state managed by `StateService.independentCamera$` observable
+- `CameraControlService` conditionally enables/disables global state updates based on mode
+- On re-sync: first attached viewer's camera becomes canonical source for both viewers
+
+### Camera Reset
+
+Click "Reset Camera" to restore the default view, useful after extensive navigation or to return to a standard viewing position.
+
+**Default View:**
+- **Position**: `[0, 0, 10]` (10 units along Z-axis)
+- **Target**: `[0, 0, 0]` (looking at origin)
+- **Works in both modes**: Reset applies to current viewer in independent mode, or all viewers in sync mode
+
+### Scene Persistence (FR-1.10)
+
+Camera pose is preserved when switching scenes. The camera maintains its position and orientation across scene changes unless manually reset.
+
+**Benefits:**
+- Consistent viewing angle when comparing different scenes
+- No jarring camera jumps during scene transitions
+- Manual control via Reset Camera button when fresh perspective is needed
+
+**Usage Example:**
+```typescript
+// Access camera sync controls in DualViewerComponent
+<app-camera-sync-controls />
+
+// Toggle independent mode programmatically
+stateService.setIndependentCamera(true);
+
+// Reset camera to default
+stateService.setCameraPos([0, 0, 10]);
+stateService.setCameraTarget([0, 0, 0]);
+```
+
+### Accessibility
+
+Camera controls follow WCAG 2.2 AA standards:
+- **ARIA Labels**: Toggle and button have descriptive labels for screen readers
+- **Keyboard Navigation**: Full keyboard support (Tab, Enter, Space)
+- **Tooltips**: Context-sensitive help text on hover
+- **Focus Indicators**: Clear visual focus states for keyboard navigation
+
 ## Technology Stack
 
 - **Framework**: Angular 20.x (standalone components)
