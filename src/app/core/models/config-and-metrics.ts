@@ -94,3 +94,36 @@ export interface ComparisonMetrics {
   /** SLO violation rate reduction in percentage points (+/- pp) */
   violationReduction: number;
 }
+
+/**
+ * Advanced control knobs for AGILE3D branch selection.
+ *
+ * These parameters provide fine-grained control over the detection pipeline
+ * architecture. Controlled via the Advanced Controls panel (FR-2.7–2.9).
+ *
+ * @see PRD FR-2.8 (Advanced control options)
+ * @see PRD FR-2.12 (Display control knob settings for AGILE3D)
+ */
+export interface AdvancedKnobs {
+  /**
+   * Point cloud encoding format.
+   * - voxel: 3D voxel grid encoding (higher accuracy, higher latency)
+   * - pillar: 2D pillar encoding (lower latency, slightly lower accuracy)
+   */
+  encodingFormat: 'voxel' | 'pillar';
+
+  /**
+   * 3D object detection head type.
+   * - anchor: Anchor-based detection (predefined bounding box templates)
+   * - center: Center-based detection (CenterPoint-style keypoint prediction)
+   */
+  detectionHead: 'anchor' | 'center';
+
+  /**
+   * Feature extraction backbone network.
+   * - transformer: Transformer-based 3D feature extractor (DSVT-style, highest accuracy)
+   * - sparse_cnn: Sparse 3D CNN backbone (balanced accuracy/latency)
+   * - 2d_cnn: 2D CNN on BEV features (lowest latency, lower accuracy)
+   */
+  featureExtractor: 'transformer' | 'sparse_cnn' | '2d_cnn';
+}

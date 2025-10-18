@@ -1,7 +1,7 @@
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { firstValueFrom, take } from 'rxjs';
 import { StateService, ComparisonData } from './state.service';
-import { SystemParams } from '../../models/config-and-metrics';
+import { AdvancedKnobs, SystemParams } from '../../models/config-and-metrics';
 
 describe('StateService', () => {
   let service: StateService;
@@ -267,7 +267,7 @@ describe('StateService', () => {
 
   it('completes all subjects on ngOnDestroy', (done) => {
     let completionCount = 0;
-    const expectedCompletions = 8; // All 8 BehaviorSubjects (added independentCamera in WP-2.1.3)
+    const expectedCompletions = 9; // All 9 BehaviorSubjects (added advancedKnobs in WP-2.2.2)
 
     // Subscribe to all observables and count completions
     service.scene$.subscribe({ complete: () => completionCount++ });
@@ -278,6 +278,7 @@ describe('StateService', () => {
     service.cameraPos$.subscribe({ complete: () => completionCount++ });
     service.cameraTarget$.subscribe({ complete: () => completionCount++ });
     service.independentCamera$.subscribe({ complete: () => completionCount++ });
+    service.advancedKnobs$.subscribe({ complete: () => completionCount++ });
 
     // Trigger cleanup
     service.ngOnDestroy();
@@ -287,5 +288,150 @@ describe('StateService', () => {
       expect(completionCount).toBe(expectedCompletions);
       done();
     }, 10);
+  });
+
+  // WP-2.2.2: Advanced Controls Tests
+  describe('advancedKnobs$ (WP-2.2.2)', () => {
+    it('has correct default values', async () => {
+      const defaultKnobs = await firstValueFrom(service.advancedKnobs$.pipe(take(1)));
+      expect(defaultKnobs).toEqual({
+        encodingFormat: 'pillar',
+        detectionHead: 'center',
+        featureExtractor: '2d_cnn',
+      });
+    });
+
+    it('updates when setAdvancedKnobs is called with new values', async () => {
+      const newKnobs: AdvancedKnobs = {
+        encodingFormat: 'voxel',
+        detectionHead: 'anchor',
+        featureExtractor: 'transformer',
+      };
+
+      service.setAdvancedKnobs(newKnobs);
+
+      const updated = await firstValueFrom(service.advancedKnobs$.pipe(take(1)));
+      expect(updated).toEqual(newKnobs);
+    });
+
+    it('does not emit if values are unchanged (deep equality check)', async () => {
+      const emissions: AdvancedKnobs[] = [];
+      const sub = service.advancedKnobs$.subscribe((v) => emissions.push(v));
+
+      // Initial emission
+      expect(emissions.length).toBe(1);
+      expect(emissions[0]).toEqual({
+        encodingFormat: 'pillar',
+        detectionHead: 'center',
+        featureExtractor: '2d_cnn',
+      });
+
+      // Set the same values (should not emit due to deep equality check)
+      service.setAdvancedKnobs({
+        encodingFormat: 'pillar',
+        detectionHead: 'center',
+        featureExtractor: '2d_cnn',
+      });
+
+      // Allow async to settle
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Should still be 1 emission (no duplicate)
+      expect(emissions.length).toBe(1);
+
+      sub.unsubscribe();
+    });
+
+    it('emits when any single knob value changes', async () => {
+      const emissions: AdvancedKnobs[] = [];
+      const sub = service.advancedKnobs$.subscribe((v) => emissions.push(v));
+
+      // Initial emission
+      expect(emissions.length).toBe(1);
+
+      // Change only encodingFormat
+      service.setAdvancedKnobs({
+        encodingFormat: 'voxel',
+        detectionHead: 'center',
+        featureExtractor: '2d_cnn',
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(emissions.length).toBe(2);
+      expect(emissions[1]!.encodingFormat).toBe('voxel');
+
+      // Change only detectionHead
+      service.setAdvancedKnobs({
+        encodingFormat: 'voxel',
+        detectionHead: 'anchor',
+        featureExtractor: '2d_cnn',
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(emissions.length).toBe(3);
+      expect(emissions[2]!.detectionHead).toBe('anchor');
+
+      // Change only featureExtractor
+      service.setAdvancedKnobs({
+        encodingFormat: 'voxel',
+        detectionHead: 'anchor',
+        featureExtractor: 'sparse_cnn',
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(emissions.length).toBe(4);
+      expect(emissions[3]!.featureExtractor).toBe('sparse_cnn');
+
+      sub.unsubscribe();
+    });
+
+    it('uses distinctUntilChanged with JSON deep equality to prevent redundant emissions', async () => {
+      const emissions: AdvancedKnobs[] = [];
+      const sub = service.advancedKnobs$.subscribe((v) => emissions.push(v));
+
+      // Initial emission
+      expect(emissions.length).toBe(1);
+
+      // Rapidly set the same values multiple times
+      service.setAdvancedKnobs({
+        encodingFormat: 'voxel',
+        detectionHead: 'anchor',
+        featureExtractor: 'transformer',
+      });
+
+      service.setAdvancedKnobs({
+        encodingFormat: 'voxel',
+        detectionHead: 'anchor',
+        featureExtractor: 'transformer',
+      });
+
+      service.setAdvancedKnobs({
+        encodingFormat: 'voxel',
+        detectionHead: 'anchor',
+        featureExtractor: 'transformer',
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Should only have 2 emissions: initial + first change (duplicates suppressed)
+      expect(emissions.length).toBe(2);
+
+      sub.unsubscribe();
+    });
+
+    it('handles all valid knob value combinations', async () => {
+      const testCases: AdvancedKnobs[] = [
+        { encodingFormat: 'voxel', detectionHead: 'anchor', featureExtractor: 'transformer' },
+        { encodingFormat: 'voxel', detectionHead: 'center', featureExtractor: 'sparse_cnn' },
+        { encodingFormat: 'pillar', detectionHead: 'anchor', featureExtractor: '2d_cnn' },
+        { encodingFormat: 'pillar', detectionHead: 'center', featureExtractor: 'transformer' },
+      ];
+
+      for (const knobs of testCases) {
+        service.setAdvancedKnobs(knobs);
+        const emitted = await firstValueFrom(service.advancedKnobs$.pipe(take(1)));
+        expect(emitted).toEqual(knobs);
+      }
+    });
   });
 });

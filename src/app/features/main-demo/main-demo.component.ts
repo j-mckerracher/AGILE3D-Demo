@@ -13,6 +13,7 @@
 import { Component, ChangeDetectionStrategy, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DualViewerComponent } from '../dual-viewer/dual-viewer.component';
+import { ControlPanelComponent } from '../control-panel/control-panel.component';
 import * as THREE from 'three';
 import { SceneDataService } from '../../core/services/data/scene-data.service';
 import { SceneTierManagerService } from '../../core/services/data/scene-tier-manager.service';
@@ -21,7 +22,7 @@ import { Detection, SceneMetadata } from '../../core/models/scene.models';
 @Component({
   selector: 'app-main-demo',
   standalone: true,
-  imports: [CommonModule, DualViewerComponent],
+  imports: [CommonModule, DualViewerComponent, ControlPanelComponent],
   templateUrl: './main-demo.component.html',
   styleUrls: ['./main-demo.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

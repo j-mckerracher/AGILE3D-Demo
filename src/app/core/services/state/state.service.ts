@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
-import { SceneId, SystemParams, VoxelSize } from '../../models/config-and-metrics';
+import { AdvancedKnobs, SceneId, SystemParams, VoxelSize } from '../../models/config-and-metrics';
 import { Vec3 } from '../../models/scene.models';
 
 /**
@@ -32,6 +32,13 @@ export class StateService implements OnDestroy {
   private readonly cameraTargetSubject = new BehaviorSubject<Vec3>([0, 0, 0]);
   private readonly independentCameraSubject = new BehaviorSubject<boolean>(false);
 
+  // Advanced control knobs (FR-2.7–2.9, WP-2.2.2)
+  private readonly advancedKnobsSubject = new BehaviorSubject<AdvancedKnobs>({
+    encodingFormat: 'pillar',
+    detectionHead: 'center',
+    featureExtractor: '2d_cnn',
+  });
+
   // Public observables for configuration controls
   public readonly scene$: Observable<SceneId> = this.sceneSubject.asObservable();
   public readonly voxelSize$: Observable<VoxelSize> = this.voxelSizeSubject.asObservable();
@@ -51,6 +58,19 @@ export class StateService implements OnDestroy {
   public readonly cameraPos$: Observable<Vec3> = this.cameraPosSubject.asObservable();
   public readonly cameraTarget$: Observable<Vec3> = this.cameraTargetSubject.asObservable();
   public readonly independentCamera$: Observable<boolean> = this.independentCameraSubject.asObservable();
+
+  /**
+   * Advanced control knobs for AGILE3D branch selection.
+   * Provides fine-grained control over encoding format, detection head, and feature extractor.
+   * Uses distinctUntilChanged with deep equality to prevent redundant emissions.
+   *
+   * @see PRD FR-2.8 (Advanced control options)
+   * @see WP-2.2.2 (Advanced Controls implementation)
+   */
+  public readonly advancedKnobs$: Observable<AdvancedKnobs> = this.advancedKnobsSubject.pipe(
+    distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+    shareReplay(1)
+  );
 
   // Backwards compatibility: expose raw subjects for existing consumers
   /** @deprecated Use scene$ observable instead */
@@ -156,6 +176,27 @@ export class StateService implements OnDestroy {
   }
 
   /**
+   * Update advanced control knobs.
+   * Uses deep equality comparison to prevent redundant state emissions.
+   * Only emits if the new knobs differ from the current state.
+   *
+   * @param knobs - New advanced knobs configuration
+   * @see PRD FR-2.8 (Advanced control options)
+   * @see WP-2.2.2 (Advanced Controls implementation)
+   */
+  public setAdvancedKnobs(knobs: AdvancedKnobs): void {
+    const current = this.advancedKnobsSubject.value;
+    const changed =
+      current.encodingFormat !== knobs.encodingFormat ||
+      current.detectionHead !== knobs.detectionHead ||
+      current.featureExtractor !== knobs.featureExtractor;
+
+    if (changed) {
+      this.advancedKnobsSubject.next(knobs);
+    }
+  }
+
+  /**
    * Cleanup lifecycle hook. Completes all BehaviorSubjects to prevent potential
    * memory leaks if service scoping changes in the future.
    */
@@ -168,6 +209,7 @@ export class StateService implements OnDestroy {
     this.cameraPosSubject.complete();
     this.cameraTargetSubject.complete();
     this.independentCameraSubject.complete();
+    this.advancedKnobsSubject.complete();
   }
 }
 

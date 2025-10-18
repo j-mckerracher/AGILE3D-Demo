@@ -163,6 +163,96 @@ A placeholder toggle button is present in the UI for future ground truth overlay
 - Marked as "Coming soon" with tooltip
 - FN (False Negative) diff mode reserved for GT overlay
 
+## Advanced Controls (WP-2.2.2)
+
+The application provides advanced configuration controls for fine-tuning AGILE3D's detection pipeline architecture. These controls are hidden by default and can be revealed via an "Advanced" toggle button.
+
+### Purpose
+
+Advanced controls allow users to manually configure AGILE3D's architectural parameters, providing insight into how different detection pipeline configurations affect performance. These settings influence the branch selection algorithm in conjunction with system parameters (scene type, contention, latency SLO).
+
+### Control Options
+
+#### Encoding Format
+**Options**: Voxel | Pillar
+
+Point cloud spatial encoding strategy:
+- **Voxel**: 3D voxel grid encoding (higher accuracy, higher latency)
+- **Pillar**: 2D pillar encoding (lower latency, slightly lower accuracy)
+
+**Tooltip**: "Voxel vs Pillar encoding affects feature layout and latency."
+
+#### Detection Head
+**Options**: Anchor-based | Center-based
+
+3D object detection strategy:
+- **Anchor**: Anchor-based detection with predefined bounding box templates
+- **Center**: Center-based detection (CenterPoint-style keypoint prediction)
+
+**Tooltip**: "Anchor-based vs Center-based detection strategy."
+
+#### Feature Extractor
+**Options**: Transformer | Sparse CNN | 2D CNN
+
+Feature extraction backbone network:
+- **Transformer**: Transformer-based 3D feature extractor (DSVT-style, highest accuracy)
+- **Sparse CNN**: Sparse 3D CNN backbone (balanced accuracy/latency)
+- **2D CNN**: 2D CNN on BEV features (lowest latency, lower accuracy)
+
+**Tooltip**: "Backbone network type used for 3D features."
+
+### Usage
+
+**Location**: Control Panel in the main demo interface
+
+**Default State**: Hidden
+
+**To Reveal**: Click the "Advanced" button in the control panel
+
+**To Hide**: Click "Advanced" again, or press the **ESC** key
+
+**Default Values**:
+- Encoding Format: Pillar
+- Detection Head: Center-based
+- Feature Extractor: 2D CNN
+
+### Implementation Details
+
+- **Form Debouncing**: Changes to advanced controls are debounced (100ms) to prevent excessive state updates during rapid adjustments
+- **Distinct Emissions**: Deep equality checking prevents redundant state emissions when values haven't actually changed
+- **State Persistence**: Form values are preserved when the advanced section is toggled (no form destruction)
+- **Reactive State**: All changes immediately propagate to `StateService.advancedKnobs$` for consumption by downstream services (e.g., SimulationService in WP-2.2.3)
+
+### Accessibility
+
+- **Keyboard Navigation**: Full keyboard support (Tab, Shift+Tab to navigate controls)
+- **ARIA Attributes**:
+  - `aria-expanded` on toggle button indicates panel state
+  - `aria-controls` links toggle to panel
+  - `aria-hidden` on panel when collapsed
+  - `aria-label` on all form controls for screen readers
+- **ESC Key**: Close advanced section by pressing Escape
+- **Tooltips**: Contextual help available on hover for all controls
+- **Focus Management**: Clear focus indicators on all interactive elements
+
+### PRD Requirements Satisfied
+
+- **FR-2.7**: Advanced toggle hidden by default ✅
+- **FR-2.8**: Advanced controls for encoding format, detection head, feature extractor ✅
+- **FR-2.9**: Tooltips for each advanced control ✅
+- **NFR-3.1**: Intuitive controls requiring minimal instruction ✅
+- **NFR-3.2**: Helpful tooltips available on hover ✅
+- **NFR-3.4**: Keyboard navigation support ✅
+- **NFR-3.5**: Accessible color contrast (WCAG AA) ✅
+
+### Code Location
+
+- Component: `src/app/features/control-panel/advanced-controls/`
+- State Management: `src/app/core/services/state/state.service.ts` (`advancedKnobs$`, `setAdvancedKnobs()`)
+- Types: `src/app/core/models/config-and-metrics.ts` (`AdvancedKnobs` interface)
+
+---
+
 ## Camera Sync & Independent Mode (WP-2.1.3)
 
 The application provides flexible camera control modes for comparing scenes from different viewpoints or maintaining synchronized views.
