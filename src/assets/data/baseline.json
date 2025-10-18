@@ -1,0 +1,27 @@
+{
+  "branch_id": "DSVT_Voxel",
+  "name": "DSVT Voxel (Baseline)",
+  "controlKnobs": {
+    "encodingFormat": "voxel",
+    "spatialResolution": 0.16,
+    "spatialEncoding": "DV",
+    "featureExtractor": "transformer",
+    "detectionHead": "center"
+  },
+  "performance": {
+    "memoryFootprint": 6.8,
+    "latency": {
+      "noContention": { "mean": 371, "std": 15.2 },
+      "lightContention": { "mean": 425, "std": 22.8 },
+      "moderateContention": { "mean": 498, "std": 35.7 },
+      "intenseContention": { "mean": 645, "std": 58.2 },
+      "peakContention": { "mean": 782, "std": 72.4 }
+    },
+    "accuracy": {
+      "vehicle-heavy": 67.1,
+      "pedestrian-heavy": 62.3,
+      "mixed": 64.8
+    }
+  },
+  "modelFamily": "DSVT"
+}
