@@ -31,7 +31,7 @@ export class MainDemoComponent implements OnInit {
   private readonly tierManager = inject(SceneTierManagerService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  protected sharedGeometry?: THREE.BufferGeometry;
+  protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
   protected agile3dDetections: Detection[] = [];
 
@@ -84,14 +84,13 @@ export class MainDemoComponent implements OnInit {
     const cacheKey = this.tierManager.getCacheKey(meta.scene_id);
     console.log('[MainDemo] resolved bin', { binPath, cacheKey });
 
-    const positions = await this.sceneData.loadPoints(binPath, cacheKey, meta.pointStride);
-    console.log('[MainDemo] positions length', positions.length);
-
-    // Build THREE.BufferGeometry
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, meta.pointStride));
-    this.sharedGeometry = geometry;
-    console.log('[MainDemo] sharedGeometry set');
+    // Load THREE.Points instance from SceneDataService (WP-2.1.1)
+    // This ensures a single shared Points instance across all viewers
+    this.sharedPoints = await this.sceneData.loadPointsObject(binPath, cacheKey, meta.pointStride);
+    console.log('[MainDemo] sharedPoints loaded', {
+      geometry: this.sharedPoints.geometry.uuid,
+      vertices: this.sharedPoints.geometry.getAttribute('position')?.count ?? 0,
+    });
 
     // Select detections: baseline from DSVT_Voxel if present, else ground truth.
     const baseline = meta.predictions['DSVT_Voxel'] ?? meta.ground_truth ?? [];

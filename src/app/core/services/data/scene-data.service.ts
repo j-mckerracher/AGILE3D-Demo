@@ -1,6 +1,7 @@
 import { Injectable, inject, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import * as THREE from 'three';
 import {
   SceneMetadata,
   SceneRegistry,
@@ -16,14 +17,17 @@ import {
  * - Load binary point cloud data (.bin files)
  * - Parse point clouds in Web Worker (off main thread)
  * - Cache parsed results to avoid redundant parsing
+ * - Create and manage THREE.Points instances for shared geometry (WP-2.1.1)
  * - Manage worker lifecycle
  *
  * Performance:
  * - Uses transferable objects for zero-copy data transfer
  * - Caches parsed Float32Array results by scene ID
+ * - Caches THREE.Points instances for memory efficiency across viewers
  * - Implements 10s timeout for worker operations
  *
  * @see WP-1.2.2 Scene Data & Parsing Infrastructure
+ * @see WP-2.1.1 Dual Viewer Foundation (Shared Geometry)
  */
 @Injectable({
   providedIn: 'root',
@@ -33,6 +37,9 @@ export class SceneDataService implements OnDestroy {
 
   /** Cache for parsed point cloud positions, keyed by scene ID + tier */
   private readonly pointsCache = new Map<string, Float32Array>();
+
+  /** Cache for THREE.Points instances, keyed by scene ID + tier */
+  private readonly pointsObjectCache = new Map<string, THREE.Points>();
 
   /** Cache for scene metadata, keyed by scene ID */
   private readonly metadataCache = new Map<string, SceneMetadata>();
@@ -173,6 +180,90 @@ export class SceneDataService implements OnDestroy {
   }
 
   /**
+   * Create a THREE.Points instance from Float32Array positions.
+   *
+   * Builds a BufferGeometry with positions attribute and wraps it in a Points object.
+   * The resulting Points instance is cached by cacheKey to ensure a single shared instance.
+   *
+   * @param positions - Float32Array of [x,y,z] positions
+   * @param cacheKey - Cache key for storing the Points instance (typically sceneId + tier)
+   * @param stride - Number of floats per point (default: 3 for [x,y,z])
+   * @returns THREE.Points instance with gray material
+   *
+   * @see WP-2.1.1 Dual Viewer Foundation - Shared Geometry
+   */
+  public createPointsFromPositions(
+    positions: Float32Array,
+    cacheKey: string,
+    stride = 3
+  ): THREE.Points {
+    // Check cache first
+    const cached = this.pointsObjectCache.get(cacheKey);
+    if (cached) {
+      console.log('[SceneDataService] createPointsFromPositions (cache hit)', cacheKey);
+      return cached;
+    }
+
+    console.log('[SceneDataService] creating Points instance', {
+      cacheKey,
+      positions: positions.length,
+      stride,
+    });
+
+    // Create BufferGeometry
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, stride));
+
+    // Create material (neutral gray to match SceneViewer default)
+    const material = new THREE.PointsMaterial({
+      color: 0x888888,
+      size: 0.05,
+    });
+
+    // Create Points
+    const points = new THREE.Points(geometry, material);
+
+    // Cache and return
+    this.pointsObjectCache.set(cacheKey, points);
+    console.log('[SceneDataService] Points cached', cacheKey);
+
+    return points;
+  }
+
+  /**
+   * Load and create a THREE.Points instance for a scene.
+   *
+   * Convenience method that combines loadPoints() and createPointsFromPositions().
+   * Returns a cached Points instance if available, ensuring shared geometry across viewers.
+   *
+   * @param binPath - Path to .bin file
+   * @param cacheKey - Cache key for storing parsed results and Points instance
+   * @param stride - Number of floats per point (default: 3)
+   * @returns Promise resolving to THREE.Points instance
+   * @throws Error if loading or parsing fails
+   *
+   * @see WP-2.1.1 Dual Viewer Foundation - Shared Geometry
+   */
+  public async loadPointsObject(
+    binPath: string,
+    cacheKey: string,
+    stride = 3
+  ): Promise<THREE.Points> {
+    // Check if Points instance already exists
+    const cachedPoints = this.pointsObjectCache.get(cacheKey);
+    if (cachedPoints) {
+      console.log('[SceneDataService] loadPointsObject (cache hit)', cacheKey);
+      return cachedPoints;
+    }
+
+    // Load positions
+    const positions = await this.loadPoints(binPath, cacheKey, stride);
+
+    // Create and cache Points instance
+    return this.createPointsFromPositions(positions, cacheKey, stride);
+  }
+
+  /**
    * Parse point cloud data in Web Worker.
    *
    * Creates a worker, sends the buffer for parsing, and waits for the result.
@@ -219,7 +310,7 @@ export class SceneDataService implements OnDestroy {
       // Set up message handler
       const messageHandler = (event: MessageEvent<WorkerParseResponse | { ready?: boolean }>): void => {
         // Ignore worker ready pings
-        if ((event.data as any)?.ready) {
+        if ('ready' in event.data && event.data.ready) {
           return;
         }
 
@@ -229,7 +320,8 @@ export class SceneDataService implements OnDestroy {
         if (data.ok && data.positions) {
           resolve(data.positions);
         } else {
-          reject(new Error((data as any).error || 'Unknown worker parsing error'));
+          const errorMsg = 'error' in data ? data.error : 'Unknown worker parsing error';
+          reject(new Error(errorMsg ?? 'Unknown worker parsing error'));
         }
 
         // Clean up listener
@@ -257,12 +349,29 @@ export class SceneDataService implements OnDestroy {
   }
 
   /**
-   * Clear all cached data.
+   * Clear all cached data and dispose THREE.js resources.
    *
-   * Useful for memory management or testing.
+   * Disposes all cached THREE.Points instances (geometry and materials)
+   * before clearing caches. Useful for memory management or testing.
    */
   public clearCache(): void {
+    // Dispose all cached Points instances
+    this.pointsObjectCache.forEach((points, key) => {
+      console.log('[SceneDataService] disposing Points', key);
+      if (points.geometry) {
+        points.geometry.dispose();
+      }
+      if (points.material) {
+        if (Array.isArray(points.material)) {
+          points.material.forEach((m) => m.dispose());
+        } else {
+          points.material.dispose();
+        }
+      }
+    });
+
     this.pointsCache.clear();
+    this.pointsObjectCache.clear();
     this.metadataCache.clear();
   }
 
@@ -271,9 +380,14 @@ export class SceneDataService implements OnDestroy {
    *
    * @returns Object with cache sizes
    */
-  public getCacheStats(): { pointsCacheSize: number; metadataCacheSize: number } {
+  public getCacheStats(): {
+    pointsCacheSize: number;
+    pointsObjectCacheSize: number;
+    metadataCacheSize: number;
+  } {
     return {
       pointsCacheSize: this.pointsCache.size,
+      pointsObjectCacheSize: this.pointsObjectCache.size,
       metadataCacheSize: this.metadataCache.size,
     };
   }

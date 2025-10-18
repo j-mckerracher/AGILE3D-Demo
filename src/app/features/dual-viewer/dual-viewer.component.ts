@@ -6,18 +6,25 @@ import * as THREE from 'three';
 
 /**
  * DualViewer displays two synchronized SceneViewer instances side-by-side.
- * Features:
+ *
+ * Features (WP-2.1.1):
  * - Two viewers ('baseline' and 'agile3d') with synchronized cameras via StateService
- * - Shared point cloud geometry for memory efficiency
+ * - Shared point cloud geometry for memory efficiency (single GPU buffer)
  * - Optional per-viewer detections for comparison
+ * - Scene switching crossfade transition ≤500ms
  *
  * Camera synchronization is automatic via CameraControlService attached in each SceneViewer.
+ * Geometry is sourced from SceneDataService.loadPointsObject() to ensure a single shared instance.
  *
  * @example
  * <app-dual-viewer
+ *   [inputPoints]="sharedPoints"
  *   [baselineDetections]="baselineDetections"
  *   [agile3dDetections]="agile3dDetections"
  * />
+ *
+ * @see WP-2.1.1 Dual Viewer Foundation (Shared Geometry)
+ * @see SceneDataService.loadPointsObject
  */
 @Component({
   selector: 'app-dual-viewer',
@@ -26,21 +33,51 @@ import * as THREE from 'three';
   template: `
     <div class="dual-viewer-container">
       <!-- Baseline Viewer Region (NFR-3.3, NFR-3.4) -->
-      <section class="viewer-panel" role="region" aria-labelledby="baseline-viewer-label">
+      <section
+        class="viewer-panel"
+        [class.active]="activeViewer === 'baseline'"
+        [class.inactive]="activeViewer !== 'baseline'"
+        role="region"
+        aria-labelledby="baseline-viewer-label"
+        [attr.aria-hidden]="activeViewer !== 'baseline'"
+      >
         <h2 id="baseline-viewer-label" class="viewer-label">DSVT-Voxel (Baseline)</h2>
         <app-scene-viewer
           viewerId="baseline"
-          [sharedPointGeometry]="inputGeometry || sharedGeometry"
+          [sharedPointGeometry]="sharedGeometry"
           [detections]="baselineDetections"
           [showFps]="showFps"
         />
       </section>
+
+      <!-- Crossfade Toggle Button (WP-2.1.1) -->
+      <button
+        class="crossfade-toggle"
+        type="button"
+        (click)="toggleActiveViewer()"
+        [disabled]="isTransitioning"
+        [attr.aria-label]="'Switch to ' + (activeViewer === 'baseline' ? 'AGILE3D' : 'Baseline') + ' viewer'"
+        [attr.aria-pressed]="activeViewer === 'agile3d'"
+      >
+        <span class="toggle-icon" aria-hidden="true">⇄</span>
+        <span class="toggle-text">
+          {{ activeViewer === 'baseline' ? 'Show AGILE3D' : 'Show Baseline' }}
+        </span>
+      </button>
+
       <!-- AGILE3D Viewer Region (NFR-3.3, NFR-3.4) -->
-      <section class="viewer-panel" role="region" aria-labelledby="agile3d-viewer-label">
+      <section
+        class="viewer-panel"
+        [class.active]="activeViewer === 'agile3d'"
+        [class.inactive]="activeViewer !== 'agile3d'"
+        role="region"
+        aria-labelledby="agile3d-viewer-label"
+        [attr.aria-hidden]="activeViewer !== 'agile3d'"
+      >
         <h2 id="agile3d-viewer-label" class="viewer-label">AGILE3D</h2>
         <app-scene-viewer
           viewerId="agile3d"
-          [sharedPointGeometry]="inputGeometry || sharedGeometry"
+          [sharedPointGeometry]="sharedGeometry"
           [detections]="agile3dDetections"
           [showFps]="showFps"
         />
@@ -63,6 +100,7 @@ import * as THREE from 'three';
         height: 100%;
         gap: 1%;
         background: #1a1a1a;
+        position: relative;
       }
 
       .viewer-panel {
@@ -72,6 +110,74 @@ import * as THREE from 'three';
         position: relative;
         min-width: 0;
         max-width: 49.5%;
+        opacity: 1;
+        transition: opacity var(--ag3d-duration-slower, 500ms) var(--ag3d-easing-standard, ease);
+      }
+
+      /* Crossfade states (WP-2.1.1) */
+      .viewer-panel.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .viewer-panel.inactive {
+        opacity: 0.3;
+        pointer-events: none;
+      }
+
+      /* Crossfade Toggle Button (WP-2.1.1) */
+      .crossfade-toggle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1002;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 12px 20px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #fff;
+        border: 2px solid #4a9eff;
+        border-radius: 8px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--ag3d-duration-fast, 100ms) var(--ag3d-easing-standard, ease);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      }
+
+      .crossfade-toggle:hover:not(:disabled) {
+        background: rgba(74, 158, 255, 0.2);
+        border-color: #6bb1ff;
+        transform: translate(-50%, -50%) scale(1.05);
+      }
+
+      .crossfade-toggle:active:not(:disabled) {
+        transform: translate(-50%, -50%) scale(0.98);
+      }
+
+      .crossfade-toggle:focus-visible {
+        outline: 2px solid var(--ag3d-color-focus, #4a9eff);
+        outline-offset: 2px;
+      }
+
+      .crossfade-toggle:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .toggle-icon {
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .toggle-text {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .viewer-label {
@@ -95,6 +201,17 @@ import * as THREE from 'three';
         display: block;
       }
 
+      /* Reduced Motion Support (WP-2.1.1, NFR-3.7) */
+      @media (prefers-reduced-motion: reduce) {
+        .viewer-panel {
+          transition-duration: 0.01ms !important;
+        }
+
+        .crossfade-toggle {
+          transition-duration: 0.01ms !important;
+        }
+      }
+
       /* Responsive breakpoints */
       /* Tablet breakpoint - Stack viewers at 1024x768 per PRD UI §8.1.2 */
       @media (max-width: 1024px) {
@@ -111,6 +228,11 @@ import * as THREE from 'three';
           max-width: 100%;
           height: 350px; /* Adjusted for ~768px tall displays */
         }
+
+        .crossfade-toggle {
+          top: 50%;
+          left: 50%;
+        }
       }
 
       /* Mobile optimization */
@@ -121,6 +243,19 @@ import * as THREE from 'three';
 
         .viewer-panel {
           height: 400px;
+        }
+
+        .crossfade-toggle {
+          padding: 10px 16px;
+          font-size: 12px;
+        }
+
+        .toggle-icon {
+          font-size: 20px;
+        }
+
+        .toggle-text {
+          font-size: 10px;
         }
       }
     `,
@@ -136,23 +271,70 @@ export class DualViewerComponent implements OnInit {
   /** Number of points in synthetic point cloud (default 50k) */
   @Input() public pointCount = 50_000;
 
-  /** Optional externally provided shared point geometry (from SceneDataService) */
+  /** Optional externally provided shared Points instance (from SceneDataService, WP-2.1.1) */
+  @Input() public inputPoints?: THREE.Points;
+
+  /** @deprecated Use inputPoints instead. Optional externally provided shared point geometry. */
   @Input() public inputGeometry?: THREE.BufferGeometry;
 
   /** Show FPS overlay on both viewers */
   @Input() public showFps = true;
 
-  /** Shared point cloud geometry for both viewers (created on init) */
+  /** Shared point cloud geometry for both viewers (extracted from Points or created on init) */
   protected sharedGeometry!: THREE.BufferGeometry;
 
+  /** Active viewer for crossfade demonstration ('baseline' | 'agile3d') */
+  protected activeViewer: 'baseline' | 'agile3d' = 'baseline';
+
+  /** Whether a crossfade transition is currently in progress */
+  protected isTransitioning = false;
+
   public ngOnInit(): void {
-    // Use externally provided geometry if available; otherwise create synthetic
-    if (this.inputGeometry) {
-      console.log('[DualViewer] using external geometry');
+    // Priority: inputPoints > inputGeometry > synthetic
+    if (this.inputPoints) {
+      console.log('[DualViewer] using external Points instance (WP-2.1.1)', {
+        uuid: this.inputPoints.geometry.uuid,
+        vertices: this.inputPoints.geometry.getAttribute('position')?.count ?? 0,
+      });
+      this.sharedGeometry = this.inputPoints.geometry as THREE.BufferGeometry;
+    } else if (this.inputGeometry) {
+      console.log('[DualViewer] using external geometry (deprecated path)');
+      this.sharedGeometry = this.inputGeometry;
     } else {
       console.log('[DualViewer] creating synthetic geometry');
+      this.sharedGeometry = this.createSharedPointCloud(this.pointCount);
     }
-    this.sharedGeometry = this.inputGeometry ?? this.createSharedPointCloud(this.pointCount);
+  }
+
+  /**
+   * Toggle between baseline and AGILE3D viewers with crossfade effect.
+   *
+   * Implements visual crossfade transition ≤500ms per WP-2.1.1 requirements.
+   * The transition respects prefers-reduced-motion for accessibility.
+   * Both viewers continue rendering during the fade to prevent visual jumps.
+   */
+  protected toggleActiveViewer(): void {
+    if (this.isTransitioning) {
+      console.log('[DualViewer] crossfade in progress, ignoring toggle');
+      return;
+    }
+
+    this.isTransitioning = true;
+    const nextViewer = this.activeViewer === 'baseline' ? 'agile3d' : 'baseline';
+
+    console.log('[DualViewer] crossfade transition', {
+      from: this.activeViewer,
+      to: nextViewer,
+    });
+
+    // Update active viewer immediately (CSS handles the transition)
+    this.activeViewer = nextViewer;
+
+    // Reset transition flag after animation completes (500ms + 50ms buffer)
+    setTimeout(() => {
+      this.isTransitioning = false;
+      console.log('[DualViewer] crossfade complete');
+    }, 550);
   }
 
   /**

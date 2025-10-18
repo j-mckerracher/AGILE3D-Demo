@@ -4,6 +4,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import * as THREE from 'three';
 import { SceneDataService } from './scene-data.service';
 import { SceneMetadata, SceneRegistry } from '../../models/scene.models';
 
@@ -284,6 +285,120 @@ describe('SceneDataService', () => {
       req.flush(invalidMetadata);
 
       await expectAsync(promise).toBeRejectedWithError(/Invalid bounds/);
+    });
+  });
+
+  describe('Points creation (WP-2.1.1)', () => {
+    it('should create THREE.Points instance from Float32Array positions', () => {
+      const positions = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      const cacheKey = 'test_scene_01:full';
+
+      const points = service.createPointsFromPositions(positions, cacheKey, 3);
+
+      expect(points).toBeInstanceOf(THREE.Points);
+      expect(points.geometry).toBeInstanceOf(THREE.BufferGeometry);
+      expect(points.material).toBeInstanceOf(THREE.PointsMaterial);
+
+      const positionAttr = points.geometry.getAttribute('position');
+      expect(positionAttr).toBeDefined();
+      expect(positionAttr.count).toBe(3); // 9 floats / 3 stride = 3 points
+    });
+
+    it('should cache Points instances by key', () => {
+      const positions = new Float32Array([1, 2, 3, 4, 5, 6]);
+      const cacheKey = 'test_scene_01:full';
+
+      const points1 = service.createPointsFromPositions(positions, cacheKey, 3);
+      const points2 = service.createPointsFromPositions(positions, cacheKey, 3);
+
+      // Should return the same instance (object identity)
+      expect(points1).toBe(points2);
+    });
+
+    it('should return different Points instances for different cache keys', () => {
+      const positions = new Float32Array([1, 2, 3]);
+      const key1 = 'scene_01:full';
+      const key2 = 'scene_02:full';
+
+      const points1 = service.createPointsFromPositions(positions, key1, 3);
+      const points2 = service.createPointsFromPositions(positions, key2, 3);
+
+      // Should be different instances
+      expect(points1).not.toBe(points2);
+    });
+
+    it('should load and create Points instance via loadPointsObject', async () => {
+      const binPath = 'assets/scenes/test_scene_01/test_scene_01_100k.bin';
+      const cacheKey = 'test_scene_01:full';
+      const mockData = new Float32Array([1, 2, 3, 4, 5, 6]);
+
+      spyOn(
+        service as unknown as { parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array> },
+        'parseInWorker'
+      ).and.returnValue(Promise.resolve(mockData));
+
+      const promise = service.loadPointsObject(binPath, cacheKey, 3);
+
+      const req = httpMock.expectOne(binPath);
+      req.flush(mockData.buffer);
+
+      const points = await promise;
+
+      expect(points).toBeInstanceOf(THREE.Points);
+      expect(points.geometry.getAttribute('position')?.count).toBe(2); // 6 floats / 3 stride = 2 points
+    });
+
+    it('should cache Points instances across loadPointsObject calls', async () => {
+      const binPath = 'assets/scenes/test_scene_01/test_scene_01_100k.bin';
+      const cacheKey = 'test_scene_01:full';
+      const mockData = new Float32Array([1, 2, 3]);
+
+      spyOn(
+        service as unknown as { parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array> },
+        'parseInWorker'
+      ).and.returnValue(Promise.resolve(mockData));
+
+      const promise1 = service.loadPointsObject(binPath, cacheKey, 3);
+
+      const req = httpMock.expectOne(binPath);
+      req.flush(mockData.buffer);
+
+      const points1 = await promise1;
+
+      // Second call should return same instance (no HTTP request)
+      const points2 = await service.loadPointsObject(binPath, cacheKey, 3);
+
+      expect(points1).toBe(points2); // Same object identity
+      httpMock.expectNone(binPath); // No second HTTP request
+    });
+
+    it('should dispose Points instances when clearing cache', () => {
+      const positions = new Float32Array([1, 2, 3]);
+      const cacheKey = 'test_scene_01:full';
+
+      const points = service.createPointsFromPositions(positions, cacheKey, 3);
+      spyOn(points.geometry, 'dispose');
+      spyOn(points.material as THREE.PointsMaterial, 'dispose');
+
+      expect(service.getCacheStats().pointsObjectCacheSize).toBe(1);
+
+      service.clearCache();
+
+      expect(service.getCacheStats().pointsObjectCacheSize).toBe(0);
+      expect(points.geometry.dispose).toHaveBeenCalled();
+      expect((points.material as THREE.PointsMaterial).dispose).toHaveBeenCalled();
+    });
+
+    it('should update cache statistics to include Points objects', () => {
+      const positions = new Float32Array([1, 2, 3]);
+      const cacheKey = 'test_scene_01:full';
+
+      expect(service.getCacheStats().pointsObjectCacheSize).toBe(0);
+
+      service.createPointsFromPositions(positions, cacheKey, 3);
+
+      const stats = service.getCacheStats();
+      expect(stats.pointsObjectCacheSize).toBe(1);
     });
   });
 });
