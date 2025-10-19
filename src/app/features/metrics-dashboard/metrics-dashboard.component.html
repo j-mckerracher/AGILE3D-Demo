@@ -1,0 +1,26 @@
+<section
+  class="metrics-dashboard"
+  role="region"
+  aria-labelledby="metrics-dashboard-title"
+>
+  <h3 id="metrics-dashboard-title" class="dashboard-title">
+    Performance Metrics
+  </h3>
+
+  <div class="metrics-grid">
+    <!-- Baseline Metrics (Left Panel) -->
+    <div class="metrics-panel baseline-panel">
+      <app-baseline-metrics [metrics]="baselineMetrics$ | async" />
+    </div>
+
+    <!-- Comparison Highlights (Center Panel) -->
+    <div class="metrics-panel comparison-panel">
+      <app-comparison-highlights [comparison]="comparison$ | async" />
+    </div>
+
+    <!-- AGILE3D Metrics (Right Panel) -->
+    <div class="metrics-panel agile3d-panel">
+      <app-agile3d-metrics [metrics]="agileMetrics$ | async" />
+    </div>
+  </div>
+</section>

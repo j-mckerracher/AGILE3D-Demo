@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { combineLatest, distinctUntilChanged, map, Observable, shareReplay } from 'rxjs';
+import { combineLatest, map, Observable, shareReplay } from 'rxjs';
 import { PaperDataService } from '../data/paper-data.service';
 import { StateService } from '../state/state.service';
 import {
@@ -334,7 +334,7 @@ export class SimulationService {
         : 0;
 
     // Debug trace for tests
-    // eslint-disable-next-line no-console
+     
     console.log('[SimulationService] agileMetrics', { sloMsParam: params.sloMs, effectiveSlo, latency: latencyStats.mean, extremeSlo, violationRate, sloCompliance: extremeSlo ? false : latencyStats.mean <= effectiveSlo });
 
     return {
@@ -423,8 +423,9 @@ export class SimulationService {
    * Falls back to provided params for fields we cannot access synchronously.
    * This reduces debounce-related latency in metrics and selection.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   private getInstantParams(params: SystemParams): SystemParams {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stateAny = this.state as any;
     const scene = (stateAny.currentScene$?.value ?? params.scene) as SceneId;
     const voxel = (stateAny.voxelSizeSubject?.value ?? params.voxelSize) as VoxelSize;

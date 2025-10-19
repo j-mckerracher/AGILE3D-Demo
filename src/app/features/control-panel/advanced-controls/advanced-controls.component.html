@@ -1,0 +1,89 @@
+<!-- Advanced Controls Container (WP-2.2.2, FR-2.7–2.9) -->
+<div class="advanced-controls-container">
+  <!-- Toggle Button (FR-2.7) -->
+  <button
+    type="button"
+    class="advanced-toggle"
+    mat-raised-button
+    color="accent"
+    (click)="toggleAdvanced()"
+    [attr.aria-expanded]="showAdvanced"
+    [attr.aria-controls]="'advanced-panel'"
+    aria-label="Toggle advanced controls"
+  >
+    <mat-icon>{{ showAdvanced ? 'expand_less' : 'expand_more' }}</mat-icon>
+    <span>Advanced</span>
+  </button>
+
+  <!-- Advanced Controls Panel (FR-2.8, FR-2.9) -->
+  <div
+    id="advanced-panel"
+    class="advanced-panel"
+    [class.visible]="showAdvanced"
+    [attr.aria-hidden]="!showAdvanced"
+    role="region"
+    aria-labelledby="advanced-controls-label"
+  >
+    <h3 id="advanced-controls-label" class="panel-title">Advanced Controls</h3>
+
+    <form [formGroup]="form" class="advanced-form">
+      <!-- Encoding Format (FR-2.8) -->
+      <mat-form-field appearance="fill" class="form-field">
+        <mat-label>Encoding Format</mat-label>
+        <mat-select
+          formControlName="encodingFormat"
+          [matTooltip]="tooltips.encodingFormat"
+          [attr.ng-reflect-message]="tooltips.encodingFormat"
+          matTooltipPosition="above"
+          aria-label="Select encoding format (voxel or pillar)"
+        >
+          <mat-option value="voxel">Voxel</mat-option>
+          <mat-option value="pillar">Pillar</mat-option>
+        </mat-select>
+        <mat-hint>Point cloud spatial encoding</mat-hint>
+      </mat-form-field>
+
+      <!-- Detection Head (FR-2.8) -->
+      <mat-form-field appearance="fill" class="form-field">
+        <mat-label>Detection Head</mat-label>
+        <mat-select
+          formControlName="detectionHead"
+          [matTooltip]="tooltips.detectionHead"
+          [attr.ng-reflect-message]="tooltips.detectionHead"
+          matTooltipPosition="above"
+          aria-label="Select detection head type (anchor or center)"
+        >
+          <mat-option value="anchor">Anchor-based</mat-option>
+          <mat-option value="center">Center-based</mat-option>
+        </mat-select>
+        <mat-hint>Object detection strategy</mat-hint>
+      </mat-form-field>
+
+      <!-- Feature Extractor (FR-2.8) -->
+      <mat-form-field appearance="fill" class="form-field">
+        <mat-label>Feature Extractor</mat-label>
+        <mat-select
+          formControlName="featureExtractor"
+          [matTooltip]="tooltips.featureExtractor"
+          [attr.ng-reflect-message]="tooltips.featureExtractor"
+          matTooltipPosition="above"
+          aria-label="Select feature extractor backbone network"
+        >
+          <mat-option value="transformer">Transformer</mat-option>
+          <mat-option value="sparse_cnn">Sparse CNN</mat-option>
+          <mat-option value="2d_cnn">2D CNN</mat-option>
+        </mat-select>
+        <mat-hint>3D feature backbone network</mat-hint>
+      </mat-form-field>
+    </form>
+
+    <!-- Helper Text -->
+    <div class="help-text">
+      <mat-icon class="help-icon">info</mat-icon>
+      <p class="help-message">
+        Advanced controls provide fine-grained tuning of AGILE3D's detection pipeline.
+        Hover over each control for detailed descriptions.
+      </p>
+    </div>
+  </div>
+</div>

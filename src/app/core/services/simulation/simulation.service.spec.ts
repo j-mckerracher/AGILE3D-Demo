@@ -146,6 +146,7 @@ describe('SimulationService', () => {
   describe('Branch Selection Logic', () => {
     beforeEach(() => {
       // Subscribe to trigger data loading lazily for branch selection
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub = service.activeBranch$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       branchesReq.flush(mockBranchesData);
@@ -224,7 +225,9 @@ describe('SimulationService', () => {
   describe('Metrics Calculation', () => {
     beforeEach(() => {
       // Trigger both branches and baseline requests for metrics
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub1 = service.activeBranch$.subscribe(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
@@ -284,7 +287,9 @@ describe('SimulationService', () => {
 
   describe('Comparison Deltas', () => {
     beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub1 = service.activeBranch$.subscribe(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
@@ -349,7 +354,9 @@ describe('SimulationService', () => {
 
   describe('Observable Stability and Performance', () => {
     beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub1 = service.activeBranch$.subscribe(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
@@ -418,7 +425,9 @@ describe('SimulationService', () => {
 
   describe('Edge Cases and Robustness', () => {
     beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub1 = service.activeBranch$.subscribe(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');

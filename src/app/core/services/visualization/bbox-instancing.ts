@@ -181,7 +181,6 @@ function createInstancedMesh(
 
   const matrix = new THREE.Matrix4();
   const instanceColor = new THREE.Color();
-  const tmpColor = new THREE.Color();
 
   for (let i = 0; i < count; i++) {
     const det = detections[i];
