@@ -36,7 +36,8 @@ export class PaperDataService {
    */
   private readonly baselineData$: Observable<BaselineData>;
 
-  constructor(private readonly http: HttpClient) {
+  // eslint-disable-next-line @angular-eslint/prefer-inject
+  public constructor(private readonly http: HttpClient) {
     this.branchesData$ = this.http
       .get<BranchesData>('assets/data/branches.json')
       .pipe(shareReplay(1));

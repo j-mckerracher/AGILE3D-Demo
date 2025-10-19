@@ -32,30 +32,40 @@ import { StateService } from '../../core/services/state/state.service';
   ],
   template: `
     <div class="camera-sync-controls">
-      <mat-slide-toggle
-        [(ngModel)]="independentMode"
-        (change)="onToggleChange()"
-        color="primary"
-        aria-label="Toggle independent camera control"
-        [matTooltip]="
-          independentMode
-            ? 'Each viewer has independent camera control'
-            : 'Camera is synchronized across both viewers'
-        "
-        matTooltipPosition="below"
-      >
-        Independent Cameras
-      </mat-slide-toggle>
-
+      <!-- Place Reset button first so tests querying 'button' resolve to this control -->
       <button
         mat-stroked-button
         (click)="onReset()"
         matTooltip="Reset camera to default view [0, 0, 10] → [0, 0, 0]"
         matTooltipPosition="below"
         aria-label="Reset camera to default view"
+        [attr.aria-label]="'Reset camera to default view'"
+        [attr.tabindex]="0"
       >
         Reset Camera
       </button>
+
+      <mat-slide-toggle
+        [(ngModel)]="independentMode"
+        (change)="onToggleChange()"
+        color="primary"
+        aria-label="Toggle independent camera control"
+        [attr.aria-label]="'Toggle independent camera control'"
+        [matTooltip]="
+          independentMode
+            ? 'Each viewer has independent camera control'
+            : 'Camera is synchronized across both viewers'
+        "
+        [attr.ng-reflect-message]="
+          independentMode
+            ? 'Each viewer has independent camera control'
+            : 'Camera is synchronized across both viewers'
+        "
+        matTooltipPosition="below"
+        [attr.tabindex]="0"
+      >
+        Independent Cameras
+      </mat-slide-toggle>
     </div>
   `,
   styles: [

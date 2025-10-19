@@ -89,7 +89,7 @@ describe('PaperDataService', () => {
       service.getBranches().subscribe((branches) => {
         expect(branches).toEqual(mockBranchesData.branches);
         expect(branches.length).toBe(1);
-        expect(branches[0].branch_id).toBe('CP_Pillar_032');
+        expect(branches[0]!.branch_id).toBe('CP_Pillar_032');
         done();
       });
 

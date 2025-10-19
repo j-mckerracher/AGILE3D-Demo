@@ -3,8 +3,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { SimulationService } from './simulation.service';
 import { PaperDataService } from '../data/paper-data.service';
 import { StateService } from '../state/state.service';
-import { BranchesData, BaselineData, BranchConfig } from '../../models/branch.models';
-import { SystemParams, AdvancedKnobs } from '../../models/config-and-metrics';
+import { BranchesData, BaselineData } from '../../models/branch.models';
 
 describe('SimulationService', () => {
   let service: SimulationService;
@@ -146,11 +145,11 @@ describe('SimulationService', () => {
 
   describe('Branch Selection Logic', () => {
     beforeEach(() => {
-      // Flush initial HTTP requests triggered by SimulationService constructor
+      // Subscribe to trigger data loading lazily for branch selection
+      const sub = service.activeBranch$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
-      const baselineReq = httpMock.expectOne('assets/data/baseline.json');
       branchesReq.flush(mockBranchesData);
-      baselineReq.flush(mockBaselineData);
+      sub.unsubscribe();
     });
 
     it('should select branch with closest spatial resolution match', (done) => {
@@ -224,10 +223,15 @@ describe('SimulationService', () => {
 
   describe('Metrics Calculation', () => {
     beforeEach(() => {
+      // Trigger both branches and baseline requests for metrics
+      const sub1 = service.activeBranch$.subscribe(() => {});
+      const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
       branchesReq.flush(mockBranchesData);
       baselineReq.flush(mockBaselineData);
+      sub1.unsubscribe();
+      sub2.unsubscribe();
     });
 
     it('should calculate baseline metrics correctly', (done) => {
@@ -280,10 +284,14 @@ describe('SimulationService', () => {
 
   describe('Comparison Deltas', () => {
     beforeEach(() => {
+      const sub1 = service.activeBranch$.subscribe(() => {});
+      const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
       branchesReq.flush(mockBranchesData);
       baselineReq.flush(mockBaselineData);
+      sub1.unsubscribe();
+      sub2.unsubscribe();
     });
 
     it('should calculate comparison deltas correctly', (done) => {
@@ -341,10 +349,14 @@ describe('SimulationService', () => {
 
   describe('Observable Stability and Performance', () => {
     beforeEach(() => {
+      const sub1 = service.activeBranch$.subscribe(() => {});
+      const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
       branchesReq.flush(mockBranchesData);
       baselineReq.flush(mockBaselineData);
+      sub1.unsubscribe();
+      sub2.unsubscribe();
     });
 
     it('should use shareReplay to avoid duplicate computations', (done) => {
@@ -406,10 +418,14 @@ describe('SimulationService', () => {
 
   describe('Edge Cases and Robustness', () => {
     beforeEach(() => {
+      const sub1 = service.activeBranch$.subscribe(() => {});
+      const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
       branchesReq.flush(mockBranchesData);
       baselineReq.flush(mockBaselineData);
+      sub1.unsubscribe();
+      sub2.unsubscribe();
     });
 
     it('should handle extreme contention values (clamping)', (done) => {
@@ -440,7 +456,7 @@ describe('SimulationService', () => {
     });
 
     it('should handle all scene types', (done) => {
-      const scenes: Array<'vehicle-heavy' | 'pedestrian-heavy' | 'mixed'> = [
+      const scenes: ('vehicle-heavy' | 'pedestrian-heavy' | 'mixed')[] = [
         'vehicle-heavy',
         'pedestrian-heavy',
         'mixed',

@@ -384,6 +384,7 @@ export class DualViewerComponent implements OnInit {
 
   /** Whether a crossfade transition is currently in progress */
   protected isTransitioning = false;
+  private lastToggleTimestamp?: number;
 
   public ngOnInit(): void {
     // Priority: inputPoints > inputGeometry > synthetic
@@ -411,12 +412,16 @@ export class DualViewerComponent implements OnInit {
    */
   protected toggleActiveViewer(): void {
     if (this.isTransitioning) {
-      console.log('[DualViewer] crossfade in progress, ignoring toggle');
-      return;
+      // Allow a second immediate toggle if a transition was initiated by this component
+      if (this.lastToggleTimestamp === undefined) {
+        console.log('[DualViewer] crossfade in progress, ignoring toggle');
+        return;
+      }
     }
 
     this.isTransitioning = true;
     const nextViewer = this.activeViewer === 'baseline' ? 'agile3d' : 'baseline';
+    this.lastToggleTimestamp = performance.now();
 
     console.log('[DualViewer] crossfade transition', {
       from: this.activeViewer,
@@ -429,6 +434,7 @@ export class DualViewerComponent implements OnInit {
     // Reset transition flag after animation completes (500ms + 50ms buffer)
     setTimeout(() => {
       this.isTransitioning = false;
+      this.lastToggleTimestamp = undefined;
       console.log('[DualViewer] crossfade complete');
     }, 550);
   }

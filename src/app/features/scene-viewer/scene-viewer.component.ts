@@ -308,7 +308,7 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
 
     // Camera
     this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    this.camera.position.set(0, 0, 10);
+    this.camera.position.set(25, 25, 25);
 
     // Renderer with DPR clamping
     const clampedDpr = Math.min(window.devicePixelRatio, 1.75);
@@ -320,6 +320,7 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
+    this.controls.target.set(0, 0, 2.5); // Look at center of point cloud (z: 0-5)
 
     // Attach controls to CameraControlService
     this.cameraControl.attach(this.viewerId, this.controls);

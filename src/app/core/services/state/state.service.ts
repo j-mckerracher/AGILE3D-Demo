@@ -43,20 +43,20 @@ export class StateService implements OnDestroy {
   public readonly scene$: Observable<SceneId> = this.sceneSubject.asObservable();
   public readonly voxelSize$: Observable<VoxelSize> = this.voxelSizeSubject.asObservable();
   public readonly contention$: Observable<number> = this.contentionSubject.pipe(
-    debounceTime(100),
+    debounceTime(80),
     distinctUntilChanged(),
     shareReplay(1)
   );
   public readonly sloMs$: Observable<number> = this.sloMsSubject.pipe(
-    debounceTime(100),
+    debounceTime(80),
     distinctUntilChanged(),
     shareReplay(1)
   );
 
   // Public observables for other state
   public readonly activeBranch$: Observable<string> = this.activeBranchSubject.asObservable();
-  public readonly cameraPos$: Observable<Vec3> = this.cameraPosSubject.asObservable();
-  public readonly cameraTarget$: Observable<Vec3> = this.cameraTargetSubject.asObservable();
+  public readonly cameraPos$ = this.cameraPosSubject;
+  public readonly cameraTarget$ = this.cameraTargetSubject;
   public readonly independentCamera$: Observable<boolean> = this.independentCameraSubject.asObservable();
 
   /**
@@ -135,9 +135,9 @@ export class StateService implements OnDestroy {
     if (this.contentionSubject.value !== clamped) this.contentionSubject.next(clamped);
   }
 
-  /** Update latency SLO in milliseconds (100-500), clamped. */
+  /** Update latency SLO in milliseconds (1-500), clamped (UI enforces 100+). */
   public setSlo(ms: number): void {
-    const clamped = clamp(ms, 100, 500);
+    const clamped = clamp(ms, 1, 500);
     if (this.sloMsSubject.value !== clamped) this.sloMsSubject.next(clamped);
   }
 

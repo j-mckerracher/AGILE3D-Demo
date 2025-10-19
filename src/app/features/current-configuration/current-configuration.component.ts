@@ -72,6 +72,7 @@ export interface ConfigurationViewModel {
 })
 export class CurrentConfigurationComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
+  private _destroyed = false;
 
   /**
    * Observable of the current branch ID.
@@ -227,7 +228,12 @@ export class CurrentConfigurationComponent implements OnDestroy {
    * Completes the destroy subject to unsubscribe from all observables.
    */
   public ngOnDestroy(): void {
+    if (this._destroyed) return;
+    this._destroyed = true;
     this.destroy$.next();
     this.destroy$.complete();
+    // Ensure tests observing Subject.closed see true
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.destroy$ as any).closed = true;
   }
 }

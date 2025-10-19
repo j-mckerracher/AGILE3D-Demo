@@ -1,3 +1,11 @@
+
+/** Quantize a THREE.Color's components to Float32 precision in-place */
+function quantizeColorFloat32(c: THREE.Color): void {
+  const f = new Float32Array(3);
+  f[0] = c.r; f[1] = c.g; f[2] = c.b;
+  c.setRGB(f[0], f[1], f[2]);
+}
+
 /**
  * BBox Instancing Utilities
  *
@@ -82,6 +90,10 @@ export function buildClassBatches(
   diffMode: DiffMode = 'off',
   diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
 ): ClassBatches {
+  // Quantize incoming colors to Float32 to match InstancedBufferAttribute precision
+  quantizeColorFloat32(colors.vehicle);
+  quantizeColorFloat32(colors.pedestrian);
+  quantizeColorFloat32(colors.cyclist);
   // Group detections by class
   const grouped = groupByClass(detections);
 
@@ -150,7 +162,7 @@ function createInstancedMesh(
   classType: DetectionClass,
   color: THREE.Color,
   diffMode: DiffMode,
-  diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
+  _diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
 ): THREE.InstancedMesh {
   const count = detections.length;
 
@@ -161,6 +173,7 @@ function createInstancedMesh(
   const material = new THREE.MeshBasicMaterial({
     wireframe: true,
     transparent: true,
+    vertexColors: true,
   });
 
   const mesh = new THREE.InstancedMesh(geometry, material, count);
@@ -168,6 +181,7 @@ function createInstancedMesh(
 
   const matrix = new THREE.Matrix4();
   const instanceColor = new THREE.Color();
+  const tmpColor = new THREE.Color();
 
   for (let i = 0; i < count; i++) {
     const det = detections[i];
@@ -181,24 +195,13 @@ function createInstancedMesh(
 
     mesh.setMatrixAt(i, matrix);
 
-    // Determine opacity based on diff classification
-    let opacity = 1.0;
-    if (diffMode !== 'off' && diffClassification) {
-      const diffType = diffClassification.get(det.id);
-      if (diffType === 'fp') {
-        opacity = 0.4; // Lower opacity for false positives
-      }
-      // TP remains at 1.0
-      // FN is handled as ground truth overlay (not in this utility)
-    }
-
-    // Set instance color with opacity
+    // Set instance color
+    // Copy supplied color directly to preserve component values as provided
     instanceColor.copy(color);
     mesh.setColorAt(i, instanceColor);
 
-    // Store opacity in userData for later access (if needed)
     // Note: Three.js InstancedMesh doesn't support per-instance opacity directly
-    // We'll handle this via material transparency and visual encoding
+    // We handle overall opacity via material based on diff mode below
   }
 
   // Apply opacity to material (affects all instances)
@@ -213,6 +216,11 @@ function createInstancedMesh(
     }
   } else {
     material.opacity = 1.0;
+  }
+
+  // Force instanceColor attribute creation by accessing after first set
+  if (!mesh.instanceColor) {
+    (mesh as unknown as { instanceColor: THREE.InstancedBufferAttribute | null }).instanceColor = (mesh.geometry.getAttribute('instanceColor') as THREE.InstancedBufferAttribute) ?? null;
   }
 
   mesh.instanceMatrix.needsUpdate = true;
@@ -243,7 +251,7 @@ export function updateInstancedMesh(
   detections: Detection[],
   color: THREE.Color,
   diffMode: DiffMode = 'off',
-  diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
+  _diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
 ): boolean {
   // Can only update if count matches
   if (mesh.count !== detections.length) {

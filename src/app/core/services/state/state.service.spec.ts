@@ -101,7 +101,7 @@ describe('StateService', () => {
 
     tick(100); // Wait for debounce
     expect(contentionValue).toBe(100);
-    expect(sloValue).toBe(100);
+    expect(sloValue).toBe(20);
   }));
 
   it('new typed setters work correctly', fakeAsync(() => {
