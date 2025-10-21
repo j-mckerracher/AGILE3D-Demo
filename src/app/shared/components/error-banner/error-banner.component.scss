@@ -1,0 +1,131 @@
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 2px solid #ef4444; /* Red-500 */
+  border-left-width: 6px;
+  background: #2b0e0e; /* Dark red background */
+  color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  margin: 16px 0;
+}
+
+.error-content {
+  flex: 1;
+  min-width: 0; /* Allow text wrapping */
+}
+
+.error-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fca5a5; /* Red-300 for title contrast */
+}
+
+.error-message {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #fef2f2; /* Red-50 for message text */
+}
+
+.error-links {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.error-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #60a5fa; /* Blue-400 for links */
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: color var(--ag3d-duration-fast, 100ms) ease;
+
+  &:hover {
+    color: #93c5fd; /* Blue-300 on hover */
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ag3d-color-focus, #4a9eff);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+.error-dismiss {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: all var(--ag3d-duration-fast, 100ms) ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ag3d-color-focus, #4a9eff);
+    outline-offset: 2px;
+  }
+}
+
+/* Reduced motion support (WP-2.3.2, NFR-3.7) */
+@media (prefers-reduced-motion: reduce) {
+  .error-banner,
+  .error-link,
+  .error-dismiss {
+    transition-duration: 0.01ms !important;
+  }
+
+  .error-dismiss:active {
+    transform: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .error-banner {
+    border-width: 3px;
+  }
+
+  .error-link {
+    text-decoration: underline;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .error-banner {
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .error-dismiss {
+    align-self: flex-end;
+  }
+}

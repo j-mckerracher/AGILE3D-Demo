@@ -7,14 +7,31 @@
 >
   <h2 id="demo-title" class="ag3d-sr-only">AGILE3D Interactive Demonstration</h2>
 
+  <!-- Error Banner (WP-2.3.2, NFR-4.2) -->
+  <app-error-banner
+    *ngIf="showError()"
+    [title]="'Compatibility or Data Error'"
+    [message]="loadError() ?? 'An error occurred while loading the demo.'"
+    [links]="[
+      { label: 'WebGL System Requirements', href: 'https://get.webgl.org/' },
+      { label: 'Browser Compatibility', href: 'https://caniuse.com/webgl2' }
+    ]"
+    (dismissed)="showError.set(false)"
+  />
+
   <!-- Dual Viewer Section -->
-  <div class="dual-viewer-section" role="region" aria-labelledby="viewer-title">
+  <div
+    *ngIf="!showError()"
+    class="dual-viewer-section"
+    role="region"
+    aria-labelledby="viewer-title"
+  >
     <h3 id="viewer-title" class="ag3d-sr-only">3D Scene Viewers</h3>
     <app-dual-viewer
       [baselineDetections]="baselineDetections"
       [agile3dDetections]="agile3dDetections"
       [inputPoints]="sharedPoints"
-      [showFps]="true"
+      [showFps]="showFps"
     />
   </div>
 

@@ -168,8 +168,8 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
   /** Number of synthetic points to generate if no sharedPointGeometry provided (default 50k) */
   @Input() public pointCount = 50_000;
 
-  /** Show FPS overlay */
-  @Input() public showFps = true;
+  /** Show FPS overlay (WP-2.3.2: default false, enabled via debug mode) */
+  @Input() public showFps = false;
 
   // Canvas element
   @ViewChild('canvas', { static: true }) private canvasRef!: ElementRef<HTMLCanvasElement>;

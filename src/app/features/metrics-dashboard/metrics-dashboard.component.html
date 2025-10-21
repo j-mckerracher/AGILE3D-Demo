@@ -23,4 +23,7 @@
       <app-agile3d-metrics [metrics]="agileMetrics$ | async" />
     </div>
   </div>
+
+  <!-- Historical Trend Line (Below Comparison Highlights) -->
+  <app-history-trend [history]="(history$ | async) ?? []" />
 </section>

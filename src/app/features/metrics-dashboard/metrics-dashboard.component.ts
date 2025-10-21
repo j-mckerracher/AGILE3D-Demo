@@ -6,23 +6,29 @@ import { AlgorithmMetrics, ComparisonMetrics } from '../../core/models/config-an
 import { BaselineMetricsComponent } from './baseline-metrics/baseline-metrics.component';
 import { Agile3dMetricsComponent } from './agile3d-metrics/agile3d-metrics.component';
 import { ComparisonHighlightsComponent } from './comparison-highlights/comparison-highlights.component';
+import { HistoryTrendComponent } from './history-trend/history-trend.component';
+import { MetricsHistoryService, MetricsHistorySample } from '../../core/services/metrics/metrics-history.service';
+import { map } from 'rxjs/operators';
 
 /**
  * MetricsDashboardComponent displays performance comparison between
  * DSVT-Voxel baseline and AGILE3D adaptive system.
  *
- * Layout: 3-column grid with baseline (left), comparison (center), AGILE3D (right).
+ * Layout: 3-column grid with baseline (left), comparison (center), AGILE3D (right),
+ * plus optional historical trend line below.
  *
  * Features:
  * - Reactive data flow from SimulationService
  * - Real-time metric updates (<100ms propagation)
  * - Color-coded comparison indicators
+ * - Historical trend visualization (last 10 changes)
  * - Accessible with ARIA labels and live regions
  * - Respects prefers-reduced-motion for animations
  *
  * @see PRD FR-3.1–3.8 (Metrics dashboard requirements)
  * @see PRD NFR-1.3 (Control updates within 100ms)
  * @see WP-2.3.1 (Metrics Dashboard implementation)
+ * @see WP-2.3.3 (Historical Trend Line implementation)
  */
 @Component({
   selector: 'app-metrics-dashboard',
@@ -32,6 +38,7 @@ import { ComparisonHighlightsComponent } from './comparison-highlights/compariso
     BaselineMetricsComponent,
     Agile3dMetricsComponent,
     ComparisonHighlightsComponent,
+    HistoryTrendComponent,
   ],
   templateUrl: './metrics-dashboard.component.html',
   styleUrls: ['./metrics-dashboard.component.scss'],
@@ -56,13 +63,29 @@ export class MetricsDashboardComponent {
    */
   public readonly comparison$: Observable<ComparisonMetrics>;
 
+  /**
+   * Observable stream of historical metrics samples for trend visualization.
+   * Updates reactively as MetricsHistoryService captures new snapshots.
+   *
+   * @see WP-2.3.3 (Historical Trend Line)
+   */
+  public readonly history$: Observable<readonly MetricsHistorySample[]>;
+
   public constructor(
     // eslint-disable-next-line @angular-eslint/prefer-inject
-    private readonly simulationService: SimulationService
+    private readonly simulationService: SimulationService,
+    // eslint-disable-next-line @angular-eslint/prefer-inject
+    private readonly metricsHistoryService: MetricsHistoryService
   ) {
     // Wire up reactive streams from SimulationService
     this.baselineMetrics$ = this.simulationService.baselineMetrics$;
     this.agileMetrics$ = this.simulationService.agileMetrics$;
     this.comparison$ = this.simulationService.comparison$;
+
+    // Wire up historical trend data from MetricsHistoryService
+    // Wrap in Observable that polls getHistory() for reactive updates
+    this.history$ = this.comparison$.pipe(
+      map(() => this.metricsHistoryService.getHistory())
+    );
   }
 }

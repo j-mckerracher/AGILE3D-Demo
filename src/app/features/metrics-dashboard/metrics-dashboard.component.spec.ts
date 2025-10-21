@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MetricsDashboardComponent } from './metrics-dashboard.component';
 import { SimulationService } from '../../core/services/simulation/simulation.service';
+import { MetricsHistoryService, MetricsHistorySample } from '../../core/services/metrics/metrics-history.service';
 import { of } from 'rxjs';
 import { AlgorithmMetrics, ComparisonMetrics } from '../../core/models/config-and-metrics';
 
@@ -8,6 +9,7 @@ describe('MetricsDashboardComponent', () => {
   let component: MetricsDashboardComponent;
   let fixture: ComponentFixture<MetricsDashboardComponent>;
   let mockSimulationService: jasmine.SpyObj<SimulationService>;
+  let mockMetricsHistoryService: jasmine.SpyObj<MetricsHistoryService>;
 
   const mockBaselineMetrics: AlgorithmMetrics = {
     name: 'DSVT-Voxel',
@@ -34,6 +36,12 @@ describe('MetricsDashboardComponent', () => {
     violationReduction: 8.1,
   };
 
+  const mockHistory: MetricsHistorySample[] = [
+    { t: 1000, accuracyDelta: 1.5, latencyDeltaMs: -50, violationReduction: 5, scene: 'mixed' },
+    { t: 2000, accuracyDelta: 2.0, latencyDeltaMs: -80, violationReduction: 7, scene: 'mixed' },
+    { t: 3000, accuracyDelta: 2.3, latencyDeltaMs: -120, violationReduction: 8.1, scene: 'mixed' },
+  ];
+
   beforeEach(async () => {
     mockSimulationService = jasmine.createSpyObj('SimulationService', [], {
       baselineMetrics$: of(mockBaselineMetrics),
@@ -41,9 +49,15 @@ describe('MetricsDashboardComponent', () => {
       comparison$: of(mockComparison),
     });
 
+    mockMetricsHistoryService = jasmine.createSpyObj('MetricsHistoryService', ['getHistory']);
+    mockMetricsHistoryService.getHistory.and.returnValue(mockHistory);
+
     await TestBed.configureTestingModule({
       imports: [MetricsDashboardComponent],
-      providers: [{ provide: SimulationService, useValue: mockSimulationService }],
+      providers: [
+        { provide: SimulationService, useValue: mockSimulationService },
+        { provide: MetricsHistoryService, useValue: mockMetricsHistoryService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MetricsDashboardComponent);
@@ -116,5 +130,51 @@ describe('MetricsDashboardComponent', () => {
 
   it('should use OnPush change detection strategy', () => {
     expect(fixture.componentRef.changeDetectorRef).toBeDefined();
+  });
+
+  describe('Historical Trend Line Integration (WP-2.3.3)', () => {
+    it('should have history$ observable', (done) => {
+      component.history$.subscribe((history) => {
+        expect(history).toBeTruthy();
+        expect(Array.isArray(history)).toBe(true);
+        done();
+      });
+    });
+
+    it('should retrieve history from MetricsHistoryService', (done) => {
+      component.history$.subscribe((history) => {
+        expect(mockMetricsHistoryService.getHistory).toHaveBeenCalled();
+        expect(history).toEqual(mockHistory);
+        done();
+      });
+    });
+
+    it('should render history-trend component', () => {
+      const compiled = fixture.nativeElement as HTMLElement;
+      const historyComponent = compiled.querySelector('app-history-trend');
+      expect(historyComponent).toBeTruthy();
+    });
+
+    it('should pass history data to history-trend component', (done) => {
+      component.history$.subscribe((history) => {
+        expect(history.length).toBe(3);
+        expect(history[0]?.accuracyDelta).toBe(1.5);
+        expect(history[2]?.latencyDeltaMs).toBe(-120);
+        done();
+      });
+    });
+
+    it('should update history$ when comparison$ emits', (done) => {
+      // history$ is derived from comparison$, so it should emit when comparison$ emits
+      let emissionCount = 0;
+
+      component.history$.subscribe(() => {
+        emissionCount++;
+        if (emissionCount === 1) {
+          expect(mockMetricsHistoryService.getHistory).toHaveBeenCalled();
+          done();
+        }
+      });
+    });
   });
 });
