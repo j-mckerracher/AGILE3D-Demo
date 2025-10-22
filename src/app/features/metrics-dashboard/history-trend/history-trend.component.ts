@@ -1,11 +1,4 @@
-import {
-  Component,
-  Input,
-  ChangeDetectionStrategy,
-  computed,
-  signal,
-  inject,
-} from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MetricsHistorySample } from '../../../core/services/metrics/metrics-history.service';
 import { ReducedMotionService } from '../../../core/services/reduced-motion.service';
@@ -194,9 +187,9 @@ export class HistoryTrendComponent {
    *
    * @param value - Numeric value to format
    * @param precision - Decimal places (default: 1)
-   * @returns Formatted string with sign
+   * @returns Formatted string with sign (e.g., "+1.2", "-0.5", "+0.0")
    */
-  protected formatValue(value: number, precision = 1): string {
+  public formatValue(value: number, precision = 1): string {
     const sign = value >= 0 ? '+' : '';
     return `${sign}${value.toFixed(precision)}`;
   }
@@ -205,12 +198,12 @@ export class HistoryTrendComponent {
    * Generate SVG polygon points for diamond marker shape.
    * Used for color-blind accessible shape encoding on violation reduction chart.
    *
-   * @param cx - Center x coordinate
-   * @param cy - Center y coordinate
-   * @param size - Diamond size (half-width/half-height)
-   * @returns SVG polygon points string
+   * @param cx - Center x coordinate (px)
+   * @param cy - Center y coordinate (px)
+   * @param size - Diamond size (half-width/half-height) (px)
+   * @returns SVG polygon points string ("x1,y1 x2,y2 x3,y3 x4,y4")
    */
-  protected getMarkerPoints(cx: number, cy: number, size: number): string {
+  public getMarkerPoints(cx: number, cy: number, size: number): string {
     return `${cx},${cy - size} ${cx + size},${cy} ${cx},${cy + size} ${cx - size},${cy}`;
   }
 }

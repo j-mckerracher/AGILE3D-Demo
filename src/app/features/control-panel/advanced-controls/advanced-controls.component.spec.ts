@@ -347,7 +347,7 @@ describe('AdvancedControlsComponent (WP-2.2.2)', () => {
       await select.open();
       const options = await select.getOptions();
       expect(options.length).toBe(2);
-      const texts = await Promise.all(options.map(o => o.getText()));
+      const texts = await Promise.all(options.map((o) => o.getText()));
       expect(texts).toContain('Voxel');
       expect(texts).toContain('Pillar');
     });
@@ -362,7 +362,7 @@ describe('AdvancedControlsComponent (WP-2.2.2)', () => {
       await select.open();
       const options = await select.getOptions();
       expect(options.length).toBe(2);
-      const texts = await Promise.all(options.map(o => o.getText()));
+      const texts = await Promise.all(options.map((o) => o.getText()));
       expect(texts).toContain('Anchor-based');
       expect(texts).toContain('Center-based');
     });
@@ -377,7 +377,7 @@ describe('AdvancedControlsComponent (WP-2.2.2)', () => {
       await select.open();
       const options = await select.getOptions();
       expect(options.length).toBe(3);
-      const texts = await Promise.all(options.map(o => o.getText()));
+      const texts = await Promise.all(options.map((o) => o.getText()));
       expect(texts).toContain('Transformer');
       expect(texts).toContain('Sparse CNN');
       expect(texts).toContain('2D CNN');

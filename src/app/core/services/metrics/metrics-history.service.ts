@@ -82,21 +82,16 @@ export class MetricsHistoryService implements OnDestroy {
    */
   private initializeSubscriptions(): void {
     // Subscribe to scene changes for history clearing
-    this.stateService.scene$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((scene) => {
-        if (this.currentScene !== null && this.currentScene !== scene) {
-          this.clear(`Scene changed from ${this.currentScene} to ${scene}`);
-        }
-        this.currentScene = scene;
-      });
+    this.stateService.scene$.pipe(takeUntil(this.destroy$)).subscribe((scene) => {
+      if (this.currentScene !== null && this.currentScene !== scene) {
+        this.clear(`Scene changed from ${this.currentScene} to ${scene}`);
+      }
+      this.currentScene = scene;
+    });
 
     // Subscribe to comparison metrics with distinct filtering
     this.simulationService.comparison$
-      .pipe(
-        distinctUntilChanged(this.shallowEqual),
-        takeUntil(this.destroy$)
-      )
+      .pipe(distinctUntilChanged(this.shallowEqual), takeUntil(this.destroy$))
       .subscribe((comparison) => {
         if (this.currentScene) {
           this.addSample({

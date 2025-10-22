@@ -1,6 +1,16 @@
 import { Component, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { combineLatest, map, Observable, Subject, shareReplay, distinctUntilChanged, switchMap, timer, startWith } from 'rxjs';
+import {
+  combineLatest,
+  map,
+  Observable,
+  Subject,
+  shareReplay,
+  distinctUntilChanged,
+  switchMap,
+  timer,
+  startWith,
+} from 'rxjs';
 import { StateService } from '../../core/services/state/state.service';
 import { SimulationService } from '../../core/services/simulation/simulation.service';
 import { PaperDataService } from '../../core/services/data/paper-data.service';

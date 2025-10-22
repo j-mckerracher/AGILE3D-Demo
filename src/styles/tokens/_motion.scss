@@ -47,13 +47,16 @@
   // ---------------------------------------------------------------------------
 
   // Hover/Focus states
-  --ag3d-transition-button: background-color var(--ag3d-duration-fast) var(--ag3d-easing-standard),
+  --ag3d-transition-button:
+    background-color var(--ag3d-duration-fast) var(--ag3d-easing-standard),
     box-shadow var(--ag3d-duration-fast) var(--ag3d-easing-standard);
 
-  --ag3d-transition-card: box-shadow var(--ag3d-duration-normal) var(--ag3d-easing-standard),
+  --ag3d-transition-card:
+    box-shadow var(--ag3d-duration-normal) var(--ag3d-easing-standard),
     transform var(--ag3d-duration-normal) var(--ag3d-easing-standard);
 
-  --ag3d-transition-input: border-color var(--ag3d-duration-fast) var(--ag3d-easing-standard),
+  --ag3d-transition-input:
+    border-color var(--ag3d-duration-fast) var(--ag3d-easing-standard),
     box-shadow var(--ag3d-duration-fast) var(--ag3d-easing-standard);
 
   // Opacity transitions
@@ -64,7 +67,8 @@
   --ag3d-transition-scale: transform var(--ag3d-duration-fast) var(--ag3d-easing-standard);
 
   // Color transitions
-  --ag3d-transition-color: color var(--ag3d-duration-fast) var(--ag3d-easing-standard),
+  --ag3d-transition-color:
+    color var(--ag3d-duration-fast) var(--ag3d-easing-standard),
     background-color var(--ag3d-duration-fast) var(--ag3d-easing-standard);
 
   // ---------------------------------------------------------------------------

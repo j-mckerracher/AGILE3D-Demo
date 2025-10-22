@@ -132,10 +132,6 @@ export function animateNumber(
  * formatMetricValue(425, 0, ' ms')   // "425 ms"
  * ```
  */
-export function formatMetricValue(
-  value: number,
-  precision: number,
-  unit = ''
-): string {
+export function formatMetricValue(value: number, precision: number, unit = ''): string {
   return `${value.toFixed(precision)}${unit}`;
 }

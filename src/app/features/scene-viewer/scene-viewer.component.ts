@@ -18,7 +18,11 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RenderLoopService } from '../../core/services/rendering/render-loop.service';
 import { CameraControlService } from '../../core/services/controls/camera-control.service';
-import { ViewerStyleAdapterService, ViewerColorConfig, ViewerMotionConfig } from '../../core/theme/viewer-style-adapter.service';
+import {
+  ViewerStyleAdapterService,
+  ViewerColorConfig,
+  ViewerMotionConfig,
+} from '../../core/theme/viewer-style-adapter.service';
 import { ReducedMotionService } from '../../core/services/reduced-motion.service';
 import { Detection, DetectionClass } from '../../core/models/scene.models';
 import { Subscription } from 'rxjs';
@@ -248,12 +252,19 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
         }
         this.pointCloud.geometry = this.sharedPointGeometry;
       } else {
-        console.log('[SceneViewer]', this.viewerId, 'sharedPointGeometry changed but pointCloud not ready');
+        console.log(
+          '[SceneViewer]',
+          this.viewerId,
+          'sharedPointGeometry changed but pointCloud not ready'
+        );
       }
     }
 
     // Update bounding boxes if detections, diffMode, or diffClassification changes
-    if ((changes['detections'] || changes['diffMode'] || changes['diffClassification']) && this.scene) {
+    if (
+      (changes['detections'] || changes['diffMode'] || changes['diffClassification']) &&
+      this.scene
+    ) {
       console.log('[SceneViewer]', this.viewerId, 'updating detections/diffMode', {
         detections: this.detections?.length ?? 0,
         diffMode: this.diffMode,

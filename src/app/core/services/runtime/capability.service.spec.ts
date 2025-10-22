@@ -12,10 +12,7 @@ describe('CapabilityService (WP-2.3.2)', () => {
     originalDocument = document;
 
     // Create mock DebugService
-    mockDebugService = jasmine.createSpyObj('DebugService', [
-      'getQueryParam',
-      'isDebugEnabled',
-    ]);
+    mockDebugService = jasmine.createSpyObj('DebugService', ['getQueryParam', 'isDebugEnabled']);
     mockDebugService.getQueryParam.and.returnValue(null);
     mockDebugService.isDebugEnabled.and.returnValue(false);
   });
@@ -113,9 +110,7 @@ describe('CapabilityService (WP-2.3.2)', () => {
         RENDERER: 0x1f01,
       };
 
-      const createElementSpy = spyOn(document, 'createElement').and.returnValue(
-        mockCanvas
-      );
+      const createElementSpy = spyOn(document, 'createElement').and.returnValue(mockCanvas);
       spyOn(mockCanvas, 'getContext').and.returnValue(mockGL as unknown as RenderingContext);
 
       TestBed.configureTestingModule({
@@ -305,10 +300,7 @@ describe('CapabilityService (WP-2.3.2)', () => {
 
       service.hasOffscreenCanvas();
 
-      expect(console.log).toHaveBeenCalledWith(
-        '[CapabilityService] OffscreenCanvas',
-        'supported'
-      );
+      expect(console.log).toHaveBeenCalledWith('[CapabilityService] OffscreenCanvas', 'supported');
 
       delete (window as { OffscreenCanvas?: unknown }).OffscreenCanvas;
     });

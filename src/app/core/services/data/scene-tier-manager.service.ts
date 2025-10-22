@@ -199,10 +199,7 @@ export class SceneTierManagerService {
       this.setTier('fallback');
       // Reset history to give fallback tier a fresh start
       this.resetFPSHistory();
-    } else if (
-      this.currentTier === 'fallback' &&
-      stats.average >= this.FPS_THRESHOLD + 5
-    ) {
+    } else if (this.currentTier === 'fallback' && stats.average >= this.FPS_THRESHOLD + 5) {
       // Add hysteresis (+5fps) to prevent thrashing
       console.log(
         `[SceneTierManager] FPS recovered (${stats.average.toFixed(1)} >= ${this.FPS_THRESHOLD + 5}). Switching to full tier.`

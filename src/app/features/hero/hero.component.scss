@@ -21,11 +21,7 @@
     transform: translateX(-50%);
     width: 150%;
     height: 100%;
-    background: radial-gradient(
-      ellipse at center,
-      hsla(222, 84%, 56%, 0.08) 0%,
-      transparent 70%
-    );
+    background: radial-gradient(ellipse at center, hsla(222, 84%, 56%, 0.08) 0%, transparent 70%);
     pointer-events: none;
   }
 }

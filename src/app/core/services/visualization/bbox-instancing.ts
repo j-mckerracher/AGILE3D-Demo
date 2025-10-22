@@ -1,8 +1,9 @@
-
 /** Quantize a THREE.Color's components to Float32 precision in-place */
 function quantizeColorFloat32(c: THREE.Color): void {
   const f = new Float32Array(3);
-  f[0] = c.r; f[1] = c.g; f[2] = c.b;
+  f[0] = c.r;
+  f[1] = c.g;
+  f[2] = c.b;
   c.setRGB(f[0], f[1], f[2]);
 }
 
@@ -116,7 +117,13 @@ export function buildClassBatches(
       continue;
     }
 
-    batches[classType] = createInstancedMesh(filtered, classType, colors[classType], diffMode, diffClassification);
+    batches[classType] = createInstancedMesh(
+      filtered,
+      classType,
+      colors[classType],
+      diffMode,
+      diffClassification
+    );
   }
 
   return batches;
@@ -190,7 +197,9 @@ function createInstancedMesh(
     // Order: Scale -> Rotate -> Translate
     matrix.makeRotationZ(det.yaw);
     matrix.setPosition(det.center[0], det.center[1], det.center[2]);
-    matrix.scale(new THREE.Vector3(det.dimensions.width, det.dimensions.length, det.dimensions.height));
+    matrix.scale(
+      new THREE.Vector3(det.dimensions.width, det.dimensions.length, det.dimensions.height)
+    );
 
     mesh.setMatrixAt(i, matrix);
 
@@ -219,7 +228,8 @@ function createInstancedMesh(
 
   // Force instanceColor attribute creation by accessing after first set
   if (!mesh.instanceColor) {
-    (mesh as unknown as { instanceColor: THREE.InstancedBufferAttribute | null }).instanceColor = (mesh.geometry.getAttribute('instanceColor') as THREE.InstancedBufferAttribute) ?? null;
+    (mesh as unknown as { instanceColor: THREE.InstancedBufferAttribute | null }).instanceColor =
+      (mesh.geometry.getAttribute('instanceColor') as THREE.InstancedBufferAttribute) ?? null;
   }
 
   mesh.instanceMatrix.needsUpdate = true;
@@ -267,7 +277,9 @@ export function updateInstancedMesh(
     // Update transformation matrix
     matrix.makeRotationZ(det.yaw);
     matrix.setPosition(det.center[0], det.center[1], det.center[2]);
-    matrix.scale(new THREE.Vector3(det.dimensions.width, det.dimensions.length, det.dimensions.height));
+    matrix.scale(
+      new THREE.Vector3(det.dimensions.width, det.dimensions.length, det.dimensions.height)
+    );
 
     mesh.setMatrixAt(i, matrix);
 
@@ -320,7 +332,9 @@ export function disposeClassBatches(batches: ClassBatches): void {
  * @param intersection - Three.js raycast intersection result
  * @returns Instance metadata if available, undefined otherwise
  */
-export function getInstanceMetadata(intersection: THREE.Intersection): InstanceMetadata | undefined {
+export function getInstanceMetadata(
+  intersection: THREE.Intersection
+): InstanceMetadata | undefined {
   const mesh = intersection.object as THREE.InstancedMesh;
   const instanceId = intersection.instanceId;
 

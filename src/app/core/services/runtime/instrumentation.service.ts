@@ -81,9 +81,7 @@ export class InstrumentationService {
       typeof performance.measure === 'function';
 
     if (!this.performanceAvailable && this.debug.isDebugEnabled()) {
-      console.warn(
-        '[InstrumentationService] Performance API not available (SSR or old browser)'
-      );
+      console.warn('[InstrumentationService] Performance API not available (SSR or old browser)');
     }
   }
 

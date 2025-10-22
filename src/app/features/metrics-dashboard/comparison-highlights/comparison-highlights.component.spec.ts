@@ -278,11 +278,11 @@ describe('ComparisonHighlightsComponent', () => {
     });
     tick(300);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((component as any).formatAccuracyDelta()).toBe('+3.5 pp');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((component as any).formatLatencyDelta()).toBe('-150 ms');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((component as any).formatViolationReduction()).toBe('+10.2 pp');
   }));
 

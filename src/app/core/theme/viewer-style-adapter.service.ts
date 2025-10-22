@@ -199,9 +199,7 @@ export class ViewerStyleAdapterService {
   private getCSSVariable(variableName: string): string {
     if (!this.isBrowser) return '';
 
-    const value = getComputedStyle(document.documentElement)
-      .getPropertyValue(variableName)
-      .trim();
+    const value = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
 
     return value;
   }
@@ -288,11 +286,7 @@ export class ViewerStyleAdapterService {
   /**
    * Convert RGB to HSL.
    */
-  private rgbToHsl(
-    r: number,
-    g: number,
-    b: number
-  ): { h: number; s: number; l: number } {
+  private rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
     const l = (max + min) / 2;

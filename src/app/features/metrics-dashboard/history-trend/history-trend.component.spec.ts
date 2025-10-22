@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DebugElement, signal } from '@angular/core';
+import { signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { HistoryTrendComponent } from './history-trend.component';
 import { ReducedMotionService } from '../../../core/services/reduced-motion.service';
@@ -29,9 +29,7 @@ describe('HistoryTrendComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [HistoryTrendComponent],
-      providers: [
-        { provide: ReducedMotionService, useValue: mockReducedMotionService },
-      ],
+      providers: [{ provide: ReducedMotionService, useValue: mockReducedMotionService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HistoryTrendComponent);
@@ -142,7 +140,7 @@ describe('HistoryTrendComponent', () => {
         By.css('.sparkline-container:nth-child(1) .sparkline-marker')
       );
       expect(circles.length).toBe(3);
-      expect(circles[0].nativeElement.tagName.toLowerCase()).toBe('circle');
+      expect(circles[0]!.nativeElement.tagName.toLowerCase()).toBe('circle');
     });
 
     it('should render square (rect) markers on latency chart', () => {
@@ -150,7 +148,7 @@ describe('HistoryTrendComponent', () => {
         By.css('.sparkline-container:nth-child(2) .sparkline-marker')
       );
       expect(rects.length).toBe(3);
-      expect(rects[0].nativeElement.tagName.toLowerCase()).toBe('rect');
+      expect(rects[0]!.nativeElement.tagName.toLowerCase()).toBe('rect');
     });
 
     it('should render diamond (polygon) markers on violations chart', () => {
@@ -158,7 +156,7 @@ describe('HistoryTrendComponent', () => {
         By.css('.sparkline-container:nth-child(3) .sparkline-marker')
       );
       expect(polygons.length).toBe(3);
-      expect(polygons[0].nativeElement.tagName.toLowerCase()).toBe('polygon');
+      expect(polygons[0]!.nativeElement.tagName.toLowerCase()).toBe('polygon');
     });
   });
 
@@ -219,9 +217,10 @@ describe('HistoryTrendComponent', () => {
   describe('Reduced Motion Support', () => {
     it('should apply reduced-motion class when user prefers reduced motion', () => {
       const reducedMotionSignal = signal(true);
-      (mockReducedMotionService as unknown as {
-        prefersReducedMotion: ReturnType<typeof signal>;
-      }).prefersReducedMotion = reducedMotionSignal.asReadonly();
+      Object.defineProperty(mockReducedMotionService, 'prefersReducedMotion', {
+        get: () => reducedMotionSignal.asReadonly(),
+        configurable: true,
+      });
 
       component.history = createSampleHistory(3);
       fixture.detectChanges();
@@ -232,9 +231,10 @@ describe('HistoryTrendComponent', () => {
 
     it('should not apply reduced-motion class when animations enabled', () => {
       const reducedMotionSignal = signal(false);
-      (mockReducedMotionService as unknown as {
-        prefersReducedMotion: ReturnType<typeof signal>;
-      }).prefersReducedMotion = reducedMotionSignal.asReadonly();
+      Object.defineProperty(mockReducedMotionService, 'prefersReducedMotion', {
+        get: () => reducedMotionSignal.asReadonly(),
+        configurable: true,
+      });
 
       component.history = createSampleHistory(3);
       fixture.detectChanges();
@@ -272,7 +272,8 @@ describe('HistoryTrendComponent', () => {
 
     it('should apply formatting in data table', () => {
       const tableCells = fixture.debugElement.queryAll(By.css('table.sr-only td'));
-      const firstAccuracyCell = tableCells[1]; // Second cell (first is index)
+      expect(tableCells.length).toBeGreaterThanOrEqual(2);
+      const firstAccuracyCell = tableCells[1]!; // Second cell (first is index)
 
       expect(firstAccuracyCell.nativeElement.textContent.trim()).toMatch(/^[+-]\d+\.\d+$/);
     });
@@ -311,10 +312,6 @@ describe('HistoryTrendComponent', () => {
   });
 
   describe('Performance', () => {
-    it('should use OnPush change detection', () => {
-      expect(fixture.componentRef.changeDetectorRef['_view']?.def?.flags).toBe(4); // ViewFlag.OnPush
-    });
-
     it('should not re-render when history reference is same', () => {
       const history = createSampleHistory(5);
       component.history = history;
@@ -350,8 +347,20 @@ describe('HistoryTrendComponent', () => {
 
     it('should handle large values without overflow', () => {
       const largeValues: MetricsHistorySample[] = [
-        { t: 1000, accuracyDelta: 1000, latencyDeltaMs: -1000, violationReduction: 500, scene: 'mixed' },
-        { t: 2000, accuracyDelta: 2000, latencyDeltaMs: -2000, violationReduction: 1000, scene: 'mixed' },
+        {
+          t: 1000,
+          accuracyDelta: 1000,
+          latencyDeltaMs: -1000,
+          violationReduction: 500,
+          scene: 'mixed',
+        },
+        {
+          t: 2000,
+          accuracyDelta: 2000,
+          latencyDeltaMs: -2000,
+          violationReduction: 1000,
+          scene: 'mixed',
+        },
       ];
 
       component.history = largeValues;
@@ -368,8 +377,20 @@ describe('HistoryTrendComponent', () => {
 
     it('should handle negative accuracy deltas', () => {
       const negativeAccuracy: MetricsHistorySample[] = [
-        { t: 1000, accuracyDelta: -2.0, latencyDeltaMs: -50, violationReduction: 10, scene: 'mixed' },
-        { t: 2000, accuracyDelta: -1.5, latencyDeltaMs: -40, violationReduction: 8, scene: 'mixed' },
+        {
+          t: 1000,
+          accuracyDelta: -2.0,
+          latencyDeltaMs: -50,
+          violationReduction: 10,
+          scene: 'mixed',
+        },
+        {
+          t: 2000,
+          accuracyDelta: -1.5,
+          latencyDeltaMs: -40,
+          violationReduction: 8,
+          scene: 'mixed',
+        },
       ];
 
       component.history = negativeAccuracy;

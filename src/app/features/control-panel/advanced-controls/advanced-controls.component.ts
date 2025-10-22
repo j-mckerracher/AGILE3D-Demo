@@ -89,12 +89,10 @@ export class AdvancedControlsComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     // Initialize form from StateService (one-time)
-    this.stateService.advancedKnobs$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((knobs) => {
-        this.lastKnobs = knobs;
-        this.form.patchValue(knobs, { emitEvent: false });
-      });
+    this.stateService.advancedKnobs$.pipe(takeUntil(this.destroy$)).subscribe((knobs) => {
+      this.lastKnobs = knobs;
+      this.form.patchValue(knobs, { emitEvent: false });
+    });
 
     // Wire form changes to state with debounce and distinct
     this.form.valueChanges

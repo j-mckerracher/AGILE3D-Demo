@@ -1,9 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import * as THREE from 'three';
 import { SceneDataService } from './scene-data.service';
 import { SceneMetadata, SceneRegistry } from '../../models/scene.models';
@@ -50,11 +47,7 @@ describe('SceneDataService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        SceneDataService,
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [SceneDataService, provideHttpClient(), provideHttpClientTesting()],
     });
     service = TestBed.inject(SceneDataService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -70,9 +63,7 @@ describe('SceneDataService', () => {
     it('should load scene metadata', async () => {
       const promise = service.loadMetadata('test_scene_01');
 
-      const req = httpMock.expectOne(
-        'assets/scenes/test_scene_01/metadata.json'
-      );
+      const req = httpMock.expectOne('assets/scenes/test_scene_01/metadata.json');
       expect(req.request.method).toBe('GET');
       req.flush(mockMetadata);
 
@@ -83,9 +74,7 @@ describe('SceneDataService', () => {
     it('should cache loaded metadata', async () => {
       const promise1 = service.loadMetadata('test_scene_01');
 
-      const req = httpMock.expectOne(
-        'assets/scenes/test_scene_01/metadata.json'
-      );
+      const req = httpMock.expectOne('assets/scenes/test_scene_01/metadata.json');
       req.flush(mockMetadata);
 
       await promise1;
@@ -102,9 +91,7 @@ describe('SceneDataService', () => {
 
       const promise = service.loadMetadata('test_scene_01');
 
-      const req = httpMock.expectOne(
-        'assets/scenes/test_scene_01/metadata.json'
-      );
+      const req = httpMock.expectOne('assets/scenes/test_scene_01/metadata.json');
       req.flush(invalidMetadata);
 
       await expectAsync(promise).toBeRejected();
@@ -113,9 +100,7 @@ describe('SceneDataService', () => {
     it('should throw error on HTTP failure', async () => {
       const promise = service.loadMetadata('nonexistent');
 
-      const req = httpMock.expectOne(
-        'assets/scenes/nonexistent/metadata.json'
-      );
+      const req = httpMock.expectOne('assets/scenes/nonexistent/metadata.json');
       req.error(new ProgressEvent('error'), { status: 404 });
 
       await expectAsync(promise).toBeRejected();
@@ -155,7 +140,9 @@ describe('SceneDataService', () => {
 
       // Mock worker to immediately return data
       spyOn(
-        service as unknown as { parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array> },
+        service as unknown as {
+          parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array>;
+        },
         'parseInWorker'
       ).and.returnValue(Promise.resolve(mockData));
 
@@ -168,8 +155,11 @@ describe('SceneDataService', () => {
       const result = await promise;
       expect(result).toEqual(mockData);
       expect(
-        (service as unknown as { parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array> })
-          .parseInWorker
+        (
+          service as unknown as {
+            parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array>;
+          }
+        ).parseInWorker
       ).toHaveBeenCalledWith(arrayBuffer, 3);
     });
 
@@ -179,7 +169,9 @@ describe('SceneDataService', () => {
       const mockData = new Float32Array([1, 2, 3]);
 
       spyOn(
-        service as unknown as { parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array> },
+        service as unknown as {
+          parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array>;
+        },
         'parseInWorker'
       ).and.returnValue(Promise.resolve(mockData));
 
@@ -196,8 +188,11 @@ describe('SceneDataService', () => {
 
       httpMock.expectNone(binPath);
       expect(
-        (service as unknown as { parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array> })
-          .parseInWorker
+        (
+          service as unknown as {
+            parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array>;
+          }
+        ).parseInWorker
       ).toHaveBeenCalledTimes(1);
     });
 
@@ -218,9 +213,7 @@ describe('SceneDataService', () => {
     it('should clear all caches', async () => {
       // Load and cache metadata
       const promise = service.loadMetadata('test_scene_01');
-      const req = httpMock.expectOne(
-        'assets/scenes/test_scene_01/metadata.json'
-      );
+      const req = httpMock.expectOne('assets/scenes/test_scene_01/metadata.json');
       req.flush(mockMetadata);
       await promise;
 
@@ -260,9 +253,7 @@ describe('SceneDataService', () => {
 
       const promise = service.loadMetadata('test_scene_01');
 
-      const req = httpMock.expectOne(
-        'assets/scenes/test_scene_01/metadata.json'
-      );
+      const req = httpMock.expectOne('assets/scenes/test_scene_01/metadata.json');
       req.flush(invalidMetadata);
 
       await expectAsync(promise).toBeRejectedWithError(/Missing required field/);
@@ -279,9 +270,7 @@ describe('SceneDataService', () => {
 
       const promise = service.loadMetadata('test_scene_01');
 
-      const req = httpMock.expectOne(
-        'assets/scenes/test_scene_01/metadata.json'
-      );
+      const req = httpMock.expectOne('assets/scenes/test_scene_01/metadata.json');
       req.flush(invalidMetadata);
 
       await expectAsync(promise).toBeRejectedWithError(/Invalid bounds/);
@@ -333,7 +322,9 @@ describe('SceneDataService', () => {
       const mockData = new Float32Array([1, 2, 3, 4, 5, 6]);
 
       spyOn(
-        service as unknown as { parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array> },
+        service as unknown as {
+          parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array>;
+        },
         'parseInWorker'
       ).and.returnValue(Promise.resolve(mockData));
 
@@ -354,7 +345,9 @@ describe('SceneDataService', () => {
       const mockData = new Float32Array([1, 2, 3]);
 
       spyOn(
-        service as unknown as { parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array> },
+        service as unknown as {
+          parseInWorker: (buf: ArrayBuffer, stride: number) => Promise<Float32Array>;
+        },
         'parseInWorker'
       ).and.returnValue(Promise.resolve(mockData));
 

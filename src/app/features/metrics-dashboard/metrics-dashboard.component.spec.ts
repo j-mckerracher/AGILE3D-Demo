@@ -1,7 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MetricsDashboardComponent } from './metrics-dashboard.component';
 import { SimulationService } from '../../core/services/simulation/simulation.service';
-import { MetricsHistoryService, MetricsHistorySample } from '../../core/services/metrics/metrics-history.service';
+import {
+  MetricsHistoryService,
+  MetricsHistorySample,
+} from '../../core/services/metrics/metrics-history.service';
 import { of } from 'rxjs';
 import { AlgorithmMetrics, ComparisonMetrics } from '../../core/models/config-and-metrics';
 

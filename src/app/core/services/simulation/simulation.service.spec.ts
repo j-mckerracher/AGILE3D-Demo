@@ -34,7 +34,7 @@ describe('SimulationService', () => {
           accuracy: {
             'vehicle-heavy': 64.2,
             'pedestrian-heavy': 58.7,
-            'mixed': 61.5,
+            mixed: 61.5,
           },
         },
         modelFamily: 'CenterPoint',
@@ -61,7 +61,7 @@ describe('SimulationService', () => {
           accuracy: {
             'vehicle-heavy': 61.8,
             'pedestrian-heavy': 55.3,
-            'mixed': 58.9,
+            mixed: 58.9,
           },
         },
         modelFamily: 'CenterPoint',
@@ -88,7 +88,7 @@ describe('SimulationService', () => {
           accuracy: {
             'vehicle-heavy': 65.9,
             'pedestrian-heavy': 61.2,
-            'mixed': 63.8,
+            mixed: 63.8,
           },
         },
         modelFamily: 'CenterPoint',
@@ -118,7 +118,7 @@ describe('SimulationService', () => {
       accuracy: {
         'vehicle-heavy': 67.1,
         'pedestrian-heavy': 62.3,
-        'mixed': 64.8,
+        mixed: 64.8,
       },
     },
     modelFamily: 'DSVT',
@@ -387,7 +387,7 @@ describe('SimulationService', () => {
       }, 100);
     });
 
-    it('should not emit when parameters haven\'t changed (distinctUntilChanged)', (done) => {
+    it("should not emit when parameters haven't changed (distinctUntilChanged)", (done) => {
       let emissionCount = 0;
 
       service.activeBranch$.subscribe(() => {

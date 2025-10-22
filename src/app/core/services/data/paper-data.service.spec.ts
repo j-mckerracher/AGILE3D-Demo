@@ -31,7 +31,7 @@ describe('PaperDataService', () => {
           accuracy: {
             'vehicle-heavy': 64.2,
             'pedestrian-heavy': 58.7,
-            'mixed': 61.5,
+            mixed: 61.5,
           },
         },
         modelFamily: 'CenterPoint',
@@ -61,7 +61,7 @@ describe('PaperDataService', () => {
       accuracy: {
         'vehicle-heavy': 67.1,
         'pedestrian-heavy': 62.3,
-        'mixed': 64.8,
+        mixed: 64.8,
       },
     },
     modelFamily: 'DSVT',

@@ -21,7 +21,12 @@ import { StateService } from '../../core/services/state/state.service';
 import { SceneId, VoxelSize } from '../../core/models/config-and-metrics';
 import { AdvancedControlsComponent } from './advanced-controls/advanced-controls.component';
 
-interface PrimaryControls { scene: SceneId; voxelSize: VoxelSize; contention: number; sloMs: number }
+interface PrimaryControls {
+  scene: SceneId;
+  voxelSize: VoxelSize;
+  contention: number;
+  sloMs: number;
+}
 
 @Component({
   selector: 'app-control-panel',
@@ -51,26 +56,30 @@ interface PrimaryControls { scene: SceneId; voxelSize: VoxelSize; contention: nu
               <mat-button-toggle-group
                 aria-labelledby="scene-legend"
                 formControlName="scene"
-                class="scene-toggle-group">
-              <mat-button-toggle
-                value="vehicle-heavy"
-                matTooltip="Vehicle-heavy traffic scenario"
-                aria-label="Select vehicle-heavy scene">
-                Vehicle-Heavy
-              </mat-button-toggle>
-              <mat-button-toggle
-                value="pedestrian-heavy"
-                matTooltip="Pedestrian-heavy traffic scenario"
-                aria-label="Select pedestrian-heavy scene">
-                Pedestrian-Heavy
-              </mat-button-toggle>
-              <mat-button-toggle
-                value="mixed"
-                matTooltip="Mixed traffic scenario"
-                aria-label="Select mixed scene">
-                Mixed
-              </mat-button-toggle>
-            </mat-button-toggle-group>
+                class="scene-toggle-group"
+              >
+                <mat-button-toggle
+                  value="vehicle-heavy"
+                  matTooltip="Vehicle-heavy traffic scenario"
+                  aria-label="Select vehicle-heavy scene"
+                >
+                  Vehicle-Heavy
+                </mat-button-toggle>
+                <mat-button-toggle
+                  value="pedestrian-heavy"
+                  matTooltip="Pedestrian-heavy traffic scenario"
+                  aria-label="Select pedestrian-heavy scene"
+                >
+                  Pedestrian-Heavy
+                </mat-button-toggle>
+                <mat-button-toggle
+                  value="mixed"
+                  matTooltip="Mixed traffic scenario"
+                  aria-label="Select mixed scene"
+                >
+                  Mixed
+                </mat-button-toggle>
+              </mat-button-toggle-group>
             </fieldset>
           </div>
 
@@ -85,7 +94,8 @@ interface PrimaryControls { scene: SceneId; voxelSize: VoxelSize; contention: nu
                 [step]="0.08"
                 [discrete]="true"
                 aria-labelledby="voxel-legend"
-                matTooltip="Spatial resolution (smaller is finer, higher accuracy but slower)">
+                matTooltip="Spatial resolution (smaller is finer, higher accuracy but slower)"
+              >
                 <input matSliderThumb formControlName="voxelSize" />
               </mat-slider>
               <div class="value-label" aria-hidden="true">{{ primaryForm.value.voxelSize }} m</div>
@@ -102,7 +112,8 @@ interface PrimaryControls { scene: SceneId; voxelSize: VoxelSize; contention: nu
                 [max]="100"
                 [step]="1"
                 aria-labelledby="contention-legend"
-                matTooltip="GPU resource contention percentage">
+                matTooltip="GPU resource contention percentage"
+              >
                 <input matSliderThumb formControlName="contention" />
               </mat-slider>
               <div class="tick-labels" aria-hidden="true">
@@ -126,7 +137,8 @@ interface PrimaryControls { scene: SceneId; voxelSize: VoxelSize; contention: nu
                 [max]="500"
                 [step]="10"
                 aria-labelledby="slo-legend"
-                matTooltip="Target latency Service Level Objective in milliseconds">
+                matTooltip="Target latency Service Level Objective in milliseconds"
+              >
                 <input matSliderThumb formControlName="sloMs" />
               </mat-slider>
               <div class="value-label" aria-live="polite">{{ primaryForm.value.sloMs }} ms</div>
@@ -143,30 +155,92 @@ interface PrimaryControls { scene: SceneId; voxelSize: VoxelSize; contention: nu
   `,
   styles: [
     `
-      :host { display: block; width: 100%; }
-      .control-panel-container { display: flex; flex-direction: column; gap: 24px; padding: 24px; }
-      .panel-header { display: flex; flex-direction: column; gap: 4px; }
-      .panel-title { margin: 0; font-size: 24px; font-weight: 700; }
-      .panel-subtitle { margin: 0; font-size: 14px; opacity: 0.8; }
-
-      .primary-controls { padding: 16px; border-radius: 6px; }
-      .primary-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-      @media (min-width: 920px) {
-        .primary-grid { grid-template-columns: 1fr 1fr; }
-        .scene-group { grid-column: 1 / -1; }
+      :host {
+        display: block;
+        width: 100%;
+      }
+      .control-panel-container {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding: 24px;
+      }
+      .panel-header {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .panel-title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .panel-subtitle {
+        margin: 0;
+        font-size: 14px;
+        opacity: 0.8;
       }
 
-      .control-group { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
-      .scene-group { padding: 12px; }
-      .control-label { font-weight: 600; }
-      fieldset { border: 0; padding: 0; margin: 0; }
-      legend.control-label { margin-bottom: 8px; }
-      .scene-toggle-group { margin-bottom: 4px; }
-      .full-width { width: 100%; }
-      .value-label { font-size: 12px; opacity: 0.8; }
+      .primary-controls {
+        padding: 16px;
+        border-radius: 6px;
+      }
+      .primary-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      @media (min-width: 920px) {
+        .primary-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .scene-group {
+          grid-column: 1 / -1;
+        }
+      }
 
-      .tick-labels { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.7; margin-top: 2px; }
-      .tick { display: inline-block; width: auto; }
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px;
+      }
+      .scene-group {
+        padding: 12px;
+      }
+      .control-label {
+        font-weight: 600;
+      }
+      fieldset {
+        border: 0;
+        padding: 0;
+        margin: 0;
+      }
+      legend.control-label {
+        margin-bottom: 8px;
+      }
+      .scene-toggle-group {
+        margin-bottom: 4px;
+      }
+      .full-width {
+        width: 100%;
+      }
+      .value-label {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+
+      .tick-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        opacity: 0.7;
+        margin-top: 2px;
+      }
+      .tick {
+        display: inline-block;
+        width: auto;
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -180,7 +254,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     scene: 'Select traffic scenario type: vehicle-heavy, pedestrian-heavy, or mixed',
     voxelSize: 'Point cloud spatial resolution (0.16m=fine, 0.64m=coarse)',
     contention: 'GPU resource contention percentage (0-100%)',
-    sloMs: 'Target latency Service Level Objective (100-500ms)'
+    sloMs: 'Target latency Service Level Objective (100-500ms)',
   } as const;
 
   private readonly stateService = inject(StateService);
@@ -205,10 +279,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     ])
       .pipe(takeUntil(this.destroy$))
       .subscribe(([scene, voxelSize, contention, sloMs]) => {
-        this.primaryForm.patchValue(
-          { scene, voxelSize, contention, sloMs },
-          { emitEvent: false }
-        );
+        this.primaryForm.patchValue({ scene, voxelSize, contention, sloMs }, { emitEvent: false });
       });
 
     // Push debounced changes to state

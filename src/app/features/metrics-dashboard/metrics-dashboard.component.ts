@@ -7,7 +7,10 @@ import { BaselineMetricsComponent } from './baseline-metrics/baseline-metrics.co
 import { Agile3dMetricsComponent } from './agile3d-metrics/agile3d-metrics.component';
 import { ComparisonHighlightsComponent } from './comparison-highlights/comparison-highlights.component';
 import { HistoryTrendComponent } from './history-trend/history-trend.component';
-import { MetricsHistoryService, MetricsHistorySample } from '../../core/services/metrics/metrics-history.service';
+import {
+  MetricsHistoryService,
+  MetricsHistorySample,
+} from '../../core/services/metrics/metrics-history.service';
 import { map } from 'rxjs/operators';
 
 /**
@@ -84,8 +87,6 @@ export class MetricsDashboardComponent {
 
     // Wire up historical trend data from MetricsHistoryService
     // Wrap in Observable that polls getHistory() for reactive updates
-    this.history$ = this.comparison$.pipe(
-      map(() => this.metricsHistoryService.getHistory())
-    );
+    this.history$ = this.comparison$.pipe(map(() => this.metricsHistoryService.getHistory()));
   }
 }

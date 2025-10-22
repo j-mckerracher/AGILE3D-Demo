@@ -233,8 +233,8 @@ export class ComparisonHighlightsComponent implements OnChanges, OnDestroy {
    */
   protected getLatencyThreshold(): ThresholdCategory {
     const delta = this.displayLatencyDelta();
-    if (delta < -10) return 'green';  // Negative = faster = good
-    if (delta > 10) return 'red';     // Positive = slower = bad
+    if (delta < -10) return 'green'; // Negative = faster = good
+    if (delta > 10) return 'red'; // Positive = slower = bad
     return 'amber';
   }
 

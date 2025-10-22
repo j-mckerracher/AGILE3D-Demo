@@ -42,7 +42,7 @@
         <circle
           *ngFor="let sample of historySignal(); let i = index"
           class="sparkline-marker"
-          [attr.cx]="4 + (i * (112 / Math.max(1, historySignal().length - 1)))"
+          [attr.cx]="4 + i * (112 / Math.max(1, historySignal().length - 1))"
           [attr.cy]="20"
           r="2"
           fill="currentColor"
@@ -79,7 +79,7 @@
         <rect
           *ngFor="let sample of historySignal(); let i = index"
           class="sparkline-marker"
-          [attr.x]="(4 + (i * (112 / Math.max(1, historySignal().length - 1)))) - 2"
+          [attr.x]="4 + i * (112 / Math.max(1, historySignal().length - 1)) - 2"
           [attr.y]="18"
           width="4"
           height="4"
@@ -118,7 +118,7 @@
           *ngFor="let sample of historySignal(); let i = index"
           class="sparkline-marker"
           [attr.points]="
-            getMarkerPoints(4 + (i * (112 / Math.max(1, historySignal().length - 1))), 20, 3)
+            getMarkerPoints(4 + i * (112 / Math.max(1, historySignal().length - 1)), 20, 3)
           "
           fill="currentColor"
         />

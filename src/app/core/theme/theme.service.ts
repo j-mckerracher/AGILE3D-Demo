@@ -47,8 +47,7 @@ export class ThemeService implements OnDestroy {
   // Public observables
   public readonly themeMode$: Observable<ThemeMode> = this.themeModeSubject.asObservable();
   public readonly activeTheme$: Observable<ActiveTheme> = this.activeThemeSubject.asObservable();
-  public readonly reducedMotion$: Observable<boolean> =
-    this.reducedMotionSubject.asObservable();
+  public readonly reducedMotion$: Observable<boolean> = this.reducedMotionSubject.asObservable();
 
   // Theme change events
   private readonly themeChangeSubject = new Subject<ThemeChangeEvent>();

@@ -10,7 +10,14 @@
  * - NFR-3.4: Keyboard navigation support
  */
 
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  OnInit,
+  inject,
+  signal,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DualViewerComponent } from '../dual-viewer/dual-viewer.component';
 import { ControlPanelComponent } from '../control-panel/control-panel.component';
@@ -21,13 +28,22 @@ import { SceneDataService } from '../../core/services/data/scene-data.service';
 import { SceneTierManagerService } from '../../core/services/data/scene-tier-manager.service';
 import { DebugService } from '../../core/services/runtime/debug.service';
 import { CapabilityService } from '../../core/services/runtime/capability.service';
-import { InstrumentationService, SceneToken } from '../../core/services/runtime/instrumentation.service';
+import {
+  InstrumentationService,
+  SceneToken,
+} from '../../core/services/runtime/instrumentation.service';
 import { Detection, SceneMetadata } from '../../core/models/scene.models';
 
 @Component({
   selector: 'app-main-demo',
   standalone: true,
-  imports: [CommonModule, DualViewerComponent, ControlPanelComponent, MetricsDashboardComponent, ErrorBannerComponent],
+  imports: [
+    CommonModule,
+    DualViewerComponent,
+    ControlPanelComponent,
+    MetricsDashboardComponent,
+    ErrorBannerComponent,
+  ],
   templateUrl: './main-demo.component.html',
   styleUrls: ['./main-demo.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

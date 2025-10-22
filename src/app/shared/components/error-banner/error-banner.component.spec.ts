@@ -78,9 +78,9 @@ describe('ErrorBannerComponent (WP-2.3.2)', () => {
 
       const links = fixture.debugElement.queryAll(By.css('.error-link'));
       expect(links.length).toBe(2);
-      expect(links[0].nativeElement.textContent).toContain('Help');
-      expect(links[0].nativeElement.href).toBe('https://example.com/help');
-      expect(links[1].nativeElement.textContent).toContain('Docs');
+      expect(links[0]!.nativeElement.textContent).toContain('Help');
+      expect(links[0]!.nativeElement.href).toBe('https://example.com/help');
+      expect(links[1]!.nativeElement.textContent).toContain('Docs');
     });
 
     it('should not render links section when empty', () => {

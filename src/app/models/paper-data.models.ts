@@ -23,8 +23,8 @@ export interface ControlKnobs {
 }
 
 export interface LatencyStats {
-  mean: number;  // milliseconds
-  std: number;   // milliseconds
+  mean: number; // milliseconds
+  std: number; // milliseconds
 }
 
 export interface LatencyByContention {
@@ -36,13 +36,13 @@ export interface LatencyByContention {
 }
 
 export interface AccuracyByScene {
-  vehicleHeavy: number;     // mAP percentage
-  pedestrianHeavy: number;  // mAP percentage
-  mixed: number;            // mAP percentage
+  vehicleHeavy: number; // mAP percentage
+  pedestrianHeavy: number; // mAP percentage
+  mixed: number; // mAP percentage
 }
 
 export interface BranchPerformance {
-  memoryFootprint: number;        // GB
+  memoryFootprint: number; // GB
   latency: LatencyByContention;
   accuracy: AccuracyByScene;
 }
@@ -62,11 +62,11 @@ export interface BranchConfig {
 export type ContentionLevel = '0' | '38' | '45' | '64' | '67';
 
 export interface ViolationRatesByContention {
-  '0': number;   // percentage
-  '38': number;  // percentage
-  '45': number;  // percentage
-  '64': number;  // percentage
-  '67': number;  // percentage
+  '0': number; // percentage
+  '38': number; // percentage
+  '45': number; // percentage
+  '64': number; // percentage
+  '67': number; // percentage
 }
 
 export interface ViolationRatesBySLO {
@@ -80,7 +80,7 @@ export interface BaselinePerformance {
   accuracyByScene: AccuracyByScene;
   latencyByContention: Record<ContentionLevel, LatencyStats>;
   violationRatesBySLO: ViolationRatesBySLO;
-  memoryFootprint: number;  // GB
+  memoryFootprint: number; // GB
 }
 
 // ============================================================================
@@ -127,16 +127,16 @@ export interface ParetoFrontier {
 
 export interface SystemConfig {
   scene: 'vehicleHeavy' | 'pedestrianHeavy' | 'mixed';
-  contentionLevel: number;  // 0-100%
-  latencySLO: number;       // milliseconds
+  contentionLevel: number; // 0-100%
+  latencySLO: number; // milliseconds
   voxelSize: SpatialResolution;
 }
 
 export interface Metrics {
-  accuracy: number;           // mAP percentage
-  latency: number;            // milliseconds
-  violationRate: number;      // percentage
-  memoryUsage: number;        // GB
+  accuracy: number; // mAP percentage
+  latency: number; // milliseconds
+  violationRate: number; // percentage
+  memoryUsage: number; // GB
   sloCompliance: boolean;
 }
 
@@ -150,7 +150,7 @@ export interface ComparisonData {
     metrics: Metrics;
   };
   deltas: {
-    accuracyGain: number;      // percentage points
+    accuracyGain: number; // percentage points
     latencyDifference: number; // milliseconds
     violationReduction: number; // percentage points
   };

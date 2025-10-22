@@ -220,7 +220,9 @@ export class CameraControlService implements OnDestroy {
 }
 
 // Support both real THREE.Vector3-like objects (with set) and plain objects used in tests
-type Vec3Like = { set(x: number, y: number, z: number): void } | { x: number; y: number; z: number };
+type Vec3Like =
+  | { set(x: number, y: number, z: number): void }
+  | { x: number; y: number; z: number };
 
 function setVec3Like(obj: Vec3Like | undefined, v: Vec3): void {
   if (!obj) return;

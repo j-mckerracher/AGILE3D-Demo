@@ -12,10 +12,7 @@ describe('InstrumentationService (WP-2.3.2)', () => {
     mockDebugService.isDebugEnabled.and.returnValue(false);
 
     TestBed.configureTestingModule({
-      providers: [
-        InstrumentationService,
-        { provide: DebugService, useValue: mockDebugService },
-      ],
+      providers: [InstrumentationService, { provide: DebugService, useValue: mockDebugService }],
     });
 
     service = TestBed.inject(InstrumentationService);
@@ -60,10 +57,10 @@ describe('InstrumentationService (WP-2.3.2)', () => {
 
       const token = service.beginSceneSwitch('debug-scene');
 
-      expect(console.info).toHaveBeenCalledWith(
-        '[Instrumentation] Scene switch started',
-        { id: token.id, label: 'debug-scene' }
-      );
+      expect(console.info).toHaveBeenCalledWith('[Instrumentation] Scene switch started', {
+        id: token.id,
+        label: 'debug-scene',
+      });
     });
 
     it('should not log when debug mode is disabled', () => {
@@ -102,10 +99,10 @@ describe('InstrumentationService (WP-2.3.2)', () => {
       const token: SceneToken = { id: 'debug-456', label: 'debug-scene' };
       service.markDataLoaded(token);
 
-      expect(console.info).toHaveBeenCalledWith(
-        '[Instrumentation] Data loaded',
-        { id: 'debug-456', label: 'debug-scene' }
-      );
+      expect(console.info).toHaveBeenCalledWith('[Instrumentation] Data loaded', {
+        id: 'debug-456',
+        label: 'debug-scene',
+      });
     });
 
     it('should not log when debug mode is disabled', () => {
@@ -128,10 +125,10 @@ describe('InstrumentationService (WP-2.3.2)', () => {
         duration: 250.5,
         entryType: 'measure',
         startTime: 0,
-        toJSON: () => ({})
+        toJSON: () => ({}),
       } as PerformanceMeasure);
       spyOn(performance, 'getEntriesByName').and.returnValue([
-        { duration: 250.5 } as PerformanceEntry
+        { duration: 250.5 } as PerformanceEntry,
       ]);
 
       const token: SceneToken = { id: 'test-abc', label: 'test' };
@@ -149,7 +146,7 @@ describe('InstrumentationService (WP-2.3.2)', () => {
       spyOn(performance, 'mark');
       spyOn(performance, 'measure').and.returnValue({} as PerformanceMeasure);
       spyOn(performance, 'getEntriesByName').and.returnValue([
-        { duration: 300.5 } as PerformanceEntry
+        { duration: 300.5 } as PerformanceEntry,
       ]);
       spyOn(performance, 'clearMarks');
       spyOn(performance, 'clearMeasures');
@@ -167,7 +164,7 @@ describe('InstrumentationService (WP-2.3.2)', () => {
       spyOn(performance, 'mark');
       spyOn(performance, 'measure').and.returnValue({} as PerformanceMeasure);
       spyOn(performance, 'getEntriesByName').and.returnValue([
-        { duration: 100 } as PerformanceEntry
+        { duration: 100 } as PerformanceEntry,
       ]);
       spyOn(performance, 'clearMarks');
       spyOn(performance, 'clearMeasures');
@@ -188,7 +185,7 @@ describe('InstrumentationService (WP-2.3.2)', () => {
       spyOn(performance, 'mark');
       spyOn(performance, 'measure').and.returnValue({} as PerformanceMeasure);
       spyOn(performance, 'getEntriesByName').and.returnValue([
-        { duration: 150 } as PerformanceEntry
+        { duration: 150 } as PerformanceEntry,
       ]);
       spyOn(performance, 'clearMarks');
       spyOn(performance, 'clearMeasures');
@@ -207,7 +204,7 @@ describe('InstrumentationService (WP-2.3.2)', () => {
       spyOn(performance, 'mark');
       spyOn(performance, 'measure').and.returnValue({} as PerformanceMeasure);
       spyOn(performance, 'getEntriesByName').and.returnValue([
-        { duration: 420.75 } as PerformanceEntry
+        { duration: 420.75 } as PerformanceEntry,
       ]);
       spyOn(performance, 'clearMarks');
       spyOn(performance, 'clearMeasures');
@@ -216,15 +213,12 @@ describe('InstrumentationService (WP-2.3.2)', () => {
       const token: SceneToken = { id: 'log-test', label: 'mixed' };
       service.endSceneSwitch(token);
 
-      expect(console.info).toHaveBeenCalledWith(
-        '[Instrumentation] Scene switch completed',
-        {
-          id: 'log-test',
-          label: 'mixed',
-          durationMs: '420.75',
-          measure: 'scene-switch:mixed'
-        }
-      );
+      expect(console.info).toHaveBeenCalledWith('[Instrumentation] Scene switch completed', {
+        id: 'log-test',
+        label: 'mixed',
+        durationMs: '420.75',
+        measure: 'scene-switch:mixed',
+      });
     });
 
     it('should handle errors during measurement gracefully', () => {
@@ -267,7 +261,7 @@ describe('InstrumentationService (WP-2.3.2)', () => {
       spyOn(performance, 'mark');
       spyOn(performance, 'measure').and.returnValue({} as PerformanceMeasure);
       spyOn(performance, 'getEntriesByName').and.returnValue([
-        { duration: 100 } as PerformanceEntry
+        { duration: 100 } as PerformanceEntry,
       ]);
       spyOn(performance, 'clearMarks');
       spyOn(performance, 'clearMeasures');
@@ -286,7 +280,7 @@ describe('InstrumentationService (WP-2.3.2)', () => {
       spyOn(performance, 'mark');
       spyOn(performance, 'measure').and.returnValue({} as PerformanceMeasure);
       spyOn(performance, 'getEntriesByName').and.returnValue([
-        { duration: 100 } as PerformanceEntry
+        { duration: 100 } as PerformanceEntry,
       ]);
       spyOn(performance, 'clearMarks');
       spyOn(performance, 'clearMeasures');
@@ -322,7 +316,7 @@ describe('InstrumentationService (WP-2.3.2)', () => {
       spyOn(performance, 'mark');
       spyOn(performance, 'measure').and.returnValue({} as PerformanceMeasure);
       spyOn(performance, 'getEntriesByName').and.returnValue([
-        { duration: 387.5 } as PerformanceEntry
+        { duration: 387.5 } as PerformanceEntry,
       ]);
       spyOn(performance, 'clearMarks');
       spyOn(performance, 'clearMeasures');
