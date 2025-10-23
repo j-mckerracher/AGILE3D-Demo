@@ -14,11 +14,14 @@ import {
   Component,
   ChangeDetectionStrategy,
   OnInit,
+  OnDestroy,
   inject,
   signal,
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subject } from 'rxjs';
+import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DualViewerComponent } from '../dual-viewer/dual-viewer.component';
 import { ControlPanelComponent } from '../control-panel/control-panel.component';
 import { MetricsDashboardComponent } from '../metrics-dashboard/metrics-dashboard.component';
@@ -33,6 +36,9 @@ import {
   SceneToken,
 } from '../../core/services/runtime/instrumentation.service';
 import { Detection, SceneMetadata } from '../../core/models/scene.models';
+import { SimulationService } from '../../core/services/simulation/simulation.service';
+import { StateService } from '../../core/services/state/state.service';
+import { SceneId } from '../../core/models/config-and-metrics';
 
 @Component({
   selector: 'app-main-demo',
@@ -48,13 +54,18 @@ import { Detection, SceneMetadata } from '../../core/models/scene.models';
   styleUrls: ['./main-demo.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MainDemoComponent implements OnInit {
+export class MainDemoComponent implements OnInit, OnDestroy {
   private readonly sceneData = inject(SceneDataService);
   private readonly tierManager = inject(SceneTierManagerService);
   private readonly debug = inject(DebugService);
   private readonly capability = inject(CapabilityService);
   private readonly instrument = inject(InstrumentationService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly simulationService = inject(SimulationService);
+  private readonly stateService = inject(StateService);
+
+  private readonly destroy$ = new Subject<void>();
+  private currentMetadata?: SceneMetadata;
 
   protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
@@ -86,41 +97,100 @@ export class MainDemoComponent implements OnInit {
       this.tierManager.setTier('fallback');
     }
 
+    // Subscribe to scene changes for reactive scene switching
+    this.stateService.scene$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((sceneId) => {
+        console.log('[MainDemo] Scene changed:', sceneId);
+        this.loadScene(sceneId);
+      });
+
+    // Subscribe to branch changes for reactive detection updates
+    this.simulationService.activeBranch$
+      .pipe(
+        debounceTime(100),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((branchId) => {
+        console.log('[MainDemo] Branch changed:', branchId);
+        this.updateAgileDetections(branchId);
+      });
+
     // Load initial scene with instrumentation (WP-2.3.2, NFR-1.8)
-    await this.loadInitialScene();
+    // Note: This will be triggered by the scene$ subscription above
+    // but we need to ensure it happens after subscriptions are set up
+    await this.loadScene(this.stateService.currentScene$.value);
   }
 
-  private async loadInitialScene(): Promise<void> {
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Load a scene by its SceneId.
+   * Maps SceneId to actual file ID, loads metadata and point cloud,
+   * and updates detections for both baseline and AGILE3D.
+   */
+  private async loadScene(sceneId: SceneId): Promise<void> {
     this.loading.set(true);
     this.loadError.set(null);
     this.showError.set(false);
 
     // Begin instrumentation (WP-2.3.2, NFR-1.8)
-    const token: SceneToken = this.instrument.beginSceneSwitch('initial');
+    const token: SceneToken = this.instrument.beginSceneSwitch(sceneId);
 
     try {
-      // Choose a scene: prefer registry first entry; fallback to 'test_scene_01'
-      let sceneId = 'test_scene_01';
-      try {
-        const registry = await this.sceneData.loadRegistry();
-        console.log('[MainDemo] registry loaded; scenes=', registry.scenes.length);
-        if (registry.scenes.length > 0) {
-          sceneId = registry.scenes[0]!.scene_id;
-        }
-      } catch (e) {
-        console.warn('[MainDemo] loadRegistry failed; falling back to default id', e);
-      }
+      // Map SceneId to actual scene file ID
+      const fileId = this.mapSceneIdToFileId(sceneId);
+      console.log('[MainDemo] Loading scene:', sceneId, '→', fileId);
 
-      console.log('[MainDemo] loading metadata for', sceneId);
-      const metadata = await this.sceneData.loadMetadata(sceneId);
+      // Load scene metadata
+      const metadata = await this.sceneData.loadMetadata(fileId);
+      this.currentMetadata = metadata;
 
       // Mark data loaded for instrumentation
       this.instrument.markDataLoaded(token);
 
-      await this.loadSceneFromMetadata(metadata);
+      console.log('[MainDemo] metadata', {
+        scene_id: metadata.scene_id,
+        pointsBin: metadata.pointsBin,
+        stride: metadata.pointStride,
+      });
+
+      // Resolve tier-aware path and cache key
+      const binPath = this.tierManager.getTierPath(metadata.pointsBin);
+      const cacheKey = this.tierManager.getCacheKey(metadata.scene_id);
+      console.log('[MainDemo] resolved bin', { binPath, cacheKey });
+
+      // Load THREE.Points instance from SceneDataService (WP-2.1.1)
+      // This ensures a single shared Points instance across all viewers
+      this.sharedPoints = await this.sceneData.loadPointsObject(
+        binPath,
+        cacheKey,
+        metadata.pointStride
+      );
+      console.log('[MainDemo] sharedPoints loaded', {
+        geometry: this.sharedPoints.geometry.uuid,
+        vertices: this.sharedPoints.geometry.getAttribute('position')?.count ?? 0,
+      });
+
+      // Load baseline detections (always DSVT_Voxel)
+      this.baselineDetections = metadata.predictions['DSVT_Voxel'] ?? metadata.ground_truth ?? [];
+
+      // Load AGILE3D detections - use optimal branch from metadata as initial value
+      // The activeBranch$ subscription will update this to the correct branch
+      const initialBranch = metadata.metadata?.optimalBranch ?? 'CP_Pillar_032';
+      this.updateAgileDetectionsFromMetadata(initialBranch, metadata);
+
+      console.log('[MainDemo] detections loaded', {
+        baseline: this.baselineDetections.length,
+        agile3d: this.agile3dDetections.length,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error loading scene data';
-      console.error('[MainDemo] loadInitialScene error', msg);
+      console.error('[MainDemo] loadScene error', msg);
       this.loadError.set(msg);
       this.showError.set(true);
     } finally {
@@ -131,45 +201,90 @@ export class MainDemoComponent implements OnInit {
     }
   }
 
-  private async loadSceneFromMetadata(meta: SceneMetadata): Promise<void> {
-    console.log('[MainDemo] metadata', {
-      scene_id: meta.scene_id,
-      pointsBin: meta.pointsBin,
-      stride: meta.pointStride,
-    });
-
-    // Resolve tier-aware path and cache key
-    const binPath = this.tierManager.getTierPath(meta.pointsBin);
-    const cacheKey = this.tierManager.getCacheKey(meta.scene_id);
-    console.log('[MainDemo] resolved bin', { binPath, cacheKey });
-
-    // Load THREE.Points instance from SceneDataService (WP-2.1.1)
-    // This ensures a single shared Points instance across all viewers
-    this.sharedPoints = await this.sceneData.loadPointsObject(binPath, cacheKey, meta.pointStride);
-    console.log('[MainDemo] sharedPoints loaded', {
-      geometry: this.sharedPoints.geometry.uuid,
-      vertices: this.sharedPoints.geometry.getAttribute('position')?.count ?? 0,
-    });
-
-    // Select detections: baseline from DSVT_Voxel if present, else ground truth.
-    const baseline = meta.predictions['DSVT_Voxel'] ?? meta.ground_truth ?? [];
-
-    // AGILE3D detections: use optimalBranch if available, else first predictions entry not DSVT_Voxel
-    const agBranch = meta.metadata?.optimalBranch;
-    let agile: Detection[] | undefined = agBranch ? meta.predictions[agBranch] : undefined;
-    if (!agile) {
-      const firstOther = Object.entries(meta.predictions).find(([k]) => k !== 'DSVT_Voxel');
-      agile = firstOther?.[1] ?? [];
+  /**
+   * Update AGILE3D detections when active branch changes.
+   * Uses the current scene metadata to look up branch-specific detections.
+   */
+  private updateAgileDetections(branchId: string): void {
+    if (!this.currentMetadata) {
+      console.warn('[MainDemo] Cannot update detections: no metadata loaded');
+      return;
     }
 
-    this.baselineDetections = baseline;
-    this.agile3dDetections = agile;
-    console.log('[MainDemo] detections', {
-      baseline: this.baselineDetections.length,
-      agile3d: this.agile3dDetections.length,
-    });
-
-    // Notify OnPush change detection
+    this.updateAgileDetectionsFromMetadata(branchId, this.currentMetadata);
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Helper to update AGILE3D detections from metadata for a given branch.
+   */
+  private updateAgileDetectionsFromMetadata(branchId: string, metadata: SceneMetadata): void {
+    // Map branch ID to metadata prediction key
+    // SimulationService uses IDs like "CP_Pillar_032"
+    // Metadata uses keys like "AGILE3D_CP_Pillar_032"
+    const predictionKey = this.mapBranchIdToPredictionKey(branchId, metadata);
+
+    let agileDetections = metadata.predictions[predictionKey];
+
+    // Fallback: if not found, try without AGILE3D_ prefix
+    if (!agileDetections) {
+      agileDetections = metadata.predictions[branchId];
+    }
+
+    // Fallback: use optimal branch from metadata
+    if (!agileDetections && metadata.metadata?.optimalBranch) {
+      agileDetections = metadata.predictions[metadata.metadata.optimalBranch];
+    }
+
+    // Fallback: use first non-DSVT prediction
+    if (!agileDetections) {
+      const firstOther = Object.entries(metadata.predictions).find(([k]) => k !== 'DSVT_Voxel');
+      agileDetections = firstOther?.[1];
+    }
+
+    this.agile3dDetections = agileDetections ?? [];
+    console.log('[MainDemo] AGILE3D detections updated', {
+      branchId,
+      predictionKey,
+      count: this.agile3dDetections.length,
+    });
+  }
+
+  /**
+   * Map SceneId to actual scene file ID.
+   */
+  private mapSceneIdToFileId(sceneId: SceneId): string {
+    const mapping: Record<SceneId, string> = {
+      'vehicle-heavy': 'vehicle_heavy_01',
+      'pedestrian-heavy': 'pedestrian_heavy_01',
+      mixed: 'mixed_urban_01',
+    };
+
+    return mapping[sceneId] ?? 'mixed_urban_01';
+  }
+
+  /**
+   * Map branch ID to prediction key in metadata.
+   * Tries to intelligently match branch ID to available predictions.
+   */
+  private mapBranchIdToPredictionKey(branchId: string, metadata: SceneMetadata): string {
+    // First try: AGILE3D_ prefix
+    const withPrefix = `AGILE3D_${branchId}`;
+    if (metadata.predictions[withPrefix]) {
+      return withPrefix;
+    }
+
+    // Second try: exact match
+    if (metadata.predictions[branchId]) {
+      return branchId;
+    }
+
+    // Third try: find closest match by substring
+    const predictionKeys = Object.keys(metadata.predictions);
+    const match = predictionKeys.find(
+      (key) => key.includes(branchId) || branchId.includes(key.replace('AGILE3D_', ''))
+    );
+
+    return match ?? branchId;
   }
 }
