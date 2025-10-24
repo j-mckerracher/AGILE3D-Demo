@@ -100,8 +100,7 @@ export class DetectionDiffService {
 
     const precision = totalPredictions > 0 ? diff.tp.length / totalPredictions : 0;
     const recall = totalGroundTruth > 0 ? diff.tp.length / totalGroundTruth : 0;
-    const f1Score =
-      precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+    const f1Score = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
 
     return {
       totalPredictions,

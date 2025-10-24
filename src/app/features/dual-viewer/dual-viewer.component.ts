@@ -60,7 +60,9 @@ import * as THREE from 'three';
         type="button"
         (click)="toggleActiveViewer()"
         [disabled]="isTransitioning"
-        [attr.aria-label]="'Switch to ' + (activeViewer === 'baseline' ? 'AGILE3D' : 'Baseline') + ' viewer'"
+        [attr.aria-label]="
+          'Switch to ' + (activeViewer === 'baseline' ? 'AGILE3D' : 'Baseline') + ' viewer'
+        "
         [attr.aria-pressed]="activeViewer === 'agile3d'"
       >
         <span class="toggle-icon" aria-hidden="true">⇄</span>

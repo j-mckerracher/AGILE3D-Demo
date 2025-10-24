@@ -23,13 +23,7 @@ import { StateService } from '../../core/services/state/state.service';
 @Component({
   selector: 'app-camera-sync-controls',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatSlideToggleModule,
-    MatButtonModule,
-    MatTooltipModule,
-  ],
+  imports: [CommonModule, FormsModule, MatSlideToggleModule, MatButtonModule, MatTooltipModule],
   template: `
     <div class="camera-sync-controls">
       <!-- Place Reset button first so tests querying 'button' resolve to this control -->

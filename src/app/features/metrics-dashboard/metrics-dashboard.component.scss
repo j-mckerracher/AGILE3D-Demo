@@ -1,0 +1,62 @@
+/**
+ * Metrics Dashboard Styles
+ *
+ * Three-column grid layout for baseline, comparison, and AGILE3D metrics.
+ * Responsive design with stacking on smaller screens.
+ */
+
+.metrics-dashboard {
+  width: 100%;
+  padding: var(--spacing-lg, 32px);
+  background-color: var(--surface-color, #ffffff);
+}
+
+.dashboard-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+  margin: 0 0 var(--spacing-md, 24px) 0;
+  text-align: center;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md, 24px);
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metrics-panel {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+// Panel-specific styling for visual distinction
+.baseline-panel {
+  order: 1;
+
+  @media (max-width: 1024px) {
+    order: 1;
+  }
+}
+
+.comparison-panel {
+  order: 2;
+
+  @media (max-width: 1024px) {
+    order: 3; // Show comparison last on mobile for better context
+  }
+}
+
+.agile3d-panel {
+  order: 3;
+
+  @media (max-width: 1024px) {
+    order: 2;
+  }
+}

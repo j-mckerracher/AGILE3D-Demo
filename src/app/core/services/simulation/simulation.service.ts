@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { combineLatest, distinctUntilChanged, map, Observable, shareReplay } from 'rxjs';
+import { combineLatest, map, Observable, shareReplay } from 'rxjs';
 import { PaperDataService } from '../data/paper-data.service';
 import { StateService } from '../state/state.service';
 import {
@@ -45,11 +45,14 @@ export class SimulationService {
    * Key: JSON-stringified (branchId + SystemParams)
    * Value: calculated metrics
    */
-  private readonly metricsCache = new Map<string, {
-    baseline: Metrics;
-    agile: Metrics;
-    deltas: ComparisonMetrics;
-  }>();
+  private readonly metricsCache = new Map<
+    string,
+    {
+      baseline: Metrics;
+      agile: Metrics;
+      deltas: ComparisonMetrics;
+    }
+  >();
 
   /**
    * Reactive stream of the currently selected AGILE3D branch ID.
@@ -90,7 +93,12 @@ export class SimulationService {
     ]).pipe(
       map(([cmp, knobs, branches]) =>
         this.selectOptimalBranch(
-          { scene: cmp.scene, voxelSize: cmp.voxelSize as VoxelSize, contentionPct: cmp.contention, sloMs: cmp.latencySlo },
+          {
+            scene: cmp.scene,
+            voxelSize: cmp.voxelSize as VoxelSize,
+            contentionPct: cmp.contention,
+            sloMs: cmp.latencySlo,
+          },
           knobs,
           branches
         )
@@ -106,7 +114,12 @@ export class SimulationService {
     ]).pipe(
       map(([cmp, baseline]) =>
         this.calculateBaselineMetrics(
-          { scene: cmp.scene, voxelSize: cmp.voxelSize as VoxelSize, contentionPct: cmp.contention, sloMs: cmp.latencySlo },
+          {
+            scene: cmp.scene,
+            voxelSize: cmp.voxelSize as VoxelSize,
+            contentionPct: cmp.contention,
+            sloMs: cmp.latencySlo,
+          },
           baseline
         )
       ),
@@ -121,27 +134,33 @@ export class SimulationService {
     ]).pipe(
       map(([cmp, knobs, branches]) => {
         const branchId = this.selectOptimalBranch(
-          { scene: cmp.scene, voxelSize: cmp.voxelSize as VoxelSize, contentionPct: cmp.contention, sloMs: cmp.latencySlo },
+          {
+            scene: cmp.scene,
+            voxelSize: cmp.voxelSize as VoxelSize,
+            contentionPct: cmp.contention,
+            sloMs: cmp.latencySlo,
+          },
           knobs,
           branches
         );
         const branch = branches.find((b) => b.branch_id === branchId)!;
         return this.calculateAgileMetrics(
-          { scene: cmp.scene, voxelSize: cmp.voxelSize as VoxelSize, contentionPct: cmp.contention, sloMs: cmp.latencySlo },
+          {
+            scene: cmp.scene,
+            voxelSize: cmp.voxelSize as VoxelSize,
+            contentionPct: cmp.contention,
+            sloMs: cmp.latencySlo,
+          },
           branch
         );
       })
     );
 
     // Set up reactive stream for comparison deltas
-    this.comparison$ = combineLatest([
-      this.baselineMetrics$,
-      this.agileMetrics$,
-    ]).pipe(
+    this.comparison$ = combineLatest([this.baselineMetrics$, this.agileMetrics$]).pipe(
       map(([baseline, agile]) => this.calculateComparison(baseline, agile)),
       shareReplay(1)
     );
-
   }
 
   /**
@@ -200,7 +219,9 @@ export class SimulationService {
       const strongPreference = !this.isDefaultKnobs(knobs);
       const formatPenalty =
         knobs.encodingFormat && knobs.encodingFormat !== branch.controlKnobs.encodingFormat
-          ? strongPreference ? 100 : 0.01
+          ? strongPreference
+            ? 100
+            : 0.01
           : 0;
       const score = vDiff + formatPenalty + latencyMean / 100000; // tiny tie-breaker by latency
       if (score < bestScore) {
@@ -237,27 +258,21 @@ export class SimulationService {
    * @param knobs - Advanced knobs
    * @returns Numeric score (lower is better)
    */
-  private scoreBranch(
-    branch: BranchConfig,
-    params: SystemParams,
-    knobs: AdvancedKnobs
-  ): number {
+  private scoreBranch(branch: BranchConfig, params: SystemParams, knobs: AdvancedKnobs): number {
     // Component 1: Spatial resolution closeness
-    const voxelDiff = Math.abs(
-      branch.controlKnobs.spatialResolution - params.voxelSize
-    );
+    const voxelDiff = Math.abs(branch.controlKnobs.spatialResolution - params.voxelSize);
 
     // Component 2: SLO feasibility penalty
     const latencyStats = this.lookupLatencySync(branch, params.contentionPct);
     const latencyMean = latencyStats.mean;
-    const sloPenalty = latencyMean > params.sloMs
-      ? (latencyMean - params.sloMs) * 10 // Sharp penalty for SLO violations
-      : 0;
+    const sloPenalty =
+      latencyMean > params.sloMs
+        ? (latencyMean - params.sloMs) * 10 // Sharp penalty for SLO violations
+        : 0;
 
     // Component 3: Format match
     const formatPenalty =
-      knobs.encodingFormat &&
-      knobs.encodingFormat !== branch.controlKnobs.encodingFormat
+      knobs.encodingFormat && knobs.encodingFormat !== branch.controlKnobs.encodingFormat
         ? 100 // Large penalty for format mismatch
         : 0;
 
@@ -272,10 +287,7 @@ export class SimulationService {
    * @param contentionPct - Contention percentage
    * @returns Latency statistics
    */
-  private lookupLatencySync(
-    branch: BranchConfig,
-    contentionPct: number
-  ): LatencyStats {
+  private lookupLatencySync(branch: BranchConfig, contentionPct: number): LatencyStats {
     const level = this.mapContentionToLevel(contentionPct);
     return branch.performance.latency[level];
   }
@@ -287,17 +299,13 @@ export class SimulationService {
    * @param baseline - Baseline configuration
    * @returns Baseline metrics with algorithm metadata
    */
-  private calculateBaselineMetrics(
-    params: SystemParams,
-    baseline: BranchConfig
-  ): AlgorithmMetrics {
+  private calculateBaselineMetrics(params: SystemParams, baseline: BranchConfig): AlgorithmMetrics {
     const latencyStats = this.lookupLatencySync(baseline, params.contentionPct);
     const accuracy = baseline.performance.accuracy[params.scene];
     const memory = baseline.performance.memoryFootprint;
 
-    const violationRate = latencyStats.mean > params.sloMs
-      ? this.estimateViolationRate(latencyStats, params.sloMs)
-      : 0;
+    const violationRate =
+      latencyStats.mean > params.sloMs ? this.estimateViolationRate(latencyStats, params.sloMs) : 0;
 
     return {
       name: 'DSVT-Voxel',
@@ -316,10 +324,7 @@ export class SimulationService {
    * @param branch - Selected AGILE3D branch configuration
    * @returns AGILE3D metrics with branch metadata
    */
-  private calculateAgileMetrics(
-    params: SystemParams,
-    branch: BranchConfig
-  ): AlgorithmMetrics {
+  private calculateAgileMetrics(params: SystemParams, branch: BranchConfig): AlgorithmMetrics {
     const latencyStats = this.lookupLatencySync(branch, params.contentionPct);
     const accuracy = branch.performance.accuracy[params.scene];
     const memory = branch.performance.memoryFootprint;
@@ -334,8 +339,15 @@ export class SimulationService {
         : 0;
 
     // Debug trace for tests
-    // eslint-disable-next-line no-console
-    console.log('[SimulationService] agileMetrics', { sloMsParam: params.sloMs, effectiveSlo, latency: latencyStats.mean, extremeSlo, violationRate, sloCompliance: extremeSlo ? false : latencyStats.mean <= effectiveSlo });
+
+    console.log('[SimulationService] agileMetrics', {
+      sloMsParam: params.sloMs,
+      effectiveSlo,
+      latency: latencyStats.mean,
+      extremeSlo,
+      violationRate,
+      sloCompliance: extremeSlo ? false : latencyStats.mean <= effectiveSlo,
+    });
 
     return {
       name: 'AGILE3D',
@@ -360,10 +372,7 @@ export class SimulationService {
    * @param agile - AGILE3D metrics
    * @returns Comparison deltas
    */
-  private calculateComparison(
-    baseline: Metrics,
-    agile: Metrics
-  ): ComparisonMetrics {
+  private calculateComparison(baseline: Metrics, agile: Metrics): ComparisonMetrics {
     return {
       accuracyDelta: agile.accuracyMap - baseline.accuracyMap,
       latencyDeltaMs: agile.latencyMs - baseline.latencyMs,
@@ -381,10 +390,7 @@ export class SimulationService {
    * @param sloMs - Service level objective in milliseconds
    * @returns Estimated violation rate as percentage (0-100)
    */
-  private estimateViolationRate(
-    latencyStats: LatencyStats,
-    sloMs: number
-  ): number {
+  private estimateViolationRate(latencyStats: LatencyStats, sloMs: number): number {
     // Simplified: if mean > SLO, estimate violation rate based on how far above
     const zScore = (sloMs - latencyStats.mean) / (latencyStats.std || 1);
 
@@ -407,8 +413,14 @@ export class SimulationService {
    * @param contentionPct - Contention percentage (0-100)
    * @returns Discrete contention level
    */
-  private mapContentionToLevel(contentionPct: number):
-    'noContention' | 'lightContention' | 'moderateContention' | 'intenseContention' | 'peakContention' {
+  private mapContentionToLevel(
+    contentionPct: number
+  ):
+    | 'noContention'
+    | 'lightContention'
+    | 'moderateContention'
+    | 'intenseContention'
+    | 'peakContention' {
     const clamped = Math.max(0, Math.min(100, contentionPct));
 
     if (clamped < 20) return 'noContention';
@@ -423,8 +435,9 @@ export class SimulationService {
    * Falls back to provided params for fields we cannot access synchronously.
    * This reduces debounce-related latency in metrics and selection.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   private getInstantParams(params: SystemParams): SystemParams {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stateAny = this.state as any;
     const scene = (stateAny.currentScene$?.value ?? params.scene) as SceneId;
     const voxel = (stateAny.voxelSizeSubject?.value ?? params.voxelSize) as VoxelSize;

@@ -357,6 +357,288 @@ Per WCAG 2.2 AA standards (NFR-3.1–3.5):
 
 ---
 
+## Historical Trend Line (WP-2.3.3)
+
+The Metrics Dashboard includes an optional historical trend visualization that displays the last 10 parameter-driven changes to key performance metrics. This feature helps demonstrate AGILE3D's adaptive behavior over time.
+
+### Purpose
+
+The Historical Trend Line provides:
+- **Visual feedback** on how metrics evolve as system parameters change
+- **Demonstration aid** for showing AGILE3D's dynamic adaptation during presentations
+- **Short-term history** for understanding recent performance trajectory
+
+### Displayed Metrics
+
+Three sparkline charts visualize comparison deltas:
+
+1. **Accuracy Gain** (%)
+   - Shows accuracy improvement/degradation relative to baseline
+   - Positive values indicate AGILE3D outperforms baseline
+   - Circular markers for color-blind accessibility
+
+2. **Latency Difference** (ms)
+   - Shows latency delta (negative = AGILE3D faster)
+   - Negative values indicate AGILE3D is more efficient
+   - Square markers for color-blind accessibility
+
+3. **Violation Reduction** (%)
+   - Shows SLO violation rate improvement
+   - Positive values indicate fewer violations with AGILE3D
+   - Diamond markers for color-blind accessibility
+
+### Behavior
+
+**Visibility:**
+- Automatically appears when 2+ samples are captured
+- Hides when fewer than 2 samples (e.g., on initial load or after scene change)
+
+**Sample Capture:**
+- Triggered on every `SimulationService.comparison$` emission with distinct values
+- Captures: timestamp, accuracy delta, latency delta, violation reduction, scene ID
+- Ring buffer maintains maximum of 10 samples (oldest removed when limit exceeded)
+
+**Scene Changes:**
+- History automatically clears when scene changes to prevent cross-scene metric mixing
+- Fresh history begins accumulating for the new scene
+
+**Performance:**
+- <100ms update latency from metrics emission to visual rendering
+- Lightweight SVG rendering (<1ms overhead per update)
+- Immutable arrays and OnPush change detection for optimal performance
+
+### Accessibility
+
+Per WCAG 2.2 AA standards (NFR-3.4–3.7):
+
+**Visual Encoding:**
+- Each metric uses a distinct marker shape (circle, square, diamond) in addition to color
+- Color-blind safe palette (green, blue, amber)
+- High contrast mode supported (increased stroke width)
+
+**Screen Reader Support:**
+- ARIA labels on each sparkline with latest value summary
+- Visually-hidden data table with full numerical history
+- `aria-live="polite"` for dynamic updates
+
+**Keyboard Navigation:**
+- SVG charts are keyboard focusable
+- Clear focus indicators (2px outline)
+- Legend provides context for all three metrics
+
+**Reduced Motion:**
+- Respects `prefers-reduced-motion: reduce` setting
+- Disables path transitions and marker animations
+- Instant updates when reduced motion is active
+
+### Data Table (Screen Readers)
+
+A visually-hidden HTML table provides full historical data for screen readers:
+
+```html
+| Change # | Accuracy Gain (%) | Latency Diff (ms) | Violation Reduction (%) |
+|----------|-------------------|-------------------|-------------------------|
+| 1        | +1.5              | -50               | +5.0                    |
+| 2        | +2.0              | -80               | +7.0                    |
+| 3        | +2.3              | -120              | +8.1                    |
+```
+
+### Implementation Details
+
+**Architecture:**
+- **MetricsHistoryService**: Ring buffer maintaining last 10 samples
+- **HistoryTrendComponent**: SVG sparkline visualization with accessibility features
+- **Integration**: Embedded below Comparison Highlights in Metrics Dashboard
+
+**Data Flow:**
+```
+SimulationService.comparison$
+  → MetricsHistoryService (capture + buffer)
+  → MetricsDashboardComponent.history$
+  → HistoryTrendComponent (render sparklines)
+```
+
+**Memory Safety:**
+- Bounded ring buffer (max 10 samples)
+- Automatic cleanup on scene changes
+- Observable cleanup via `takeUntil` pattern
+
+### PRD Requirements Satisfied
+
+- **FR-3.8**: Optional historical trend line ✅
+- **NFR-1.3**: UI updates within 100ms ✅
+- **NFR-3.4**: Keyboard navigation support ✅
+- **NFR-3.5**: WCAG AA color contrast ✅
+- **NFR-3.6**: Color-blind safe palettes (shape + color encoding) ✅
+- **NFR-3.7**: Respects `prefers-reduced-motion` ✅
+
+### Code Location
+
+- Service: `src/app/core/services/metrics/metrics-history.service.ts`
+- Component: `src/app/features/metrics-dashboard/history-trend/`
+- Integration: `src/app/features/metrics-dashboard/metrics-dashboard.component.ts`
+- Types: `src/app/core/services/metrics/metrics-history.service.ts` (`MetricsHistorySample` interface)
+
+---
+
+## QA Hooks & Instrumentation (WP-2.3.2)
+
+The application provides URL-based QA hooks for testing error paths and performance instrumentation for measuring scene switch timing.
+
+### Debug Mode
+
+Debug mode enables developer features like FPS overlays and verbose logging.
+
+**Activation:**
+- **Automatic**: Enabled in Angular development mode (`ng serve`)
+- **Manual Override**: Add `?debug=true` to URL (works in production builds)
+
+**Features When Enabled:**
+- FPS overlay visible in both 3D viewers
+- Verbose console logging for instrumentation events
+- Performance measurements logged to console
+
+**Example:**
+```
+http://localhost:4200?debug=true
+```
+
+### WebGL QA Hook
+
+Force WebGL2 unsupported state for testing error handling and fallback UI.
+
+**Usage:**
+```
+http://localhost:4200?webgl=0
+```
+
+**Behavior:**
+- `CapabilityService.checkWebGL2Support()` returns `false`
+- Error banner displays: "WebGL 2.0 is required but not available in your browser."
+- 3D viewers are not initialized (skip WebGL context creation)
+- Control panel and metrics dashboard remain functional (data-only mode)
+
+**Use Cases:**
+- Test error banner accessibility and usability
+- Verify graceful degradation when WebGL is unavailable
+- Validate error message clarity for end users
+
+### Tier QA Hook
+
+Force fallback tier assets for testing reduced-quality rendering.
+
+**Usage:**
+```
+http://localhost:4200?tier=fallback
+```
+
+**Behavior:**
+- Disables automatic tier selection (`SceneTierManagerService.setAutoTierEnabled(false)`)
+- Forces tier to `'fallback'` (50k point clouds instead of 100k)
+- Point cloud paths resolve to `*_50k.bin` files
+
+**Use Cases:**
+- Test lower-quality asset rendering
+- Verify tier system behavior under constrained conditions
+- Validate fallback asset availability
+
+### Performance Instrumentation
+
+The application uses the Performance API to measure scene switch timing.
+
+**Instrumentation Points:**
+1. **Scene Switch Start**: `performance.mark('{id}:start')` when scene loading begins
+2. **Data Loaded**: `performance.mark('{id}:data-loaded')` when JSON/binary data arrives
+3. **Scene Switch End**: `performance.mark('{id}:end')` when scene is ready to render
+
+**Performance Measures:**
+- **Name**: `scene-switch:{label}` (e.g., `scene-switch:initial`, `scene-switch:mixed`)
+- **Duration**: Total time from start to end (target: ≤500ms)
+
+**Viewing Measurements:**
+```javascript
+// In browser console
+performance.getEntriesByType('measure').filter(e => e.name.startsWith('scene-switch:'))
+
+// Output example:
+// [
+//   { name: 'scene-switch:initial', duration: 387.2 },
+//   { name: 'scene-switch:highway', duration: 412.5 }
+// ]
+```
+
+**Historical Data:**
+```javascript
+// Access last 20 scene switch timings (in debug mode)
+// Inject InstrumentationService and call:
+instrumentation.getRecent()
+// Returns: [{ label: 'initial', durationMs: 387.2 }, ...]
+```
+
+### Error Banner
+
+Accessible error notification system for compatibility and data loading errors.
+
+**Triggers:**
+- WebGL 2.0 unsupported (or `?webgl=0` hook active)
+- Scene metadata loading failure
+- Point cloud binary fetch error
+- Network connectivity issues
+
+**Accessibility Features:**
+- `role="alert"` with `aria-live="assertive"` for immediate screen reader announcement
+- Dismiss button receives keyboard focus on appearance
+- ESC key support for quick dismissal
+- High contrast mode support (increased border width)
+- Helpful action links (e.g., "WebGL System Requirements", "Browser Compatibility")
+
+**Example Error States:**
+```typescript
+// WebGL unsupported
+title: "Compatibility or Data Error"
+message: "WebGL 2.0 is required but not available in your browser."
+links: [
+  { label: 'WebGL System Requirements', href: 'https://get.webgl.org/' },
+  { label: 'Browser Compatibility', href: 'https://caniuse.com/webgl2' }
+]
+
+// Data loading failure
+title: "Compatibility or Data Error"
+message: "Failed to fetch scene data: Network request failed"
+```
+
+### Combined QA Hooks
+
+Multiple hooks can be combined for comprehensive testing:
+
+```
+# Test error handling in debug mode with verbose logging
+http://localhost:4200?debug=true&webgl=0
+
+# Test fallback assets with debug FPS overlay
+http://localhost:4200?debug=true&tier=fallback
+
+# Production error simulation (no debug logging)
+http://localhost:4200?webgl=0
+```
+
+### PRD Requirements Satisfied
+
+- **NFR-1.8**: Instrumentation present (Performance API marks/measures) ✅
+- **NFR-2.5**: WebGL capability check with fallback message ✅
+- **NFR-3.4**: Keyboard navigation for error UI ✅
+- **NFR-4.2**: Graceful error handling for unsupported browsers ✅
+
+### Code Location
+
+- **DebugService**: `src/app/core/services/runtime/debug.service.ts`
+- **CapabilityService**: `src/app/core/services/runtime/capability.service.ts`
+- **InstrumentationService**: `src/app/core/services/runtime/instrumentation.service.ts`
+- **ErrorBannerComponent**: `src/app/shared/components/error-banner/`
+- **Integration**: `src/app/features/main-demo/main-demo.component.ts` (`ngOnInit`, `loadInitialScene`)
+
+---
+
 ## Camera Sync & Independent Mode (WP-2.1.3)
 
 The application provides flexible camera control modes for comparing scenes from different viewpoints or maintaining synchronized views.

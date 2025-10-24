@@ -18,7 +18,11 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RenderLoopService } from '../../core/services/rendering/render-loop.service';
 import { CameraControlService } from '../../core/services/controls/camera-control.service';
-import { ViewerStyleAdapterService, ViewerColorConfig, ViewerMotionConfig } from '../../core/theme/viewer-style-adapter.service';
+import {
+  ViewerStyleAdapterService,
+  ViewerColorConfig,
+  ViewerMotionConfig,
+} from '../../core/theme/viewer-style-adapter.service';
 import { ReducedMotionService } from '../../core/services/reduced-motion.service';
 import { Detection, DetectionClass } from '../../core/models/scene.models';
 import { Subscription } from 'rxjs';
@@ -168,8 +172,8 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
   /** Number of synthetic points to generate if no sharedPointGeometry provided (default 50k) */
   @Input() public pointCount = 50_000;
 
-  /** Show FPS overlay */
-  @Input() public showFps = true;
+  /** Show FPS overlay (WP-2.3.2: default false, enabled via debug mode) */
+  @Input() public showFps = false;
 
   // Canvas element
   @ViewChild('canvas', { static: true }) private canvasRef!: ElementRef<HTMLCanvasElement>;
@@ -248,12 +252,19 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
         }
         this.pointCloud.geometry = this.sharedPointGeometry;
       } else {
-        console.log('[SceneViewer]', this.viewerId, 'sharedPointGeometry changed but pointCloud not ready');
+        console.log(
+          '[SceneViewer]',
+          this.viewerId,
+          'sharedPointGeometry changed but pointCloud not ready'
+        );
       }
     }
 
     // Update bounding boxes if detections, diffMode, or diffClassification changes
-    if ((changes['detections'] || changes['diffMode'] || changes['diffClassification']) && this.scene) {
+    if (
+      (changes['detections'] || changes['diffMode'] || changes['diffClassification']) &&
+      this.scene
+    ) {
       console.log('[SceneViewer]', this.viewerId, 'updating detections/diffMode', {
         detections: this.detections?.length ?? 0,
         diffMode: this.diffMode,
@@ -345,16 +356,14 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
    * Add point cloud to the scene.
    */
   private addPointCloud(): void {
-    let geometry: THREE.BufferGeometry;
-
-    if (this.sharedPointGeometry) {
-      console.log('[SceneViewer]', this.viewerId, 'using shared geometry');
-      geometry = this.sharedPointGeometry;
-    } else {
-      console.log('[SceneViewer]', this.viewerId, 'creating synthetic geometry');
-      geometry = this.createSyntheticPointCloud(this.pointCount);
-      this.disposables.push(geometry);
+    // Only add point cloud if real geometry is provided
+    if (!this.sharedPointGeometry) {
+      console.log('[SceneViewer]', this.viewerId, 'no shared geometry, skipping point cloud');
+      return;
     }
+
+    console.log('[SceneViewer]', this.viewerId, 'using shared geometry');
+    const geometry = this.sharedPointGeometry;
 
     // Use neutral color for points (NFR-3.5, UI 8.2)
     const pointColor = new THREE.Color(0x888888); // Default gray

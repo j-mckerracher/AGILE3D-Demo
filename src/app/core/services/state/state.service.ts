@@ -57,7 +57,8 @@ export class StateService implements OnDestroy {
   public readonly activeBranch$: Observable<string> = this.activeBranchSubject.asObservable();
   public readonly cameraPos$ = this.cameraPosSubject;
   public readonly cameraTarget$ = this.cameraTargetSubject;
-  public readonly independentCamera$: Observable<boolean> = this.independentCameraSubject.asObservable();
+  public readonly independentCamera$: Observable<boolean> =
+    this.independentCameraSubject.asObservable();
 
   /**
    * Advanced control knobs for AGILE3D branch selection.

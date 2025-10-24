@@ -101,7 +101,8 @@
 
 // Pulse animation for branch change (only if motion not reduced)
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

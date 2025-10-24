@@ -1,0 +1,28 @@
+<section class="error-banner" role="alert" aria-live="assertive" aria-atomic="true">
+  <div class="error-content">
+    <h4 class="error-title">{{ title }}</h4>
+    <p class="error-message">{{ message }}</p>
+
+    <!-- Optional action links -->
+    <ul class="error-links" *ngIf="links && links.length > 0" aria-label="Helpful resources">
+      <li *ngFor="let link of links">
+        <a [href]="link.href" target="_blank" rel="noopener noreferrer" class="error-link">
+          {{ link.label }}
+          <span aria-hidden="true">→</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Dismiss button (keyboard accessible) -->
+  <button
+    *ngIf="showDismiss"
+    type="button"
+    class="error-dismiss"
+    (click)="onDismiss()"
+    aria-label="Dismiss error notification"
+    title="Dismiss (Esc)"
+  >
+    <span aria-hidden="true">✕</span>
+  </button>
+</section>

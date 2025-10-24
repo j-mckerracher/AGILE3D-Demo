@@ -68,9 +68,7 @@ export class SceneDataService implements OnDestroy {
     try {
       const metadataPath = `assets/scenes/${sceneId}/metadata.json`;
       console.log('[SceneDataService] GET', metadataPath);
-      const metadata = await firstValueFrom(
-        this.http.get<SceneMetadata>(metadataPath)
-      );
+      const metadata = await firstValueFrom(this.http.get<SceneMetadata>(metadataPath));
 
       // Validate required fields
       this.validateMetadata(metadata);
@@ -111,9 +109,7 @@ export class SceneDataService implements OnDestroy {
     } catch (error) {
       console.error('[SceneDataService] loadRegistry error', error);
       throw new Error(
-        `Failed to load scene registry: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
+        `Failed to load scene registry: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }
@@ -129,11 +125,7 @@ export class SceneDataService implements OnDestroy {
    * @returns Promise resolving to Float32Array of positions
    * @throws Error if loading or parsing fails
    */
-  public async loadPoints(
-    binPath: string,
-    cacheKey: string,
-    stride = 3
-  ): Promise<Float32Array> {
+  public async loadPoints(binPath: string, cacheKey: string, stride = 3): Promise<Float32Array> {
     // Check cache first
     const cached = this.pointsCache.get(cacheKey);
     if (cached) {
@@ -274,10 +266,7 @@ export class SceneDataService implements OnDestroy {
    * @returns Promise resolving to parsed Float32Array
    * @throws Error if parsing fails or times out
    */
-  public async parseInWorker(
-    arrayBuffer: ArrayBuffer,
-    stride = 3
-  ): Promise<Float32Array> {
+  public async parseInWorker(arrayBuffer: ArrayBuffer, stride = 3): Promise<Float32Array> {
     return new Promise((resolve, reject) => {
       // Create worker if not exists
       if (!this.worker) {
@@ -288,9 +277,7 @@ export class SceneDataService implements OnDestroy {
         } catch (error) {
           reject(
             new Error(
-              `Failed to create worker: ${
-                error instanceof Error ? error.message : 'Unknown error'
-              }`
+              `Failed to create worker: ${error instanceof Error ? error.message : 'Unknown error'}`
             )
           );
           return;
@@ -300,15 +287,13 @@ export class SceneDataService implements OnDestroy {
       // Set up timeout
       const timeoutId = setTimeout(() => {
         this.terminateWorker();
-        reject(
-          new Error(
-            `Worker parsing timed out after ${this.WORKER_TIMEOUT_MS}ms`
-          )
-        );
+        reject(new Error(`Worker parsing timed out after ${this.WORKER_TIMEOUT_MS}ms`));
       }, this.WORKER_TIMEOUT_MS);
 
       // Set up message handler
-      const messageHandler = (event: MessageEvent<WorkerParseResponse | { ready?: boolean }>): void => {
+      const messageHandler = (
+        event: MessageEvent<WorkerParseResponse | { ready?: boolean }>
+      ): void => {
         // Ignore worker ready pings
         if ('ready' in event.data && event.data.ready) {
           return;
@@ -421,17 +406,11 @@ export class SceneDataService implements OnDestroy {
       throw new Error('Invalid bounds: must have min and max');
     }
 
-    if (
-      !Array.isArray(metadata.bounds.min) ||
-      metadata.bounds.min.length !== 3
-    ) {
+    if (!Array.isArray(metadata.bounds.min) || metadata.bounds.min.length !== 3) {
       throw new Error('Invalid bounds.min: must be [x, y, z]');
     }
 
-    if (
-      !Array.isArray(metadata.bounds.max) ||
-      metadata.bounds.max.length !== 3
-    ) {
+    if (!Array.isArray(metadata.bounds.max) || metadata.bounds.max.length !== 3) {
       throw new Error('Invalid bounds.max: must be [x, y, z]');
     }
   }

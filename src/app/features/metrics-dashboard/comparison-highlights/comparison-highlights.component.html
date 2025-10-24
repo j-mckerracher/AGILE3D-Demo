@@ -1,0 +1,118 @@
+<mat-card class="comparison-card">
+  <mat-card-header>
+    <mat-card-title class="card-title">
+      <span class="comparison-label">Comparison</span>
+      <span class="comparison-subtitle">AGILE3D vs Baseline</span>
+    </mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    @if (comparison) {
+      <div class="comparison-list" role="list" aria-live="polite" aria-atomic="false">
+        <!-- Accuracy Delta -->
+        <div
+          class="comparison-row"
+          [ngClass]="{
+            'threshold-green': getAccuracyThreshold() === 'green',
+            'threshold-amber': getAccuracyThreshold() === 'amber',
+            'threshold-red': getAccuracyThreshold() === 'red',
+            'highlight-pulse': highlightAccuracy(),
+          }"
+          role="listitem"
+        >
+          <div class="comparison-label-container">
+            <span class="comparison-metric-label">Accuracy Gain</span>
+            <span class="comparison-metric-description">mAP difference</span>
+          </div>
+          <div class="comparison-value-container">
+            <mat-icon class="trend-icon" [attr.aria-hidden]="true">
+              {{ getAccuracyIcon() }}
+            </mat-icon>
+            <span
+              class="comparison-value"
+              [attr.aria-label]="'Accuracy change: ' + formatAccuracyDelta()"
+            >
+              {{ formatAccuracyDelta() }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Latency Delta -->
+        <div
+          class="comparison-row"
+          [ngClass]="{
+            'threshold-green': getLatencyThreshold() === 'green',
+            'threshold-amber': getLatencyThreshold() === 'amber',
+            'threshold-red': getLatencyThreshold() === 'red',
+            'highlight-pulse': highlightLatency(),
+          }"
+          role="listitem"
+        >
+          <div class="comparison-label-container">
+            <span class="comparison-metric-label">Latency Change</span>
+            <span class="comparison-metric-description">processing time</span>
+          </div>
+          <div class="comparison-value-container">
+            <mat-icon class="trend-icon" [attr.aria-hidden]="true">
+              {{ getLatencyIcon() }}
+            </mat-icon>
+            <span
+              class="comparison-value"
+              [attr.aria-label]="'Latency change: ' + formatLatencyDelta()"
+            >
+              {{ formatLatencyDelta() }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Violation Reduction -->
+        <div
+          class="comparison-row"
+          [ngClass]="{
+            'threshold-green': getViolationsThreshold() === 'green',
+            'threshold-amber': getViolationsThreshold() === 'amber',
+            'threshold-red': getViolationsThreshold() === 'red',
+            'highlight-pulse': highlightViolations(),
+          }"
+          role="listitem"
+        >
+          <div class="comparison-label-container">
+            <span class="comparison-metric-label">Violation Change</span>
+            <span class="comparison-metric-description">SLO compliance</span>
+          </div>
+          <div class="comparison-value-container">
+            <mat-icon class="trend-icon" [attr.aria-hidden]="true">
+              {{ getViolationsIcon() }}
+            </mat-icon>
+            <span
+              class="comparison-value"
+              [attr.aria-label]="'Violation change: ' + formatViolationReduction()"
+            >
+              {{ formatViolationReduction() }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Threshold Legend -->
+      <div class="threshold-legend" role="note">
+        <div class="legend-item">
+          <span class="legend-indicator threshold-green"></span>
+          <span class="legend-label">Improvement</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-indicator threshold-amber"></span>
+          <span class="legend-label">Neutral</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-indicator threshold-red"></span>
+          <span class="legend-label">Degradation</span>
+        </div>
+      </div>
+    } @else {
+      <div class="loading-state" aria-live="polite">
+        <p>Loading comparison metrics...</p>
+      </div>
+    }
+  </mat-card-content>
+</mat-card>

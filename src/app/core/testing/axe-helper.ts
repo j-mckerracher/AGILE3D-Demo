@@ -42,14 +42,14 @@ const DEFAULT_AXE_CONFIG: axe.RunOptions = {
     // Ensure color contrast meets WCAG AA (4.5:1 for normal text)
     'color-contrast': { enabled: true },
     // Ensure all interactive elements are keyboard accessible
-    'keyboard': { enabled: true },
+    keyboard: { enabled: true },
     // Ensure focus indicators are visible
     'focus-order': { enabled: true },
     // Ensure ARIA attributes are valid
     'aria-valid-attr': { enabled: true },
     'aria-valid-attr-value': { enabled: true },
     // Ensure landmarks are properly used
-    'region': { enabled: true },
+    region: { enabled: true },
     // Ensure headings are in logical order
     'heading-order': { enabled: true },
   },

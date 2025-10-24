@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { BehaviorSubject, of } from 'rxjs';
-import { CurrentConfigurationComponent, ConfigurationViewModel } from './current-configuration.component';
+import {
+  CurrentConfigurationComponent,
+  ConfigurationViewModel,
+} from './current-configuration.component';
 import { StateService } from '../../core/services/state/state.service';
 import { SimulationService } from '../../core/services/simulation/simulation.service';
 import { PaperDataService } from '../../core/services/data/paper-data.service';
@@ -44,7 +47,7 @@ describe('CurrentConfigurationComponent', () => {
         accuracy: {
           'vehicle-heavy': 64.2,
           'pedestrian-heavy': 58.7,
-          'mixed': 61.5,
+          mixed: 61.5,
         },
       },
       modelFamily: 'CenterPoint',
@@ -71,7 +74,7 @@ describe('CurrentConfigurationComponent', () => {
         accuracy: {
           'vehicle-heavy': 67.1,
           'pedestrian-heavy': 62.3,
-          'mixed': 64.8,
+          mixed: 64.8,
         },
       },
       modelFamily: 'DSVT',
@@ -124,7 +127,7 @@ describe('CurrentConfigurationComponent', () => {
   describe('Initial Rendering', () => {
     it('should render baseline label as "DSVT-Voxel (fixed)"', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.baselineLabel).toBe('DSVT-Voxel (fixed)');
@@ -132,7 +135,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should render current AGILE3D branch name', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.agileBranch).toBe('CP-Pillar-032');
@@ -140,7 +143,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should display encoding format from advanced knobs', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.encodingFormat).toBe('Pillar');
@@ -148,7 +151,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should display spatial resolution from voxel size', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.spatialResolution).toBe('0.32 m');
@@ -156,7 +159,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should display spatial encoding from branch config', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.spatialEncoding).toBe('DV');
@@ -164,7 +167,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should display feature extractor from advanced knobs', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.featureExtractor).toBe('2D CNN');
@@ -172,7 +175,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should display detection head from advanced knobs', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.detectionHead).toBe('Center-based');
@@ -180,7 +183,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should not show branch change indicator on initial load', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.branchChanged).toBe(false);
@@ -190,7 +193,7 @@ describe('CurrentConfigurationComponent', () => {
   describe('Branch Change Indicator', () => {
     it('should show indicator when branch changes', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       // Initial state: no indicator
@@ -206,7 +209,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should auto-clear indicator after 2 seconds', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       // Change branch
@@ -225,7 +228,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should reset indicator timer on subsequent branch changes', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       // First branch change
@@ -263,7 +266,7 @@ describe('CurrentConfigurationComponent', () => {
       fixture.detectChanges();
 
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.spatialEncoding).toBe('—');
@@ -275,7 +278,7 @@ describe('CurrentConfigurationComponent', () => {
       tick();
 
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.spatialEncoding).toBe('—');
@@ -285,7 +288,7 @@ describe('CurrentConfigurationComponent', () => {
   describe('Reactive Updates', () => {
     it('should update encoding format when advanced knobs change', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       // Initial value
@@ -305,7 +308,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should update spatial resolution when voxel size changes', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       // Initial value
@@ -321,7 +324,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should update feature extractor when advanced knobs change', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       // Initial value
@@ -341,7 +344,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should update detection head when advanced knobs change', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       // Initial value
@@ -361,7 +364,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should update spatial encoding when branch changes', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       // Initial value (CP_Pillar_032 has DV)
@@ -379,7 +382,7 @@ describe('CurrentConfigurationComponent', () => {
   describe('Format Methods', () => {
     it('should format branch ID with hyphens', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.agileBranch).toBe('CP-Pillar-032');
@@ -387,7 +390,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should capitalize encoding format', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       expect(viewModel?.encodingFormat).toBe('Pillar');
@@ -404,7 +407,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should format feature extractor names correctly', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       const testCases = [
@@ -413,7 +416,7 @@ describe('CurrentConfigurationComponent', () => {
         { input: '2d_cnn', expected: '2D CNN' },
       ];
 
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         advancedKnobsSubject.next({
           encodingFormat: 'pillar',
           detectionHead: 'center',
@@ -427,7 +430,7 @@ describe('CurrentConfigurationComponent', () => {
 
     it('should format detection head names correctly', fakeAsync(() => {
       let viewModel: ConfigurationViewModel | undefined;
-      component.viewModel$.subscribe(vm => viewModel = vm);
+      component.viewModel$.subscribe((vm) => (viewModel = vm));
       tick();
 
       const testCases = [
@@ -435,7 +438,7 @@ describe('CurrentConfigurationComponent', () => {
         { input: 'center', expected: 'Center-based' },
       ];
 
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         advancedKnobsSubject.next({
           encodingFormat: 'pillar',
           detectionHead: testCase.input as AdvancedKnobs['detectionHead'],

@@ -212,15 +212,59 @@ describe('DetectionDiffService', () => {
 
     it('should handle mixed TP/FP/FN scenario', () => {
       const groundTruth: Detection[] = [
-        { id: 'gt-1', class: 'vehicle', center: [0, 0, 0], dimensions: { width: 2, length: 4, height: 1.5 }, yaw: 0, confidence: 1.0 },
-        { id: 'gt-2', class: 'pedestrian', center: [5, 5, 0], dimensions: { width: 0.5, length: 0.5, height: 1.8 }, yaw: 0, confidence: 1.0 },
-        { id: 'gt-3', class: 'cyclist', center: [10, 10, 0], dimensions: { width: 0.6, length: 1.8, height: 1.2 }, yaw: 0, confidence: 1.0 },
+        {
+          id: 'gt-1',
+          class: 'vehicle',
+          center: [0, 0, 0],
+          dimensions: { width: 2, length: 4, height: 1.5 },
+          yaw: 0,
+          confidence: 1.0,
+        },
+        {
+          id: 'gt-2',
+          class: 'pedestrian',
+          center: [5, 5, 0],
+          dimensions: { width: 0.5, length: 0.5, height: 1.8 },
+          yaw: 0,
+          confidence: 1.0,
+        },
+        {
+          id: 'gt-3',
+          class: 'cyclist',
+          center: [10, 10, 0],
+          dimensions: { width: 0.6, length: 1.8, height: 1.2 },
+          yaw: 0,
+          confidence: 1.0,
+        },
       ];
 
       const predictions: Detection[] = [
-        { id: 'pred-1', class: 'vehicle', center: [0, 0, 0], dimensions: { width: 2, length: 4, height: 1.5 }, yaw: 0, confidence: 0.95, matches_gt: 'gt-1' }, // TP
-        { id: 'pred-2', class: 'pedestrian', center: [5, 5, 0], dimensions: { width: 0.5, length: 0.5, height: 1.8 }, yaw: 0, confidence: 0.88, matches_gt: 'gt-2' }, // TP
-        { id: 'pred-3', class: 'vehicle', center: [20, 20, 0], dimensions: { width: 2, length: 4, height: 1.5 }, yaw: 0, confidence: 0.65 }, // FP (no match)
+        {
+          id: 'pred-1',
+          class: 'vehicle',
+          center: [0, 0, 0],
+          dimensions: { width: 2, length: 4, height: 1.5 },
+          yaw: 0,
+          confidence: 0.95,
+          matches_gt: 'gt-1',
+        }, // TP
+        {
+          id: 'pred-2',
+          class: 'pedestrian',
+          center: [5, 5, 0],
+          dimensions: { width: 0.5, length: 0.5, height: 1.8 },
+          yaw: 0,
+          confidence: 0.88,
+          matches_gt: 'gt-2',
+        }, // TP
+        {
+          id: 'pred-3',
+          class: 'vehicle',
+          center: [20, 20, 0],
+          dimensions: { width: 2, length: 4, height: 1.5 },
+          yaw: 0,
+          confidence: 0.65,
+        }, // FP (no match)
         // gt-3 is not matched -> FN
       ];
 
@@ -239,14 +283,42 @@ describe('DetectionDiffService', () => {
     it('should compute correct statistics', () => {
       const diff = {
         tp: [
-          { id: 'pred-1', class: 'vehicle' as const, center: [0, 0, 0] as [number, number, number], dimensions: { width: 2, length: 4, height: 1.5 }, yaw: 0, confidence: 0.95 },
-          { id: 'pred-2', class: 'pedestrian' as const, center: [5, 5, 0] as [number, number, number], dimensions: { width: 0.5, length: 0.5, height: 1.8 }, yaw: 0, confidence: 0.88 },
+          {
+            id: 'pred-1',
+            class: 'vehicle' as const,
+            center: [0, 0, 0] as [number, number, number],
+            dimensions: { width: 2, length: 4, height: 1.5 },
+            yaw: 0,
+            confidence: 0.95,
+          },
+          {
+            id: 'pred-2',
+            class: 'pedestrian' as const,
+            center: [5, 5, 0] as [number, number, number],
+            dimensions: { width: 0.5, length: 0.5, height: 1.8 },
+            yaw: 0,
+            confidence: 0.88,
+          },
         ],
         fp: [
-          { id: 'pred-3', class: 'vehicle' as const, center: [10, 10, 0] as [number, number, number], dimensions: { width: 2, length: 4, height: 1.5 }, yaw: 0, confidence: 0.65 },
+          {
+            id: 'pred-3',
+            class: 'vehicle' as const,
+            center: [10, 10, 0] as [number, number, number],
+            dimensions: { width: 2, length: 4, height: 1.5 },
+            yaw: 0,
+            confidence: 0.65,
+          },
         ],
         fn: [
-          { id: 'gt-3', class: 'cyclist' as const, center: [15, 15, 0] as [number, number, number], dimensions: { width: 0.6, length: 1.8, height: 1.2 }, yaw: 0, confidence: 1.0 },
+          {
+            id: 'gt-3',
+            class: 'cyclist' as const,
+            center: [15, 15, 0] as [number, number, number],
+            dimensions: { width: 0.6, length: 1.8, height: 1.2 },
+            yaw: 0,
+            confidence: 1.0,
+          },
         ],
       };
 
@@ -267,7 +339,14 @@ describe('DetectionDiffService', () => {
         tp: [],
         fp: [],
         fn: [
-          { id: 'gt-1', class: 'vehicle' as const, center: [0, 0, 0] as [number, number, number], dimensions: { width: 2, length: 4, height: 1.5 }, yaw: 0, confidence: 1.0 },
+          {
+            id: 'gt-1',
+            class: 'vehicle' as const,
+            center: [0, 0, 0] as [number, number, number],
+            dimensions: { width: 2, length: 4, height: 1.5 },
+            yaw: 0,
+            confidence: 1.0,
+          },
         ],
       };
 
@@ -281,7 +360,14 @@ describe('DetectionDiffService', () => {
     it('should handle perfect predictions', () => {
       const diff = {
         tp: [
-          { id: 'pred-1', class: 'vehicle' as const, center: [0, 0, 0] as [number, number, number], dimensions: { width: 2, length: 4, height: 1.5 }, yaw: 0, confidence: 0.95 },
+          {
+            id: 'pred-1',
+            class: 'vehicle' as const,
+            center: [0, 0, 0] as [number, number, number],
+            dimensions: { width: 2, length: 4, height: 1.5 },
+            yaw: 0,
+            confidence: 0.95,
+          },
         ],
         fp: [],
         fn: [],

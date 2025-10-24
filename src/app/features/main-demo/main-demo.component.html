@@ -1,48 +1,45 @@
-<section
-  id="main-content"
-  class="main-demo"
-  role="main"
-  aria-labelledby="demo-title"
-  tabindex="-1"
->
+<section id="main-content" class="main-demo" role="main" aria-labelledby="demo-title" tabindex="-1">
   <h2 id="demo-title" class="ag3d-sr-only">AGILE3D Interactive Demonstration</h2>
 
+  <!-- Error Banner (WP-2.3.2, NFR-4.2) -->
+  <app-error-banner
+    *ngIf="showError()"
+    [title]="'Compatibility or Data Error'"
+    [message]="loadError() ?? 'An error occurred while loading the demo.'"
+    [links]="[
+      { label: 'WebGL System Requirements', href: 'https://get.webgl.org/' },
+      { label: 'Browser Compatibility', href: 'https://caniuse.com/webgl2' },
+    ]"
+    (dismissed)="showError.set(false)"
+  />
+
   <!-- Dual Viewer Section -->
-  <div class="dual-viewer-section" role="region" aria-labelledby="viewer-title">
+  <div
+    *ngIf="!showError()"
+    class="dual-viewer-section"
+    role="region"
+    aria-labelledby="viewer-title"
+  >
     <h3 id="viewer-title" class="ag3d-sr-only">3D Scene Viewers</h3>
     <app-dual-viewer
       [baselineDetections]="baselineDetections"
       [agile3dDetections]="agile3dDetections"
       [inputPoints]="sharedPoints"
-      [showFps]="true"
+      [showFps]="showFps"
     />
   </div>
 
-  <!-- Control Panel Section (WP-2.2.2) -->
-  <div class="control-panel-section" role="region" aria-labelledby="controls-title">
-    <h3 id="controls-title" class="section-title ag3d-sr-only">Scene Controls</h3>
-    <app-control-panel />
-  </div>
+  <!-- Controls and Metrics Row -->
+  <div class="controls-and-metrics-row">
+    <!-- Control Panel Section (WP-2.2.2) -->
+    <div class="control-panel-section" role="region" aria-labelledby="controls-title">
+      <h3 id="controls-title" class="section-title ag3d-sr-only">Scene Controls</h3>
+      <app-control-panel />
+    </div>
 
-  <!-- Metrics Dashboard Section -->
-  <div class="metrics-section" role="region" aria-labelledby="metrics-title">
-    <h3 id="metrics-title" class="section-title">Performance Metrics</h3>
-    <div class="placeholder-content">
-      <p>Metrics dashboard will be implemented in a future work package.</p>
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <span class="metric-label">FPS</span>
-          <span class="metric-value">--</span>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Latency</span>
-          <span class="metric-value">-- ms</span>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Accuracy</span>
-          <span class="metric-value">--%</span>
-        </div>
-      </div>
+    <!-- Metrics Dashboard Section (WP-2.3.1) -->
+    <div class="metrics-section">
+      <app-metrics-dashboard />
     </div>
   </div>
 </section>

@@ -14,11 +14,11 @@
  * Maps to GPU resource contention percentages.
  */
 export type ContentionLevel =
-  | 'noContention'      // 0% contention
-  | 'lightContention'   // ~38% contention
+  | 'noContention' // 0% contention
+  | 'lightContention' // ~38% contention
   | 'moderateContention' // ~45% contention
-  | 'intenseContention'  // ~64% contention
-  | 'peakContention';    // ~67% contention
+  | 'intenseContention' // ~64% contention
+  | 'peakContention'; // ~67% contention
 
 /**
  * Latency statistics for a given contention level.
@@ -40,7 +40,7 @@ export interface AccuracyByScene {
   /** Accuracy for pedestrian-heavy scenes (mAP %) */
   'pedestrian-heavy': number;
   /** Accuracy for mixed traffic scenes (mAP %) */
-  'mixed': number;
+  mixed: number;
 }
 
 /**

@@ -192,9 +192,7 @@ export class KeyboardNavDirective implements AfterViewInit, OnDestroy {
 
     // Find currently focused element or use first element
     const focusedElement = this.focusableElements.find((el) => el === document.activeElement);
-    const initialIndex = focusedElement
-      ? this.focusableElements.indexOf(focusedElement)
-      : 0;
+    const initialIndex = focusedElement ? this.focusableElements.indexOf(focusedElement) : 0;
 
     this.focusableElements.forEach((el, index) => {
       el.setAttribute('tabindex', index === initialIndex ? '0' : '-1');

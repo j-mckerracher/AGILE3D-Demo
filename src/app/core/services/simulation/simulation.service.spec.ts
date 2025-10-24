@@ -34,7 +34,7 @@ describe('SimulationService', () => {
           accuracy: {
             'vehicle-heavy': 64.2,
             'pedestrian-heavy': 58.7,
-            'mixed': 61.5,
+            mixed: 61.5,
           },
         },
         modelFamily: 'CenterPoint',
@@ -61,7 +61,7 @@ describe('SimulationService', () => {
           accuracy: {
             'vehicle-heavy': 61.8,
             'pedestrian-heavy': 55.3,
-            'mixed': 58.9,
+            mixed: 58.9,
           },
         },
         modelFamily: 'CenterPoint',
@@ -88,7 +88,7 @@ describe('SimulationService', () => {
           accuracy: {
             'vehicle-heavy': 65.9,
             'pedestrian-heavy': 61.2,
-            'mixed': 63.8,
+            mixed: 63.8,
           },
         },
         modelFamily: 'CenterPoint',
@@ -118,7 +118,7 @@ describe('SimulationService', () => {
       accuracy: {
         'vehicle-heavy': 67.1,
         'pedestrian-heavy': 62.3,
-        'mixed': 64.8,
+        mixed: 64.8,
       },
     },
     modelFamily: 'DSVT',
@@ -146,6 +146,7 @@ describe('SimulationService', () => {
   describe('Branch Selection Logic', () => {
     beforeEach(() => {
       // Subscribe to trigger data loading lazily for branch selection
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub = service.activeBranch$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       branchesReq.flush(mockBranchesData);
@@ -224,7 +225,9 @@ describe('SimulationService', () => {
   describe('Metrics Calculation', () => {
     beforeEach(() => {
       // Trigger both branches and baseline requests for metrics
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub1 = service.activeBranch$.subscribe(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
@@ -284,7 +287,9 @@ describe('SimulationService', () => {
 
   describe('Comparison Deltas', () => {
     beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub1 = service.activeBranch$.subscribe(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
@@ -349,7 +354,9 @@ describe('SimulationService', () => {
 
   describe('Observable Stability and Performance', () => {
     beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub1 = service.activeBranch$.subscribe(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');
@@ -380,7 +387,7 @@ describe('SimulationService', () => {
       }, 100);
     });
 
-    it('should not emit when parameters haven\'t changed (distinctUntilChanged)', (done) => {
+    it("should not emit when parameters haven't changed (distinctUntilChanged)", (done) => {
       let emissionCount = 0;
 
       service.activeBranch$.subscribe(() => {
@@ -418,7 +425,9 @@ describe('SimulationService', () => {
 
   describe('Edge Cases and Robustness', () => {
     beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub1 = service.activeBranch$.subscribe(() => {});
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sub2 = service.baselineMetrics$.subscribe(() => {});
       const branchesReq = httpMock.expectOne('assets/data/branches.json');
       const baselineReq = httpMock.expectOne('assets/data/baseline.json');

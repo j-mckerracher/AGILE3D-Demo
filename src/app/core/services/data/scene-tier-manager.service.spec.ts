@@ -89,12 +89,8 @@ describe('SceneTierManagerService', () => {
 
     it('should handle complex paths', () => {
       service.setTier('fallback');
-      const path = service.getTierPath(
-        'assets/scenes/vehicle_heavy_01/vehicle_heavy_01_100k.bin'
-      );
-      expect(path).toBe(
-        'assets/scenes/vehicle_heavy_01/vehicle_heavy_01_50k.bin'
-      );
+      const path = service.getTierPath('assets/scenes/vehicle_heavy_01/vehicle_heavy_01_100k.bin');
+      expect(path).toBe('assets/scenes/vehicle_heavy_01/vehicle_heavy_01_50k.bin');
     });
   });
 

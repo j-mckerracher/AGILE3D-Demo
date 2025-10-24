@@ -74,10 +74,7 @@ export class PaperDataService {
    * @param contentionPct - GPU contention percentage (0-100)
    * @returns Observable emitting latency stats (mean and std in ms)
    */
-  public lookupLatency(
-    branchId: string,
-    contentionPct: number
-  ): Observable<LatencyStats> {
+  public lookupLatency(branchId: string, contentionPct: number): Observable<LatencyStats> {
     const level = this.mapContentionToLevel(contentionPct);
     return this.branchesData$.pipe(
       map((data) => {
@@ -97,10 +94,7 @@ export class PaperDataService {
    * @param scene - Scene type identifier
    * @returns Observable emitting accuracy as mAP percentage
    */
-  public lookupAccuracy(
-    branchId: string,
-    scene: SceneId
-  ): Observable<number> {
+  public lookupAccuracy(branchId: string, scene: SceneId): Observable<number> {
     return this.branchesData$.pipe(
       map((data) => {
         const branch = data.branches.find((b) => b.branch_id === branchId);
@@ -138,9 +132,7 @@ export class PaperDataService {
    */
   public getBaselineLatency(contentionPct: number): Observable<LatencyStats> {
     const level = this.mapContentionToLevel(contentionPct);
-    return this.baselineData$.pipe(
-      map((baseline) => baseline.performance.latency[level])
-    );
+    return this.baselineData$.pipe(map((baseline) => baseline.performance.latency[level]));
   }
 
   /**
@@ -150,9 +142,7 @@ export class PaperDataService {
    * @returns Observable emitting baseline accuracy as mAP percentage
    */
   public getBaselineAccuracy(scene: SceneId): Observable<number> {
-    return this.baselineData$.pipe(
-      map((baseline) => baseline.performance.accuracy[scene])
-    );
+    return this.baselineData$.pipe(map((baseline) => baseline.performance.accuracy[scene]));
   }
 
   /**
@@ -161,9 +151,7 @@ export class PaperDataService {
    * @returns Observable emitting baseline memory usage in gigabytes
    */
   public getBaselineMemory(): Observable<number> {
-    return this.baselineData$.pipe(
-      map((baseline) => baseline.performance.memoryFootprint)
-    );
+    return this.baselineData$.pipe(map((baseline) => baseline.performance.memoryFootprint));
   }
 
   /**
