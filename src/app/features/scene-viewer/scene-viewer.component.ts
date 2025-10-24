@@ -356,16 +356,14 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
    * Add point cloud to the scene.
    */
   private addPointCloud(): void {
-    let geometry: THREE.BufferGeometry;
-
-    if (this.sharedPointGeometry) {
-      console.log('[SceneViewer]', this.viewerId, 'using shared geometry');
-      geometry = this.sharedPointGeometry;
-    } else {
-      console.log('[SceneViewer]', this.viewerId, 'creating synthetic geometry');
-      geometry = this.createSyntheticPointCloud(this.pointCount);
-      this.disposables.push(geometry);
+    // Only add point cloud if real geometry is provided
+    if (!this.sharedPointGeometry) {
+      console.log('[SceneViewer]', this.viewerId, 'no shared geometry, skipping point cloud');
+      return;
     }
+
+    console.log('[SceneViewer]', this.viewerId, 'using shared geometry');
+    const geometry = this.sharedPointGeometry;
 
     // Use neutral color for points (NFR-3.5, UI 8.2)
     const pointColor = new THREE.Color(0x888888); // Default gray
