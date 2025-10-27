@@ -1,0 +1,35 @@
+<div class="video-landing">
+  <!-- Visually-hidden heading for accessibility -->
+  <h1 class="visually-hidden">AGILE3D Demo</h1>
+
+  <!-- Responsive 16:9 aspect ratio container -->
+  <div class="video-landing__container">
+    <iframe
+      class="video-landing__iframe"
+      [src]="iframeSrc"
+      title="AGILE3D Demo Overview"
+      allow="picture-in-picture; encrypted-media"
+      referrerpolicy="strict-origin-when-cross-origin"
+      loading="lazy"
+      frameborder="0"
+      allowfullscreen
+      (load)="onIframeLoad()"
+      (error)="onIframeError()"
+    ></iframe>
+  </div>
+
+  <!-- Error fallback message -->
+  @if (errorState) {
+    <div class="video-landing__error-message" role="alert">
+      <p>Unable to load the video. Please visit the video directly:</p>
+      <a
+        [href]="videoUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="video-landing__error-link"
+      >
+        Watch on YouTube
+      </a>
+    </div>
+  }
+</div>
