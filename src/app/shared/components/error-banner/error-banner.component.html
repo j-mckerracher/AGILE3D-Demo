@@ -1,17 +1,59 @@
-<section class="error-banner" role="alert" aria-live="assertive" aria-atomic="true">
+<section
+  *ngIf="isVisible"
+  class="error-banner"
+  role="alert"
+  aria-live="assertive"
+  aria-atomic="true"
+>
   <div class="error-content">
     <h4 class="error-title">{{ title }}</h4>
     <p class="error-message">{{ message }}</p>
 
     <!-- Optional action links -->
-    <ul class="error-links" *ngIf="links && links.length > 0" aria-label="Helpful resources">
+    <ul
+      class="error-links"
+      *ngIf="links && links.length > 0"
+      aria-label="Helpful resources"
+    >
       <li *ngFor="let link of links">
-        <a [href]="link.href" target="_blank" rel="noopener noreferrer" class="error-link">
+        <a
+          [href]="link.href"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="error-link"
+        >
           {{ link.label }}
           <span aria-hidden="true">→</span>
         </a>
       </li>
     </ul>
+
+    <!-- Retry buttons for frame stream errors -->
+    <div
+      class="error-actions"
+      *ngIf="showRetryButtons"
+      role="group"
+      aria-label="Playback retry options"
+    >
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="onRetry()"
+        aria-label="Retry playback immediately"
+        title="Resume playback now"
+      >
+        Retry
+      </button>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="onKeepTrying()"
+        aria-label="Keep trying playback with auto-retry"
+        title="Retry up to 5 times"
+      >
+        Keep Trying
+      </button>
+    </div>
   </div>
 
   <!-- Dismiss button (keyboard accessible) -->

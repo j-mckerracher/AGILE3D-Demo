@@ -1,425 +1,181 @@
 import { Injectable, inject, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
 import * as THREE from 'three';
-import {
-  SceneMetadata,
-  SceneRegistry,
-  WorkerParseMessage,
-  WorkerParseResponse,
-} from '../../models/scene.models';
+import { FrameData } from '../frame-stream/frame-stream.service';
+import { SceneMetadata, SceneRegistry, WorkerParseMessage, WorkerParseResponse } from '../../models/scene.models';
 
-/**
- * Service for loading and parsing scene data.
- *
- * Responsibilities:
- * - Fetch scene metadata from JSON files
- * - Load binary point cloud data (.bin files)
- * - Parse point clouds in Web Worker (off main thread)
- * - Cache parsed results to avoid redundant parsing
- * - Create and manage THREE.Points instances for shared geometry (WP-2.1.1)
- * - Manage worker lifecycle
- *
- * Performance:
- * - Uses transferable objects for zero-copy data transfer
- * - Caches parsed Float32Array results by scene ID
- * - Caches THREE.Points instances for memory efficiency across viewers
- * - Implements 10s timeout for worker operations
- *
- * @see WP-1.2.2 Scene Data & Parsing Infrastructure
- * @see WP-2.1.1 Dual Viewer Foundation (Shared Geometry)
- */
-@Injectable({
-  providedIn: 'root',
-})
+export interface FilterConfig { scoreThreshold: number; labelMask: Set<string>; }
+export interface GeometryState { pointCount: number; maxCapacity: number; needsRealloc: boolean; }
+export interface DetectionData { id: string; label: string; score: number; bbox: { x: number; y: number; z: number; l: number; w: number; h: number; yaw: number }; }
+
+@Injectable({ providedIn: 'root' })
 export class SceneDataService implements OnDestroy {
   private readonly http = inject(HttpClient);
-
-  /** Cache for parsed point cloud positions, keyed by scene ID + tier */
   private readonly pointsCache = new Map<string, Float32Array>();
-
-  /** Cache for THREE.Points instances, keyed by scene ID + tier */
   private readonly pointsObjectCache = new Map<string, THREE.Points>();
-
-  /** Cache for scene metadata, keyed by scene ID */
   private readonly metadataCache = new Map<string, SceneMetadata>();
-
-  /** Active worker instance */
   private worker: Worker | null = null;
-
-  /** Worker timeout duration in milliseconds */
   private readonly WORKER_TIMEOUT_MS = 10_000;
+  // Frame streaming
+  private frameGeometry: THREE.BufferGeometry | null = null;
+  private positionAttribute: THREE.BufferAttribute | null = null;
+  private filterConfig: FilterConfig = { scoreThreshold: 0.7, labelMask: new Set(['vehicle', 'pedestrian', 'cyclist']) };
+  private frameState: GeometryState = { pointCount: 0, maxCapacity: 0, needsRealloc: false };
+  private geometrySubject = new BehaviorSubject<THREE.BufferGeometry | null>(null);
+  private detectionsSubject = new BehaviorSubject<DetectionData[]>([]);
+  private stateSubject = new BehaviorSubject<GeometryState>(this.frameState);
 
-  /**
-   * Load scene metadata from JSON file.
-   *
-   * @param sceneId - Scene identifier (e.g., 'vehicle_heavy_01')
-   * @returns Promise resolving to scene metadata
-   * @throws Error if metadata file cannot be loaded or parsed
-   */
-  public async loadMetadata(sceneId: string): Promise<SceneMetadata> {
-    // Check cache first
-    const cached = this.metadataCache.get(sceneId);
-    if (cached) {
-      console.log('[SceneDataService] loadMetadata (cache hit)', sceneId);
-      return cached;
-    }
-
-    try {
-      const metadataPath = `assets/scenes/${sceneId}/metadata.json`;
-      console.log('[SceneDataService] GET', metadataPath);
-      const metadata = await firstValueFrom(this.http.get<SceneMetadata>(metadataPath));
-
-      // Validate required fields
-      this.validateMetadata(metadata);
-      console.log('[SceneDataService] metadata loaded', {
-        scene_id: metadata.scene_id,
-        pointCount: metadata.pointCount,
-        stride: metadata.pointStride,
-        pointsBin: metadata.pointsBin,
-        preds: Object.keys(metadata.predictions || {}),
-      });
-
-      // Cache and return
-      this.metadataCache.set(sceneId, metadata);
-      return metadata;
-    } catch (error) {
-      console.error('[SceneDataService] loadMetadata error', error);
-      throw new Error(
-        `Failed to load metadata for scene '${sceneId}': ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
-      );
-    }
+  async loadMetadata(sceneId: string): Promise<SceneMetadata> {
+    if (this.metadataCache.has(sceneId)) return this.metadataCache.get(sceneId)!;
+    const metadata = await firstValueFrom(this.http.get<SceneMetadata>(`assets/scenes/${sceneId}/metadata.json`));
+    this.validateMetadata(metadata);
+    this.metadataCache.set(sceneId, metadata);
+    return metadata;
   }
 
-  /**
-   * Load scene registry containing all available scenes.
-   *
-   * @returns Promise resolving to scene registry
-   * @throws Error if registry cannot be loaded
-   */
-  public async loadRegistry(): Promise<SceneRegistry> {
-    try {
-      const registryPath = 'assets/scenes/registry.json';
-      console.log('[SceneDataService] GET', registryPath);
-      const reg = await firstValueFrom(this.http.get<SceneRegistry>(registryPath));
-      console.log('[SceneDataService] registry scenes', reg.scenes?.length ?? 0);
-      return reg;
-    } catch (error) {
-      console.error('[SceneDataService] loadRegistry error', error);
-      throw new Error(
-        `Failed to load scene registry: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+  async loadRegistry(): Promise<SceneRegistry> {
+    return firstValueFrom(this.http.get<SceneRegistry>('assets/scenes/registry.json'));
   }
 
-  /**
-   * Load and parse binary point cloud data.
-   *
-   * Fetches the .bin file, parses it in a Web Worker, and caches the result.
-   *
-   * @param binPath - Path to .bin file (e.g., 'assets/scenes/vehicle_heavy_01/vehicle_heavy_01_100k.bin')
-   * @param cacheKey - Cache key for storing parsed results (typically sceneId + tier)
-   * @param stride - Number of floats per point (default: 3 for [x,y,z])
-   * @returns Promise resolving to Float32Array of positions
-   * @throws Error if loading or parsing fails
-   */
-  public async loadPoints(binPath: string, cacheKey: string, stride = 3): Promise<Float32Array> {
-    // Check cache first
-    const cached = this.pointsCache.get(cacheKey);
-    if (cached) {
-      console.log('[SceneDataService] loadPoints (cache hit)', cacheKey);
-      return cached;
-    }
-
+  async loadPoints(binPath: string, cacheKey: string, stride = 3): Promise<Float32Array> {
+    if (this.pointsCache.has(cacheKey)) return this.pointsCache.get(cacheKey)!;
+    const arrayBuffer = await firstValueFrom(this.http.get(binPath, { responseType: 'arraybuffer' }));
+    let positions: Float32Array;
     try {
-      console.log('[SceneDataService] GET', binPath, { stride, cacheKey });
-      // Fetch binary data
-      const arrayBuffer = await firstValueFrom(
-        this.http.get(binPath, { responseType: 'arraybuffer' })
-      );
-      console.log('[SceneDataService] fetched bytes', arrayBuffer.byteLength);
-
-      // Try worker parse with a transferable copy; fall back to main-thread parse on failure
-      let positions: Float32Array;
-      const workerBuffer = arrayBuffer.slice(0); // keep original for fallback
-      try {
-        positions = await this.parseInWorker(workerBuffer, stride);
-        console.log('[SceneDataService] parsed via worker', positions.length);
-      } catch (e) {
-        console.warn('[SceneDataService] worker parse failed, falling back to main thread', e);
-        positions = new Float32Array(arrayBuffer);
-        if (positions.length % stride !== 0) {
-          throw new Error(
-            `Fallback parse produced misaligned length ${positions.length} for stride ${stride}`
-          );
-        }
-      }
-
-      // Cache result
-      this.pointsCache.set(cacheKey, positions);
-
-      return positions;
-    } catch (error) {
-      console.error('[SceneDataService] loadPoints error', error);
-      throw new Error(
-        `Failed to load points from '${binPath}': ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
-      );
+      positions = await this.parseInWorker(arrayBuffer.slice(0), stride);
+    } catch {
+      positions = new Float32Array(arrayBuffer);
+      if (positions.length % stride !== 0) throw new Error(`Misaligned length ${positions.length} for stride ${stride}`);
     }
+    this.pointsCache.set(cacheKey, positions);
+    return positions;
   }
 
-  /**
-   * Create a THREE.Points instance from Float32Array positions.
-   *
-   * Builds a BufferGeometry with positions attribute and wraps it in a Points object.
-   * The resulting Points instance is cached by cacheKey to ensure a single shared instance.
-   *
-   * @param positions - Float32Array of [x,y,z] positions
-   * @param cacheKey - Cache key for storing the Points instance (typically sceneId + tier)
-   * @param stride - Number of floats per point (default: 3 for [x,y,z])
-   * @returns THREE.Points instance with gray material
-   *
-   * @see WP-2.1.1 Dual Viewer Foundation - Shared Geometry
-   */
-  public createPointsFromPositions(
-    positions: Float32Array,
-    cacheKey: string,
-    stride = 3
-  ): THREE.Points {
-    // Check cache first
-    const cached = this.pointsObjectCache.get(cacheKey);
-    if (cached) {
-      console.log('[SceneDataService] createPointsFromPositions (cache hit)', cacheKey);
-      return cached;
-    }
-
-    console.log('[SceneDataService] creating Points instance', {
-      cacheKey,
-      positions: positions.length,
-      stride,
-    });
-
-    // Create BufferGeometry
+  createPointsFromPositions(positions: Float32Array, cacheKey: string, stride = 3): THREE.Points {
+    if (this.pointsObjectCache.has(cacheKey)) return this.pointsObjectCache.get(cacheKey)!;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, stride));
-
-    // Create material (neutral gray to match SceneViewer default)
-    const material = new THREE.PointsMaterial({
-      color: 0x888888,
-      size: 0.05,
-    });
-
-    // Create Points
+    const material = new THREE.PointsMaterial({ color: 0x888888, size: 0.05 });
     const points = new THREE.Points(geometry, material);
-
-    // Cache and return
     this.pointsObjectCache.set(cacheKey, points);
-    console.log('[SceneDataService] Points cached', cacheKey);
-
     return points;
   }
 
-  /**
-   * Load and create a THREE.Points instance for a scene.
-   *
-   * Convenience method that combines loadPoints() and createPointsFromPositions().
-   * Returns a cached Points instance if available, ensuring shared geometry across viewers.
-   *
-   * @param binPath - Path to .bin file
-   * @param cacheKey - Cache key for storing parsed results and Points instance
-   * @param stride - Number of floats per point (default: 3)
-   * @returns Promise resolving to THREE.Points instance
-   * @throws Error if loading or parsing fails
-   *
-   * @see WP-2.1.1 Dual Viewer Foundation - Shared Geometry
-   */
-  public async loadPointsObject(
-    binPath: string,
-    cacheKey: string,
-    stride = 3
-  ): Promise<THREE.Points> {
-    // Check if Points instance already exists
-    const cachedPoints = this.pointsObjectCache.get(cacheKey);
-    if (cachedPoints) {
-      console.log('[SceneDataService] loadPointsObject (cache hit)', cacheKey);
-      return cachedPoints;
-    }
-
-    // Load positions
+  async loadPointsObject(binPath: string, cacheKey: string, stride = 3): Promise<THREE.Points> {
+    if (this.pointsObjectCache.has(cacheKey)) return this.pointsObjectCache.get(cacheKey)!;
     const positions = await this.loadPoints(binPath, cacheKey, stride);
-
-    // Create and cache Points instance
     return this.createPointsFromPositions(positions, cacheKey, stride);
   }
 
-  /**
-   * Parse point cloud data in Web Worker.
-   *
-   * Creates a worker, sends the buffer for parsing, and waits for the result.
-   * Uses transferable objects for zero-copy performance.
-   *
-   * @param arrayBuffer - Raw binary data
-   * @param stride - Number of floats per point
-   * @returns Promise resolving to parsed Float32Array
-   * @throws Error if parsing fails or times out
-   */
-  public async parseInWorker(arrayBuffer: ArrayBuffer, stride = 3): Promise<Float32Array> {
+  async parseInWorker(arrayBuffer: ArrayBuffer, stride = 3): Promise<Float32Array> {
     return new Promise((resolve, reject) => {
-      // Create worker if not exists
       if (!this.worker) {
         try {
-          // Use static asset path to avoid bundler URL issues
           this.worker = new Worker('/assets/workers/point-cloud-worker.js');
-          console.log('[SceneDataService] worker created');
         } catch (error) {
-          reject(
-            new Error(
-              `Failed to create worker: ${error instanceof Error ? error.message : 'Unknown error'}`
-            )
-          );
+          reject(new Error(`Failed to create worker: ${error instanceof Error ? error.message : 'Unknown'}`));
           return;
         }
       }
-
-      // Set up timeout
-      const timeoutId = setTimeout(() => {
-        this.terminateWorker();
-        reject(new Error(`Worker parsing timed out after ${this.WORKER_TIMEOUT_MS}ms`));
-      }, this.WORKER_TIMEOUT_MS);
-
-      // Set up message handler
-      const messageHandler = (
-        event: MessageEvent<WorkerParseResponse | { ready?: boolean }>
-      ): void => {
-        // Ignore worker ready pings
-        if ('ready' in event.data && event.data.ready) {
-          return;
-        }
-
+      const timeoutId = setTimeout(() => { this.terminateWorker(); reject(new Error(`Worker timeout after ${this.WORKER_TIMEOUT_MS}ms`)); }, this.WORKER_TIMEOUT_MS);
+      const handler = (event: MessageEvent<WorkerParseResponse | { ready?: boolean }>) => {
+        if ('ready' in event.data && event.data.ready) return;
         clearTimeout(timeoutId);
-
         const data = event.data as WorkerParseResponse;
-        if (data.ok && data.positions) {
-          resolve(data.positions);
-        } else {
-          const errorMsg = 'error' in data ? data.error : 'Unknown worker parsing error';
-          reject(new Error(errorMsg ?? 'Unknown worker parsing error'));
-        }
-
-        // Clean up listener
-        this.worker?.removeEventListener('message', messageHandler);
+        if (data.ok && data.positions) resolve(data.positions);
+        else reject(new Error('error' in data ? data.error : 'Unknown parsing error'));
+        this.worker?.removeEventListener('message', handler);
       };
-
-      this.worker.addEventListener('message', messageHandler);
-
-      // Send parse request with transferable
+      this.worker.addEventListener('message', handler);
       const message: WorkerParseMessage = { arrayBuffer, stride };
       this.worker.postMessage(message, [arrayBuffer]);
     });
   }
 
-  /**
-   * Terminate the worker and clean up resources.
-   *
-   * Call this when the service is no longer needed or to force worker restart.
-   */
-  public terminateWorker(): void {
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
+  terminateWorker(): void { if (this.worker) { this.worker.terminate(); this.worker = null; } }
+  clearCache(): void { this.pointsCache.clear(); this.pointsObjectCache.forEach(p => { if (p.geometry) p.geometry.dispose(); if (p.material) (Array.isArray(p.material) ? p.material.forEach(m => m.dispose()) : p.material.dispose()); }); this.pointsObjectCache.clear(); this.metadataCache.clear(); }
+
+  // Frame streaming API
+  setActiveBranch(branchId: string): void { }
+  setScoreThreshold(score: number): void { this.filterConfig.scoreThreshold = score; }
+  setLabelMask(labels: string[]): void { this.filterConfig.labelMask = new Set(labels); }
+
+  applyFrame(frameData: FrameData, quantHeader?: Record<string, unknown>): void {
+    const parsed = this.parsePoints(frameData.pointsBuffer || new ArrayBuffer(0), quantHeader);
+    this.updateGeometry(parsed.positions, parsed.pointCount);
+    const dets = this.filterDetections(frameData.detections as Record<string, unknown>, this.filterConfig);
+    this.geometrySubject.next(this.frameGeometry);
+    this.detectionsSubject.next(dets);
+    this.stateSubject.next(this.frameState);
+  }
+
+  geometry$(): Observable<THREE.BufferGeometry | null> { return this.geometrySubject.asObservable(); }
+  detections$(): Observable<DetectionData[]> { return this.detectionsSubject.asObservable(); }
+  state$(): Observable<GeometryState> { return this.stateSubject.asObservable(); }
+
+  private parsePoints(buffer: ArrayBuffer, quantHeader?: Record<string, unknown>): { positions: Float32Array; pointCount: number } {
+    const positions = new Float32Array(buffer);
+    return { positions, pointCount: positions.length / 3 };
+  }
+
+  private updateGeometry(positions: Float32Array, pointCount: number): void {
+    const needsRealloc = this.shouldReallocate(pointCount);
+    if (needsRealloc) this.reallocateGeometry(Math.ceil(pointCount * 1.2));
+    if (!this.frameGeometry) this.frameGeometry = new THREE.BufferGeometry();
+    if (this.positionAttribute) {
+      const posArray = this.positionAttribute.array as Float32Array;
+      posArray.set(positions.subarray(0, Math.min(positions.length, posArray.length)));
+      this.positionAttribute.needsUpdate = true;
+    } else {
+      this.positionAttribute = new THREE.BufferAttribute(positions, 3);
+      this.frameGeometry.setAttribute('position', this.positionAttribute);
     }
+    this.frameState = { pointCount, maxCapacity: this.frameState.maxCapacity, needsRealloc };
   }
 
-  /**
-   * Clear all cached data and dispose THREE.js resources.
-   *
-   * Disposes all cached THREE.Points instances (geometry and materials)
-   * before clearing caches. Useful for memory management or testing.
-   */
-  public clearCache(): void {
-    // Dispose all cached Points instances
-    this.pointsObjectCache.forEach((points, key) => {
-      console.log('[SceneDataService] disposing Points', key);
-      if (points.geometry) {
-        points.geometry.dispose();
-      }
-      if (points.material) {
-        if (Array.isArray(points.material)) {
-          points.material.forEach((m) => m.dispose());
-        } else {
-          points.material.dispose();
-        }
-      }
-    });
-
-    this.pointsCache.clear();
-    this.pointsObjectCache.clear();
-    this.metadataCache.clear();
+  private shouldReallocate(pointCount: number): boolean {
+    const { maxCapacity } = this.frameState;
+    if (maxCapacity === 0) return true;
+    if (pointCount > maxCapacity) return true;
+    if (pointCount < maxCapacity * 0.5) return true;
+    return false;
   }
 
-  /**
-   * Get cache statistics for monitoring.
-   *
-   * @returns Object with cache sizes
-   */
-  public getCacheStats(): {
-    pointsCacheSize: number;
-    pointsObjectCacheSize: number;
-    metadataCacheSize: number;
-  } {
-    return {
-      pointsCacheSize: this.pointsCache.size,
-      pointsObjectCacheSize: this.pointsObjectCache.size,
-      metadataCacheSize: this.metadataCache.size,
-    };
+  private reallocateGeometry(newCapacity: number): void {
+    if (!this.frameGeometry) this.frameGeometry = new THREE.BufferGeometry();
+    const newPositions = new Float32Array(newCapacity * 3);
+    if (this.positionAttribute) {
+      const oldArray = this.positionAttribute.array as Float32Array;
+      newPositions.set(oldArray.subarray(0, Math.min(oldArray.length, newPositions.length)));
+    }
+    this.positionAttribute = new THREE.BufferAttribute(newPositions, 3);
+    this.frameGeometry.setAttribute('position', this.positionAttribute);
+    this.frameState = { ...this.frameState, maxCapacity: newCapacity };
   }
 
-  /**
-   * Validate scene metadata structure.
-   *
-   * @param metadata - Metadata to validate
-   * @throws Error if metadata is invalid
-   */
+  private filterDetections(detections: Record<string, unknown>, filterConfig: FilterConfig): DetectionData[] {
+    const dets = (detections as unknown as Record<string, unknown>[]) || [];
+    return dets.filter((det: Record<string, unknown>) => {
+      const score = (det['score'] as number) || 0;
+      const label = (det['label'] as string) || '';
+      return score >= filterConfig.scoreThreshold && filterConfig.labelMask.has(label);
+    }) as unknown as DetectionData[];
+  }
+
+  clear(): void { if (this.frameGeometry) { this.frameGeometry.dispose(); this.frameGeometry = null; } this.positionAttribute = null; this.frameState = { pointCount: 0, maxCapacity: 0, needsRealloc: false }; }
+
+  ngOnDestroy(): void { this.terminateWorker(); this.clearCache(); }
+
   private validateMetadata(metadata: SceneMetadata): void {
-    const required = [
-      'scene_id',
-      'name',
-      'pointsBin',
-      'pointCount',
-      'pointStride',
-      'bounds',
-      'ground_truth',
-      'predictions',
-      'metadata',
-    ];
-
-    for (const field of required) {
-      if (!(field in metadata)) {
-        throw new Error(`Missing required field: ${field}`);
-      }
-    }
-
-    if (!metadata.bounds.min || !metadata.bounds.max) {
-      throw new Error('Invalid bounds: must have min and max');
-    }
-
-    if (!Array.isArray(metadata.bounds.min) || metadata.bounds.min.length !== 3) {
-      throw new Error('Invalid bounds.min: must be [x, y, z]');
-    }
-
-    if (!Array.isArray(metadata.bounds.max) || metadata.bounds.max.length !== 3) {
-      throw new Error('Invalid bounds.max: must be [x, y, z]');
-    }
+    const required = ['scene_id', 'name', 'pointsBin', 'pointCount', 'pointStride', 'bounds', 'ground_truth', 'predictions', 'metadata'];
+    for (const field of required) if (!(field in metadata)) throw new Error(`Missing required field: ${field}`);
+    if (!metadata.bounds.min || !metadata.bounds.max) throw new Error('Invalid bounds');
+    if (!Array.isArray(metadata.bounds.min) || metadata.bounds.min.length !== 3) throw new Error('Invalid bounds.min');
+    if (!Array.isArray(metadata.bounds.max) || metadata.bounds.max.length !== 3) throw new Error('Invalid bounds.max');
   }
 
-  /**
-   * Clean up resources on service destruction.
-   */
-  public ngOnDestroy(): void {
-    this.terminateWorker();
-    this.clearCache();
+  getCacheStats(): { pointsCacheSize: number; pointsObjectCacheSize: number; metadataCacheSize: number; } {
+    return { pointsCacheSize: this.pointsCache.size, pointsObjectCacheSize: this.pointsObjectCache.size, metadataCacheSize: this.metadataCache.size };
   }
 }

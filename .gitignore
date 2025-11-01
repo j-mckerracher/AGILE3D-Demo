@@ -55,3 +55,8 @@ Thumbs.db
 # Package lock files (using npm)
 package-lock.json
 yarn.lock
+
+# Converter binary artifacts and sample data
+*.bin
+*.pkl
+/apps/web/src/assets/data/streams/

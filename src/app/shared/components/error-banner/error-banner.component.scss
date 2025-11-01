@@ -93,15 +93,77 @@
   }
 }
 
+.error-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--ag3d-duration-fast, 100ms) ease;
+  white-space: nowrap;
+
+  &:focus-visible {
+    outline: 2px solid var(--ag3d-color-focus, #4a9eff);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: #3b82f6; /* Blue-500 */
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #2563eb; /* Blue-600 */
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #60a5fa; /* Blue-400 */
+  border-color: #60a5fa;
+
+  &:hover:not(:disabled) {
+    background: rgba(96, 165, 250, 0.1);
+    border-color: #93c5fd; /* Blue-300 */
+    color: #93c5fd;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
 /* Reduced motion support (WP-2.3.2, NFR-3.7) */
 @media (prefers-reduced-motion: reduce) {
   .error-banner,
   .error-link,
-  .error-dismiss {
+  .error-dismiss,
+  .btn {
     transition-duration: 0.01ms !important;
   }
 
-  .error-dismiss:active {
+  .error-dismiss:active,
+  .btn:active {
     transform: none;
   }
 }

@@ -1,14 +1,31 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ErrorBannerComponent } from './error-banner.component';
 import { By } from '@angular/platform-browser';
+import { FrameStreamService, FrameStreamStatus } from '../../../core/services/frame-stream/frame-stream.service';
+import { BehaviorSubject } from 'rxjs';
 
 describe('ErrorBannerComponent (WP-2.3.2)', () => {
   let component: ErrorBannerComponent;
   let fixture: ComponentFixture<ErrorBannerComponent>;
+  let mockFrameStreamService: jasmine.SpyObj<FrameStreamService>;
+  let statusSubject: BehaviorSubject<FrameStreamStatus>;
 
   beforeEach(async () => {
+    statusSubject = new BehaviorSubject<FrameStreamStatus>(FrameStreamStatus.IDLE);
+
+    mockFrameStreamService = jasmine.createSpyObj<FrameStreamService>(
+      'FrameStreamService',
+      ['resume'],
+      {
+        status$: statusSubject.asObservable(),
+      }
+    );
+
     await TestBed.configureTestingModule({
       imports: [ErrorBannerComponent],
+      providers: [
+        { provide: FrameStreamService, useValue: mockFrameStreamService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ErrorBannerComponent);
@@ -158,6 +175,160 @@ describe('ErrorBannerComponent (WP-2.3.2)', () => {
 
       const link = fixture.debugElement.query(By.css('.error-link'));
       expect(link.nativeElement.tabIndex).toBeGreaterThanOrEqual(-1);
+    });
+  });
+
+  describe('Frame Stream Integration (UoW-U13)', () => {
+    it('should show banner when status changes to PAUSED_MISS', () => {
+      statusSubject.next(FrameStreamStatus.PAUSED_MISS);
+      fixture.detectChanges();
+
+      expect(component.isVisible).toBe(true);
+      expect(component.title).toBe('Playback Paused');
+      expect(component.showRetryButtons).toBe(true);
+
+      const banner = fixture.debugElement.query(By.css('.error-banner'));
+      expect(banner).toBeTruthy();
+    });
+
+    it('should hide banner when status changes to PLAYING', () => {
+      // First show the banner
+      statusSubject.next(FrameStreamStatus.PAUSED_MISS);
+      fixture.detectChanges();
+      expect(component.isVisible).toBe(true);
+
+      // Then hide it
+      statusSubject.next(FrameStreamStatus.PLAYING);
+      fixture.detectChanges();
+
+      expect(component.isVisible).toBe(false);
+      const banner = fixture.debugElement.query(By.css('.error-banner'));
+      expect(banner).toBeNull();
+    });
+
+    it('should display retry buttons when PAUSED_MISS', () => {
+      statusSubject.next(FrameStreamStatus.PAUSED_MISS);
+      fixture.detectChanges();
+
+      const retryBtn = fixture.debugElement.query(
+        By.css('.btn-primary')
+      );
+      const keepTryingBtn = fixture.debugElement.query(
+        By.css('.btn-secondary')
+      );
+
+      expect(retryBtn).toBeTruthy();
+      expect(keepTryingBtn).toBeTruthy();
+      expect(retryBtn.nativeElement.textContent).toContain('Retry');
+      expect(keepTryingBtn.nativeElement.textContent).toContain('Keep Trying');
+    });
+
+    it('should call resume when Retry button is clicked', () => {
+      statusSubject.next(FrameStreamStatus.PAUSED_MISS);
+      fixture.detectChanges();
+
+      const retryBtn = fixture.debugElement.query(By.css('.btn-primary'));
+      retryBtn.nativeElement.click();
+
+      expect(mockFrameStreamService.resume).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call resume when onRetry is called', () => {
+      component.onRetry();
+
+      expect(mockFrameStreamService.resume).toHaveBeenCalledTimes(1);
+    });
+
+    it('should perform auto-retry 5 times with Keep Trying', fakeAsync(() => {
+      component.onKeepTrying();
+
+      // Initial retry
+      expect(mockFrameStreamService.resume).toHaveBeenCalledTimes(1);
+
+      // Simulate retries at 3-second intervals
+      for (let i = 0; i < 4; i++) {
+        tick(3000);
+      }
+
+      expect(mockFrameStreamService.resume).toHaveBeenCalledTimes(5);
+    }));
+
+    it('should initialize with isVisible = false', () => {
+      expect(component.isVisible).toBe(false);
+    });
+
+    it('should reset retryAttempts when Keep Trying is called', () => {
+      component.retryAttempts = 10; // Set to a non-zero value
+      component.onKeepTrying();
+
+      expect(component.retryAttempts).toBe(1); // After first retry
+    });
+
+    it('should handle dismiss during PAUSED_MISS state', () => {
+      statusSubject.next(FrameStreamStatus.PAUSED_MISS);
+      fixture.detectChanges();
+
+      spyOn(component.dismissed, 'emit');
+
+      const dismissBtn = fixture.debugElement.query(By.css('.error-dismiss'));
+      dismissBtn.nativeElement.click();
+
+      expect(component.isVisible).toBe(false);
+      expect(component.dismissed.emit).toHaveBeenCalled();
+    });
+
+    it('should have proper ARIA labels for retry buttons', () => {
+      statusSubject.next(FrameStreamStatus.PAUSED_MISS);
+      fixture.detectChanges();
+
+      const retryBtn = fixture.debugElement.query(By.css('.btn-primary'));
+      const keepTryingBtn = fixture.debugElement.query(
+        By.css('.btn-secondary')
+      );
+
+      expect(retryBtn.nativeElement.getAttribute('aria-label')).toBe(
+        'Retry playback immediately'
+      );
+      expect(keepTryingBtn.nativeElement.getAttribute('aria-label')).toBe(
+        'Keep trying playback with auto-retry'
+      );
+    });
+
+    it('should have group role for retry buttons container', () => {
+      statusSubject.next(FrameStreamStatus.PAUSED_MISS);
+      fixture.detectChanges();
+
+      const actionsGroup = fixture.debugElement.query(
+        By.css('.error-actions')
+      );
+
+      expect(actionsGroup.nativeElement.getAttribute('role')).toBe('group');
+      expect(actionsGroup.nativeElement.getAttribute('aria-label')).toBe(
+        'Playback retry options'
+      );
+    });
+  });
+
+  describe('Reduced Motion (WP-2.3.2, NFR-3.7)', () => {
+    it('should check reduced motion preference on initialization', () => {
+      // The component already checks reduced motion in constructor
+      expect(component.prefersReducedMotion).toBeDefined();
+    });
+
+    it('should respect prefers-reduced-motion media query', () => {
+      // Create a mock for matchMedia
+      const mockMatchMedia = jasmine
+        .createSpy('matchMedia')
+        .and.returnValue({ matches: true });
+      spyOn(window, 'matchMedia').and.callFake(mockMatchMedia);
+
+      // Create a new component to test the constructor
+      const testComponent = new ErrorBannerComponent(mockFrameStreamService);
+
+      // The component should have checked the media query
+      expect(window.matchMedia).toHaveBeenCalledWith(
+        '(prefers-reduced-motion: reduce)'
+      );
     });
   });
 });
