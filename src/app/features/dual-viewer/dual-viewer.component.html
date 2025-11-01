@@ -1,0 +1,44 @@
+<div class="dual-viewer-container" role="region" aria-labelledby="dual-viewer-title">
+  <h1 id="dual-viewer-title" class="sr-only">Dual Three.js Viewers - Baseline vs Active Branch</h1>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="loading-overlay" aria-live="polite">
+    <div class="spinner"></div>
+    <p>Loading frame data...</p>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="errorMessage" class="error-banner" role="alert" aria-live="assertive">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Viewer containers -->
+  <div class="viewer-wrapper">
+    <!-- Baseline pane -->
+    <div class="viewer-pane baseline-pane">
+      <h2 class="viewer-label">Baseline (DSVT-Voxel)</h2>
+      <canvas #baselineCanvas class="viewer-canvas" aria-label="Baseline 3D viewer"></canvas>
+      <div class="frame-info">Frame: {{ currentFrameId }}</div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider" aria-hidden="true"></div>
+
+    <!-- Active pane -->
+    <div class="viewer-pane active-pane">
+      <h2 class="viewer-label">Active (CP-Pillar)</h2>
+      <canvas #activeCanvas class="viewer-canvas" aria-label="Active branch 3D viewer"></canvas>
+      <div class="frame-info">Frame: {{ currentFrameId }}</div>
+    </div>
+  </div>
+
+  <!-- Controls (placeholder for future U13) -->
+  <div class="controls-panel" aria-label="Viewer controls">
+    <div class="control-group">
+      <label for="branch-select">Active Branch:</label>
+      <select id="branch-select" disabled class="form-control">
+        <option>Coming in U13...</option>
+      </select>
+    </div>
+  </div>
+</div>

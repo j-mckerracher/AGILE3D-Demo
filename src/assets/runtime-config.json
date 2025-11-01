@@ -1,0 +1,23 @@
+{
+  "manifestBaseUrl": "http://localhost:3000/api",
+  "sequences": [
+    "vehicle_heavy_01",
+    "pedestrian_heavy_01",
+    "mixed_urban_01"
+  ],
+  "branches": [
+    "DSVT_Voxel",
+    "PointPillar",
+    "PV_RCNN"
+  ],
+  "timeouts": {
+    "fetchManifest": 30000,
+    "fetchFrame": 20000
+  },
+  "retries": 3,
+  "prefetch": 2,
+  "concurrency": 4,
+  "scoreDefault": 0.5,
+  "labelsDefault": true,
+  "metrics": true
+}
