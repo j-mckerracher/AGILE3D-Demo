@@ -425,12 +425,12 @@ export class MainDemoComponent implements OnInit, OnDestroy {
    */
   private mapSceneIdToFileId(sceneId: SceneId): string {
     const mapping: Record<SceneId, string> = {
-      'vehicle-heavy': 'vehicle_heavy_01',
-      'pedestrian-heavy': 'pedestrian_heavy_01',
-      mixed: 'mixed_urban_01',
+      'vehicle-heavy': 'v_1784_1828',      // 15 vehicles, 4 cyclists
+      'pedestrian-heavy': 'p_7513_7557',   // 82 vehicles, 1 pedestrian, 26 cyclists (heavy traffic)
+      mixed: 'c_7910_7954',                 // 33 vehicles, 2 cyclists (mixed urban)
     };
 
-    return mapping[sceneId] ?? 'mixed_urban_01';
+    return mapping[sceneId] ?? 'c_7910_7954';
   }
 
   /**

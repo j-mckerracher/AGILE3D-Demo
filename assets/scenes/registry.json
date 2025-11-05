@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "scenes": [
+    {
+      "scene_id": "c_7910_7954",
+      "name": "C 7910 7954",
+      "description": "Scene from sequence c_7910_7954, frame 000000",
+      "complexity": "medium",
+      "pointCount": 171417,
+      "hasFallback": false
+    },
+    {
+      "scene_id": "p_7513_7557",
+      "name": "P 7513 7557",
+      "description": "Scene from sequence p_7513_7557, frame 000000",
+      "complexity": "heavy",
+      "pointCount": 176136,
+      "hasFallback": false
+    },
+    {
+      "scene_id": "v_1784_1828",
+      "name": "V 1784 1828",
+      "description": "Scene from sequence v_1784_1828, frame 000000",
+      "complexity": "light",
+      "pointCount": 193807,
+      "hasFallback": false
+    }
+  ]
+}
