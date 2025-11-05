@@ -208,19 +208,31 @@ export class FrameStreamService {
     const pointCount = frame.pointCount ?? Math.floor(parsed.length / 4);
     const detectedStride = pointCount > 0 ? Math.round(parsed.length / pointCount) : 3;
 
-    // If stride > 3 (e.g., XYZ + intensity), repack to XYZ only
+    // Heuristic: if X-range is ~0 but Y/Z have range, reorder (y,z,x) -> (x,y,z)
     let points: Float32Array;
-    if (this.debugLoggedOnce === false) {
-      console.log('[FrameStream] parsed frame sample', {
-        id: frame.id,
-        floats: parsed.length,
-        pointCount,
-        detectedStride,
-        first6: [parsed[0], parsed[1], parsed[2], parsed[3], parsed[4], parsed[5]],
-      });
-      this.debugLoggedOnce = true;
+    {
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (let i = 0; i < parsed.length; i += 3) {
+        const x = parsed[i]!; const y = parsed[i + 1]!; const z = parsed[i + 2]!;
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+        if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+      }
+      const rx = maxX - minX, ry = maxY - minY, rz = maxZ - minZ;
+      if (rx < 1e-6 && ry > 1 && rz > 1) {
+        const out = new Float32Array(parsed.length);
+        for (let i = 0; i < parsed.length; i += 3) {
+          // Assume incoming order is (dummy/yaw?, y, z); remap to (y, z, 0)
+          out[i] = parsed[i + 1]!;     // x <- y
+          out[i + 1] = parsed[i + 2]!; // y <- z
+          out[i + 2] = parsed[i]!;     // z <- x (likely 0)
+        }
+        parsed = out;
+      }
     }
 
+    // If stride > 3 (e.g., XYZ + intensity), repack to XYZ only
     if (detectedStride !== 3 && pointCount > 0 && parsed.length % pointCount === 0) {
       const stride = detectedStride;
       const out = new Float32Array(pointCount * 3);
@@ -231,10 +243,39 @@ export class FrameStreamService {
         out[j++] = parsed[base + 2]!; // z
       }
       points = out;
-      // Optional: free parsed buffer for GC
       parsed = out;
     } else {
       points = parsed;
+    }
+
+    // One-time debug line
+    if (this.debugLoggedOnce === false) {
+      const first6 = [parsed[0], parsed[1], parsed[2], parsed[3], parsed[4], parsed[5]]
+        .map((n) => (Number.isFinite(n!) ? (n as number).toFixed(3) : String(n)));
+      const sample = parsed;
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (let i = 0; i < Math.min(sample.length, 300000); i += 3) {
+        const x = sample[i]!; const y = sample[i+1]!; const z = sample[i+2]!;
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+        if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+      }
+      const firstDet = gtFile.boxes?.[0];
+      console.log('[FrameStream] parsed frame sample', {
+        id: frame.id,
+        floats: parsed.length,
+        pointCount,
+        detectedStride,
+        first6,
+        bounds: { minX, maxX, minY, maxY, minZ, maxZ },
+        firstGT: firstDet ? {
+          center: [firstDet.x, firstDet.y, firstDet.z],
+          d: [firstDet.dx, firstDet.dy, firstDet.dz],
+          yaw: firstDet.heading,
+        } : null,
+      });
+      this.debugLoggedOnce = true;
     }
     
     const gt = this.sequenceData.mapGTToDetections(frame.id, gtFile.boxes);
