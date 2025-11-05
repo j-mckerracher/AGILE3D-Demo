@@ -1,0 +1,852 @@
+   Agile3D: Adaptive Contention- and Content-Aware 3D Object
+                 Detection for Embedded GPUs
+                Pengcheng Wang                                              Zhuoming Liu                                   Shayok Bagchi
+            wang4495@purdue.edu                                       zliu2346@wisc.edu                                bagchi4@purdue.edu
+               Purdue University                                University of Wisconsin-Madison                  West Lafayette Jr./Sr. High School
+          West Lafayette, Indiana, USA                             Madison, Wisconsin, USA                        West Lafayette, Indiana, USA
+
+                        Ran Xu                                             Saurabh Bagchi                                         Yin Li
+           martin.xuran@gmail.com                                     sbagchi@purdue.edu                                 yin.li@wisc.edu
+             NVIDIA Corporation                                         Purdue University                        University of Wisconsin-Madison
+          Santa Clara, California, USA                             West Lafayette, Indiana, USA                     Madison, Wisconsin, USA
+
+                                                                           Somali Chaterji
+                                                                     schaterji@purdue.edu
+                                                                        Purdue University
+                                                                   West Lafayette, Indiana, USA
+
+Abstract                                                                                Keywords
+Efficient 3D perception is critical for autonomous systems—self-                        3D Object Detection, Embedded GPUs, Point Clouds, Multi-Branch
+driving vehicles, drones—to navigate safely in dynamic environ-                         System, Direct Preference Optimization
+ments. Accurate 3D object detection from LiDAR data must handle                         ACM Reference Format:
+irregular, high-volume point clouds, variable latency from con-                         Pengcheng Wang, Zhuoming Liu, Shayok Bagchi, Ran Xu, Saurabh Bagchi,
+tention and scene complexity, and tight embedded GPU constraints.                       Yin Li, and Somali Chaterji. 2025. Agile3D: Adaptive Contention- and
+Balancing accuracy and latency under dynamic conditions is crucial,                     Content-Aware 3D Object Detection for Embedded GPUs. In The 23rd An-
+yet existing frameworks like Chanakya [NeurIPS ’23], LiteReconfig                       nual International Conference on Mobile Systems, Applications and Services
+[EuroSys ’22], and AdaScale [MLSys ’19] struggle with the unique                        (MobiSys ’25), June 23–27, 2025, Anaheim, CA, USA. ACM, New York, NY,
+demands of 3D detection. We present Agile3D, the first adap-                            USA, 14 pages. https://doi.org/10.1145/3711875.3729147
+tive 3D system integrating a cross-model Multi-branch Execution
+Framework (MEF) and a Contention- and Content-Aware Reinforce-                          1    Introduction
+ment Learning-based controller (CARL). CARL dynamically selects                         3D object detection is essential for applications such as autonomous
+the optimal execution branch using five novel MEF control knobs:                        vehicles, delivery drones, robotics, and AR/VR systems, enabling
+encoding format, spatial resolution, spatial encoding, 3D feature                       safe navigation and obstacle avoidance [2, 28, 56]. LiDAR technol-
+extractor, and detection head. CARL uses supervised training for                        ogy, which generates 3D point clouds, forms the foundation of these
+stable initial policies, then Direct Preference Optimization (DPO) to                   systems. However, processing high-volume, irregular point cloud
+finetune branch selection without hand-crafted rewards, presenting                      data on resource-constrained embedded hardware, such as NVIDIA
+the first application of DPO to branch scheduling in 3D detection.                      Jetson boards, is challenging [1, 44]. The challenge is exacerbated
+Comprehensive evaluations show that Agile3D achieves state-                             by dynamically fluctuating resource contention, making it critical
+of-the-art performance, maintaining high accuracy across varying                        to balance accuracy and latency in autonomous systems.
+hardware contention levels and 100-500 ms latency budgets. On                              Unlike 2D object detection models that leverage structured im-
+NVIDIA Orin and Xavier GPUs, it consistently leads the Pareto                           age data with stable latency of CNN-based models, 3D detection
+frontier, outperforming existing methods for efficient 3D detection.                    must contend with the irregularity and sparsity of point clouds,
+                                                                                        requiring specialized encoders for voxelization and sparse con-
+                                                                                        volutions. These operations significantly increase computational
+CCS Concepts                                                                            demands, leading to latency variability. For instance, the latest 3D
+• Computer systems organization → Embedded software; •                                  model, DSVT [53], requires 13 TFLOPs of computation per sec-
+Computing methodologies → Computer vision problems; •                                   ond, far exceeding the NVIDIA Orin GPU’s theoretical peak of 5.3
+Human-centered computing → Ubiquitous and mobile com-                                   TFLOPs [22], and even more so for less powerful platforms like the
+puting systems and tools.                                                               NVIDIA Xavier (~1.4 TFLOPs). In practice, real-world deployments
+                                                                                        rarely achieve peak performance due to resource sharing among
+                                                                                        concurrent applications, exacerbating latency unpredictability and
+This work is licensed under a Creative Commons Attribution 4.0 International License.   complicating latency constraints like the 10-20 Hz acquisition rates
+MobiSys ’25, Anaheim, CA, USA                                                           of modern LiDAR systems [3, 45]. This gap highlights the need for
+© 2025 Copyright held by the owner/author(s).
+ACM ISBN 979-8-4007-1453-5/2025/06                                                      adaptable 3D detection solutions optimized for resource and latency
+https://doi.org/10.1145/3711875.3729147                                                 constraints, especially in cost- and energy-sensitive scenarios.
+MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA                                                                                                  Wang et al.
+
+
+    Significant progress has been made in developing 3D object                         These complexities expose a critical gap: existing frameworks lack
+detection models. Early works such as PointNet [32] and Point-                      the mechanisms to dynamically adapt 3D object detection to simulta-
+Net++ [33] pioneered feature extraction from point clouds, while                    neous variations in input content and resource contention. Bridging
+two-stage models like PV-RCNN [42] combined voxelization and                        this gap demands the development of novel, resource-aware systems
+point-wise feature abstraction to enhance detection accuracy. Fully                 capable of balancing accuracy and latency at runtime, while adher-
+trainable models, including VoxelNet [69] and SECOND [60], im-                      ing to stringent SLOs across diverse deployment environments. Such
+proved representational capabilities, whereas efficiency-focused de-                adaptive 3D detection systems face three key challenges: First,
+signs like PIXOR [61] and PointPillar [23] reduced inference latency.               embedded devices are resource-constrained and often run multiple
+Advanced detection heads like CenterPoint [64] and Part-𝐴2 [43],                    applications, leading to resource contention. Second, transitioning
+alongside transformer-based architectures like DSVT [53], have                      from 2D to 3D detection requires specialized 3D encoders, which
+further pushed detection accuracy. Despite recent progress, exist-                  involve operations like voxelization, voxel encoding, and sparse
+ing models are designed and evaluated on server-class GPUs under                    convolutions, significantly increasing system complexity. Lastly,
+ideal conditions, neglecting the resource contention and latency                    systems with tight latency budget must simultaneously handle dy-
+constraints of real-world applications. For instance, models such as                namic external conditions (e.g., content variability across scenes and
+CenterPoint [64], Part-𝐴2 [43], and DSVT [53] fail to dynamically                   latency SLOs) and internal constraints (e.g., hardware contention
+adapt to fluctuating resource contention and latency SLOs, falling                  from co-existing applications).
+short of LiDAR operation rates (10-20 Hz), when deployed on a less                     To address these challenges, we present Agile3D, the first adap-
+powerful edge device (e.g., the Nvidia Orin GPU).                                   tive, contention- and content-aware 3D object detection system tailored
+    In parallel, adaptive systems for 2D workloads have been exten-                 for embedded GPUs. At its core, Agile3D employs a Multi-branch
+sively studied recently, focusing on balancing accuracy and latency                 Execution Framework (MEF) with five novel control knobs: en-
+under service-level objectives (SLOs) or resource constraints, partic-              coding format, spatial resolution, spatial encoding method, 3D
+ularly in video processing tasks. Representative examples include                   feature extractor variants, and detection heads (Sec. 3.3). These
+Chanakya [15], LiteReconfig [58], and AdaScale [7], designed for                    control knobs enable over 50 unique model configurations, allow-
+2D object detection in videos. In 2D detection, branch variations1                  ing the system to adapt its execution strategy based on input data,
+are typically achieved by tuning hyperparameters within a single                    resource availability, and system SLOs. Notably, the first four of
+DNN model, without retraining or structural changes. We term                        these five control knobs are specifically designed for 3D point cloud
+this approach “single model branching,” which enables lightweight                   object detection, distinguishing Agile3D from previous 2D adap-
+adjustments ideal for 2D workloads by tuning hyperparameters                        tive frameworks [7, 20, 36, 58, 65]. While the MEF facilitates dy-
+without retraining. In contrast, “cross-model branching” employs                    namic operation, the Contention- and Content-Aware RL-based
+multiple models to address varying requirements.                                    (CARL) controller guarantees system adaptability through fine-
+    Extending these 2D techniques to 3D workloads presents two                      grained scheduling. CARL dynamically selects optimal branches
+major challenges. First, adjustments to parameters like voxel size                  at runtime, addressing variability in input content, hardware con-
+require retraining of the model, due to the way such changes funda-                 straints, and latency SLOs. Traditional RL-based controllers, such
+mentally alter the input data representation. For example, variations               as Chanakya [15], depend on human-designed reward functions,
+in voxel or pillar size affect how the point cloud is divided into grids            which often lead to suboptimal results. CARL overcomes this limi-
+(spatial resolution) and how spatial features are encoded. These                    tation by employing Direct Preference Optimization (DPO) [35], a
+shifts disrupt downstream computations, such as sparse convolu-                     method that eliminates the need for manual reward tuning by learn-
+tions, rendering pre-trained weights incompatible with the modified                 ing directly from preference comparisons. While DPO is widely
+data structure. Consequently, the model must be retrained or ex-                    used in domains like Large language models (LLMs) with human-
+tensively fine-tuned to restore performance, making single-model                    labeled “good” and “bad” outputs, CARL adapts this concept for
+branching impractical for 3D systems. This limitation necessitates                  3D detection by leveraging a heuristic beam search oracle to label
+cross-model branching for 3D workloads, enabling dynamic adap-                      optimal branches. This approach replaces the need for extensive
+tation to diverse input characteristics and resource constraints. Al-               manual labeling, ensuring efficient training and robust adaptability.
+though cross-model branching increases memory usage, the lower                      As a result, CARL achieves superior accuracy and adaptability in
+memory footprint of 3D models (Sec. 3.1.1) makes it both feasible                   complex 3D tasks, even under dynamic runtime conditions.
+and advantageous. Second, unlike 2D models that process pixels                         We evaluate Agile3D on three major benchmarks—Waymo [45],
+defined on regular grids with stable latency, 3D models handle                      nuScenes [3], and KITTI [14]—covering diverse scenarios and com-
+irregular point clouds, and thus exhibit higher latency variability                 plexities, using NVIDIA Jetson Orin and Xavier GPUs. Agile3D
+under resource contention (Sec. 3.1.2). This key difference leads to                consistently achieves high accuracy across latency SLOs (100-500
+significant variance in latency when executing the same branch                      ms) and contention levels. It outperforms adaptive system con-
+(i.e., the same single model) across different input point clouds                   trollers such as Chanakya [15] and LiteReconfig [58], and static 3D
+even without contention. Such variability necessitates innovative                   models like DSVT [53], CenterPoint [64], and PointPillars [23] by
+scheduling techniques to dynamically select execution branches in                   1-5% accuracy, while adhering to the latency constraints.
+response to changing input content and resource contention.                            We summarize our contributions as follows:
+1 A branch is a distinct DNN configuration tuned via hyperparameters (“knobs”) to   1. We present Agile3D, the first adaptive 3D object detection sys-
+ensure consistent latency and accuracy across diverse inputs.                       tem for embedded GPUs, designed to adapt seamlessly to varying
+Agile3D: Adaptive Contention- and Content-Aware 3D Object Detection for Embedded GPUs                          MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA
+
+
+contention levels and latency SLOs while maintaining robust perfor-                These modifications alter data representations and computation
+mance across diverse datasets (e.g., Waymo, nuScenes, and KITTI).                  flows, rendering single-model branching infeasible. Furthermore,
+Agile3D leverages five novel control knobs to dynamically opti-                    3D models experience higher latency variability under resource con-
+mize latency-accuracy trade-offs, effectively addressing the unique                tention, complicating stable performance in dynamic environments.
+challenges of 3D object detection.                                                 These limitations emphasize the need for novel adaptive mechanisms
+2. We design and implement two controller variants: a CARL con-                    specifically designed for 3D detection. Such mechanisms must account
+troller for dynamic, high-contention environments and a light-                     for retraining requirements, fluctuating contention, input variability,
+weight Look-up Table-based controller for contention-free scenar-                  and latency constraints to achieve robust performance.
+ios. The CARL controller combines supervised training with DPO
+fine-tuning, eliminating manually tuned rewards and improving ac-                  2.3    RL with Feedback
+curacy. Using a heuristic beam search, our fine-tuning automatically               Reinforcement Learning with Human Feedback (RLHF) [8, 27, 31]
+labels optimal branches, significantly reducing manual effort.                     integrates human preferences into LLM training. First, LLMs are
+3. Agile3D delivers significant accuracy gains (1-5%) over state-                  pre-trained on large datasets via unsupervised learning. They are
+of-the-art (SOTA) baselines such as Chanakya [NeurIPS ’23] and                     then fine-tuned using human-labeled data through supervised learn-
+LiteReconfig [EuroSys ’22], while maintaining practical SLOs (100-                 ing, followed by further fine-tuning via reinforcement learning that
+500 ms) across varying contention levels. It consistently excels                   leverages human feedback. A reward model evaluates outputs, and
+on diverse datasets and operates efficiently on NVIDIA Orin and                    RL techniques like Proximal Policy Optimization (PPO) [41] refine
+Xavier platforms.                                                                  the policy to align with human expectations. Though effective,
+                                                                                   RLHF requires a complex pipeline with an auxiliary reward model.
+2 Background                                                                       DPO [35] simplifies this by bypassing the reward model, directly
+2.1 3D Object Detection Algorithms                                                 optimizing policy using preference pairs. The model is trained to
+                                                                                   favor preferred outputs over less favorable ones via a contrastive
+Point Cloud Data. LiDAR generates unordered, irregular, and
+                                                                                   loss function, offering an efficient mechanism for preference-based
+sparse point clouds for spatial mapping [24]. Grid-based methods 2
+                                                                                   optimization. Inspired by RLHF and DPO, we adapt these meth-
+structure this data through voxelization [69], balancing efficiency
+                                                                                   ods for multi-branch scheduling in Agile3D. Here, the controller
+and computational cost. Hard Voxelization (HV) restricts points per
+                                                                                   (analogous to the language model) selects optimal branches under
+grid cell, while maintaining fixed grid dimensions, causing detail
+                                                                                   latency and contention levels. Using preference pairs generated by
+loss in dense areas. Dynamic Voxelization (DV) removes point-per
+                                                                                   an Oracle controller, DPO optimizes branch selection policies with-
+cell caps (allowing unlimited points per cell) but retains fixed grid
+                                                                                   out an intermediate reward model, improving system performance
+dimensions. This results in two inefficiencies: dense regions may
+                                                                                   by tailoring LLM-inspired techniques to 3D detection.
+retain noise rather than discriminative features; sparse regions
+waste computation on empty grid cells.
+                                                                                   3     Motivation and Design
+Local Processing for Sensors. Efficient sensor data processing on                  Our work addresses the unique challenges of designing an adaptive
+embedded GPUs, like LiDAR and cameras, relies on lightweight                       3D object detection system. We demonstrate four motivation studies
+DNNs [18, 19, 25, 47, 55, 67]. While resource-efficient, these models              and present the key challenges in Sec. 3.1, provide an overview of
+lack adaptability to dynamic latency SLOs and input variability,                   Agile3D in Sec. 3.2, introduce the cross-model MEF in Sec. 3.3, and
+limiting their real-world utility.                                                 present our contention- and content-aware RL-based controller
+                                                                                   design in Sec. 3.4.
+2.2      Adaptive 2D Vision Systems
+Recent advances in adaptive computer vision systems have focused                   3.1    Motivational Studies
+on addressing dynamic latency SLOs and adapting to varying lev-                    3.1.1 2D vs. 3D Detection. To highlight the need for adaptive 3D
+els of resource contention by responding intelligently to input                    systems, we compare structural and latency distribution differences
+content characteristics [7, 15, 20, 21, 36, 59, 65]. Configurations                between 2D and 3D detectors. While 2D models process dense, struc-
+are implemented through dynamic adjustments within a single                        tured images, 3D detectors handle unordered, sparse point clouds,
+model [7, 21, 57] or ensembles leveraging multiple models or ex-                   requiring a 3D Encoder for spatial feature extraction, which intro-
+its [11, 51]. Customized lightweight networks tailored to datasets                 duces unique latency and computational demands. Study Setup.
+further enhance efficiency [10]. These methods balance latency                     We benchmark widely used 2D models (Faster RCNN [38], Sparse
+and accuracy, ensuring stable performance under dynamic condi-                     RCNN [46], Dynamic RCNN [66], SSD [26], YOLOF [5], TOOD [12])
+tions. While effective for 2D tasks, these approaches face significant             and 3D models (SECOND [60], PointPillars [23], CenterPoint [64]
+challenges when extended to 3D systems. As discussed in Sec. 3.1,                  with CP-Voxel and CP-Pillar variants). Results and Findings. As
+transitioning to 3D introduces greater computational demands, ir-                  shown in Fig. 1, latency distributions differ significantly between
+regular data structures, and the need for more sophisticated content               2D and 3D models. In 2D, the Backbone dominates latency (47%-
+reasoning. Unlike 2D systems, where model parameters can be dy-                    78%), followed by the Neck (4%-21%) and Detection Head (16%-47%).
+namically adjusted without retraining, 3D detection often requires                 For 3D models, the 3D Encoder accounts for 21%-44% of latency,
+retraining or structural modifications for changes like voxel size.                surpassing the Backbone (15%-36%) in absolute computational de-
+2 Here, “grid” refers to both voxel and pillar formats.                            mand. This highlights the inefficiency of adaptive 2D techniques
+MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA                                                                                       Wang et al.
+
+
+
+
+                                                                       Figure 2: Mean latency with standard deviation across branches.
+Figure 1: Comparison of execution time and model size for 2D and 3D models.
+                                                                       Higher contention increases variability and limits branches
+3D models require higher computation for point clouds but offer better
+                                                                       within the 500 ms SLO, emphasizing the need for contention-
+memory efficiency, averaging 20.53 MB versus 203.32 MB for 2D models.
+                                                                       and content-aware 3D controls.
+
+                                                                          the mean latency, standard deviation, and coefficient of variation
+                                                                          (i.e., stddev/mean) to capture stability, with lower values indicat-
+                                                                          ing greater consistency. Results are reported for branches with
+                                                                          mean latencies under 500 ms. Results and Findings. As shown in
+                                                                          Fig. 2, latency variability increases significantly with higher con-
+                                                                          tention levels. The coefficient of variation ranges from 2.62% to
+                                                                          11.91% under no contention, 2.83% to 13.34% under light contention,
+                                                                          1.94% to 14.13% under moderate contention, and 2.13% to 21.38%
+                                                                          under intense contention, with heavier models exhibiting higher
+                                                                          variance. Two types of latency variance are observed: 1. Within-
+                                                                          Branch Variance: Variability caused by differences in input point
+                                                                          cloud density. Dense or cluttered point clouds require more pro-
+                                                                          cessing, increasing latency compared to sparser inputs, worsening
+Figure 3: Comparison of 3D models—SECOND, PointPillars, CP-Voxel,
+and CP-Pillar—at different spatial resolutions. Key insight: No single
+                                                                          as contention increases. 2. Between-Branch Variance: Differences
+model dominates across all latency ranges, motivating the need for        arise due to architectural variations across branches. Operations
+adaptive switching among models.                                          like grouping, sampling, voxel encoding, and sparse/dense convo-
+                                                                          lution introduce varying computational demands, causing model
+                                                                          latency variability. 3D models exhibit significant latency variability
+when applied to 3D systems, as 3D models require specialized en-
+                                                                          under resource contention and dynamic inputs. A contention- and
+coders to process point clouds into structured spatial features. A
+                                                                          content-aware controller is critical to adapt execution paths, reduce
+counter-intuitive observation is that 3D models are significantly
+                                                                          latency violations, and ensure reliable performance.
+more memory-efficient than 2D models (purple bars in Fig. 1). 2D
+models on COCO average 203.32 MB, whereas 3D models on KITTI
+average 20.53 MB—nearly one-tenth the size, despite KITTI point           3.1.3 Need for Multi-Model Design. In autonomous systems, la-
+clouds containing 45% of COCO’s image data volume. This compact-          tency and accuracy requirements vary based on environmental
+ness reflects the efficiency of 3D models in leveraging sparse point      conditions, system speed, and operational demands. Agile3D is
+clouds and voxelization to capture essential spatial information          designed to adapt to these dynamic scenarios, ensuring consis-
+with fewer parameters. Unlike 2D models, which process dense              tent performance across conditions. Study Setup. We evaluate
+color, texture, and background information, 3D models focus on            four 3D models: SECOND, PointPillars, CP-Voxel, and CP-Pillar,
+spatial structure, efficiently encoding occupied regions and surface      each tested with five grid sizes on Xavier boards. Results and
+geometry, thereby reducing memory requirements.                           Findings. The observed behaviors, shown in Fig. 3, are as follows:
+                                                                          [SECOND]: accuracy 40%-70%, latency 58-143 ms; [PointPillars]: ac-
+3.1.2 High Latency Variance of 3D Models. Maintaining low latency         curacy 52%-65%, latency 53-147 ms; [CP-Voxel]: accuracy 62%-67%,
+violations is crucial in autonomous systems to ensure timely re-          latency 94-371 ms; [CP-Pillar]: accuracy 53%-63%, latency 74-186
+sponses across different scenarios. Significant latency variability in    ms. The relationship between spatial resolution (grid sizes) and
+3D models highlights the need for a contention- and content-aware         detection accuracy is nuanced, especially for different object sizes
+controller. Study Setup. We measure the latency of all branches3          and classes. For smaller objects, such as pedestrians, higher spatial
+in the MEF on an embedded GPU under different contention levels.          resolution (smaller grid sizes) improves accuracy due to better fea-
+Contention levels are calibrated as detailed in Sec. 4.4; higher levels   ture representation. For instance, the PointPillars model PP-0.12
+indicate greater resource contention. For each branch, we compute         achieves higher accuracy in pedestrian detection (44.46%) compared
+3 In Agile3D, “branch” and “model” are used interchangeably.              to PP-0.16 (40.24%). However, for larger objects like cyclists and
+Agile3D: Adaptive Contention- and Content-Aware 3D Object Detection for Embedded GPUs                          MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA
+
+
+
+
+Figure 4: Visualization of diverse point clouds: Vehicles [L], Pedestrians [M], and a mix of Pedestrians, Cyclists, and Vehicles [R]. Ground-truth
+boxes are green, with top branch predictions for Pedestrians red, Cyclists orange, and Vehicles blue. The top-5 model ranking varies by context:
+for [L], pillar-based models prevail due to the straightforward geometry; for [M], voxel and center-based detection excel due to their robustness
+to smaller, varied orientations; and for mixed-object scenes [R], the complexity defies simple explanations, motivating Agile3D’s multi-branch
+and content-aware controller design.
+
+cars, higher resolution yields fewer gains, as these objects are more              accuracy performance demands novel approximate mechanisms
+easily detectable at lower resolutions due to better global feature                and a tailored controller design.
+aggregation. For example, PP-0.16 outperforms PP-0.12 in detecting                 • Inflexibility of the 3D models: The 3D Encoder plays a critical role
+cyclists (65.23% vs. 58.73%) and cars (75.98% vs. 69.53%). No single               in encoding sparse point cloud data into structured spatial features,
+model consistently occupies the Pareto frontier under all conditions.              unlike the 2D images processed directly by CNN-based 2D Back-
+This emphasizes the importance of an intelligent system that bal-                  bones. Adjusting voxel or pillar sizes in 3D significantly impacts
+ances accuracy and latency under varying SLOs to ensure robust                     feature map dimensions and necessitates model retraining due to
+performance, and we adopt this approach in designing Agile3D.                      the fixed input requirements of fully connected layers widely used
+                                                                                   in the 3D Encoder. Unlike the resizing flexibility of 2D models, this
+3.1.4 Need for Content-Aware Design. To handle diverse contexts                    adds rigidity to 3D models, complicating system-level design and
+in autonomous systems, we employ a content-aware design to select                  requiring specialized handling.
+the best branch at runtime, where each branch is an independent                    • Interdependencies in system design: In Agile3D, a dependency-
+model (Sec. 3.3-3.4). These branches enhance detection accuracy                    driven approach is necessary due to the tight interconnections
+across varied scenarios, highlighting the adaptability of our multi-               between the 3D Encoder, 3D Backbone, and Detection Head com-
+model and content-aware approach. Study Setup. We examine                          ponents. Unlike in 2D systems, where control knobs can be tuned
+three point clouds with different object compositions: vehicles only               independently, 3D models require coordinated adjustments across
+(Fig. 4[L]), pedestrians only ([M]), and a mix of pedestrians, cyclists,           all modules. These interdependencies make it essential to design
+and vehicles ([R]). Each subfigure lists the top-5 branches by ac-                 adaptive 3D systems that can dynamically reconfigure the entire
+curacy. Results and Findings. Fig. 4 reveals notable variability                   pipeline—spanning from the 3D Encoder to the Detection Head—to
+in the optimal branches across contexts. In vehicle-only scenes                    ensure efficient operation under varying spatial resolutions.
+([L]), pillar-based models perform best, as they are suited for sim-               • Necessity for contention- and content-aware design: The signifi-
+pler environments with large objects and limited vertical detail. In               cant latency variance observed in 3D models, caused by factors
+pedestrian-only scenes ([M]), CP-Voxel models excel due to their                   like input variability and resource contention, emphasizes the need
+ability to detect smaller objects with complex vertical features and               for dynamic control mechanisms that adapt to changing condi-
+diverse rotations. In mixed-object contexts ([R]), top-performing                  tions. Furthermore, the nuanced relationship between accuracy
+models include CP-Pillar, SECOND, and CP-Voxel, highlighting the                   and latency, influenced by input content and model architecture,
+challenge of selecting a fixed model for complex content. Models                   demonstrates that no single model consistently performs optimally
+with anchor-based Detection Heads work well for axis-aligned ob-                   across all scenarios. A robust contention- and content-aware ap-
+jects ([L]), while center-based Detection Heads are better suited for              proach is essential, as the optimal model choice varies depending
+non-axis-aligned objects ([M]). The variability in optimal model                   on the context.
+selection across contexts necessitates a flexible, multi-model, and
+content-aware approach. Agile3D provides the adaptability to ac-
+                                                                                   3.2    Approach Overview
+count for the dynamic content in autonomous systems.
+                                                                                   We design Agile3D to dynamically adapt to resource contention
+3.1.5 Key Challenges. Building on the motivational studies,                        and input content while meeting strict latency requirements. At
+we identify the following challenges:                                              its core, Agile3D features an MEF comprising diverse execution
+• Techniques from adaptive 2D systems are inadequate for 3D: Exist-                branches managed by the runtime CARL controller. Each branch
+ing adaptive 2D techniques, such as Chanakya [15] and LiteRecon-                   leverages five tunable modules (“knobs”) across critical 3D detection
+fig [58], struggle with 3D due to the differences in model structure               components. These knobs allow Agile3D to flexibly balance latency
+and latency distribution. Specialized 3D models require a dedicated                and accuracy, extending grid-based 3D detection methods for di-
+3D Encoder to convert raw data into spatial features, adding com-                  verse performance tuning. The system buffers and preheats the MEF
+plexity absent in 2D tasks. Optimizing 3D system’s latency and                     in memory on embedded devices during the initial phase, enabling
+MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA                                                                                       Wang et al.
+
+
+
+
+Figure 5: Agile3D integrates MEF and CARL for dynamic branch selection based on input content, contention levels, and latency SLOs. Supervised
+training with DPO fine-tuning and five control knobs (CK) ensure adaptability across diverse scenarios.
+
+sub-1 ms branch switching and ensuring timely responsiveness.                By incorporating these five knobs, the MEF in Agile3D offers
+With the CARL controller’s contention- and content-aware strategy,        a highly adaptive and configurable framework, ensuring strong
+Agile3D achieves high accuracy and low latency violation ratio            performance for 3D object detection with tight latency budget and
+across diverse scenarios. Fig. 5 illustrates how MEF and CARL en-         under resource contention.
+able Agile3D to function as the first adaptive 3D detection system
+operable on embedded GPUs.
+
+                                                                          3.3.2 Synergy among Control Knobs. The control knobs are inter-
+3.3     Design of MEF                                                     dependent, impacting both computational efficiency and detection
+3.3.1 Agile3D’s Control Knobs. In designing Agile3D, we care-             accuracy. The key synergies among these control knobs are:
+fully select five control knobs based on domain knowledge and our         #1. Synergy among encoding format, spatial resolution, 3D feature
+analysis of key stages in the 3D object detection pipeline in Sec. 3.1    extractor, and detection head: Choosing a encoding format for point
+(e.g., Fig. 1 highlights the importance of the 3D Encoder, Fig. 3         clouds requires compatible resolution, and a 3D feature extractor
+shows the effects of voxel and pillar sizes, and Fig. 4 demonstrates      supporting this format. For instance, if we choose voxels as the
+how different 3D models excel under various scenarios). Compared          encoding format, we need to select an appropriate voxel size from
+to traditional knobs for 2D image data [7, 15, 58], these control         the available options, choose a feature extractor that can efficiently
+knobs are tailored to key stages in processing point cloud data,          process voxel-based feature maps (e.g., sparse 3D CNN), and adjust
+providing a more significant impact on the latency and accuracy of        the detection head to accommodate the intermediate feature map
+3D detection models.                                                      sizes resulting from different voxel sizes. Such a model may require
+#1. Point Cloud Encoding Format: Defines how raw point cloud              a simpler Backbone to balance the computational load arising from
+data is encoded, either into voxels (3D cuboids that capture volu-        the increased complexity of 3D Encoder [23, 63, 64]. This constraint
+metric information) or pillars (vertical columns with no vertical         helps the system meet target latency and processing speed.
+segmentation). Voxel partitioning captures finer spatial details, en-     #2. Spatial resolution and model retraining: Modifying voxel or pillar
+hancing accuracy but increasing computation. Pillar partitioning is       sizes changes the dimensions of the model’s intermediate feature
+more efficient but loses some height information, making it suitable      maps, often requiring retraining of specific feature extraction and
+for less complex scenes.                                                  prediction layers. 3D Encoders with PointNet-based feature extrac-
+#2. Spatial Resolution: Adjusts voxel or pillar sizes to control the      tors [64, 69] rely on fixed input dimensions in fully connected lay-
+granularity of spatial information, balancing the trade-off between       ers; therefore, adjusting the resolution necessitates separate models
+speed and detail. Larger partitions reduce detail and computational       retrained from end-to-end to achieve optimal accuracy.
+load, while smaller partitions capture more detail at the cost of         #3. Impact of spatial encoding on latency and its variability: The
+higher latency.                                                           choice between HV and DV impacts the stability of data processing
+#3. Spatial Encoding (HV vs. DV): Determines how point clouds             latency in both the spatial encoding step and subsequent mod-
+are voxelized. HV uses fixed grids, limiting points per grid and total    ules, including the Backbone and Detection Head. As discussed in
+number of grids, and improving stability. DV adapts to data density       Sec. 3.3.1, HV ensures stable latency by using a fixed number of
+by eliminating these two limitations, which makes it more dynamic         grid cells and points per grid—a strategy that provides predictabil-
+but may sacrifice some stability.                                         ity at the expense of losing detail in dense regions and incurring
+#4. 3D Feature Extractor: Chooses the neural network type for             computational overhead from processing empty areas. In contrast,
+high dimension 3D feature extraction. Transformers work with              DV removes fixed caps, allowing unlimited points per grid cell and
+both voxel and pillar data for high accuracy but are computationally      dynamically adjusting grid allocation based on input data density.
+intensive. Sparse CNNs are effective for voxel-based data, while 2D       This approach reduces inefficiencies in sparse areas and captures
+CNNs suit pillar-based formats, though they lose some 3D detail.          more detail in dense regions. However, DV’s reliance on dynamic
+#5. Detection Head: Defines the method for object localization            point aggregation introduces variability in latency, as processing
+and recognition. Anchor-based one uses predefined anchors for             times fluctuate with changes in input density. In summary, HV-
+efficiency but struggles with diverse object orientations. Center-        based models ensure stable latency but sacrifice accuracy due to
+based one better handles rotated or hybrid objects (e.g., vehicles at     fixed grid limits, whereas DV-based models enhance accuracy but
+intersections), though more computationally demanding.                    compromise latency predictability.
+Agile3D: Adaptive Contention- and Content-Aware 3D Object Detection for Embedded GPUs                          MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA
+
+
+Impact on System Design. These dependencies indicate that tun-
+ing one control knob may require adjustments to others, rendering
+it impractical to optimize these parameters within a single model
+as is common in 2D systems. Agile3D addresses this challenge by
+employing cross-model branching, with each branch optimized for
+a specific set of control knob configurations. This approach enables
+broad adaptability to meet diverse operational requirements.
+
+3.4     Design of Controller                                                       Figure 6: The CARL controller uses a shared architecture for policy
+The controller’s main objective is to dynamically select the optimal               and reference models, integrating GD-MAE for 3D features, trans-
+branch at each timestamp that satisfies the latency SLO and maxi-                  formers for prior detection results embedding, SSM for sequence
+                                                                                   processing, and positional embeddings for latency objectives, en-
+mizes accuracy, given the current input point cloud and hardware
+                                                                                   abling adaptive branch selection.
+contention. The optimization can be formulated as:
+
+  𝑏𝑜𝑝𝑡 = argmax𝑏 ∈ B 𝑎𝑐𝑐(𝑏, 𝑋, 𝐶) s.t. 𝑙(𝑏, 𝑋, 𝐶) + 𝑙𝑐 + 𝑙𝑜 ≤ 𝑙𝑠 , (1)             as shown in Fig. 6. Both models share the same architecture, map-
+                                                                                   ping an input state 𝑆𝑖 to a probability of actions (i.e., choosing
+where B denotes the set of available branches, 𝑋 represents the
+                                                                                   branches) 𝑝(𝑏𝑖 |𝑆𝑖 ). The model starts with raw point clouds 𝑋𝑖 using
+input point cloud, 𝐶 is the contention level, and 𝑎𝑐𝑐(𝑏, 𝑋, 𝐶) and
+                                                                                   GD-MAE [62], an efficient 3D feature extraction framework. GD-
+𝑙(𝑏, 𝑋, 𝐶) are the accuracy and latency of branch 𝑏, respectively.
+                                                                                   MAE leverages sparse representations and self-supervised masked
+Here, 𝑙𝑐 denotes the controller’s latency cost, 𝑙𝑜 is the branch-
+                                                                                   autoencoder pre-training on LiDAR data to learn unbiased geomet-
+switching overhead, and 𝑙𝑠 indicates the latency SLO.
+                                                                                   ric features. This approach reduces the reliance on labeled data
+   A direct solution to this optimization problem is impractical at
+                                                                                   and enhances generalization performance in downstream tasks.
+runtime due to latency that varies dynamically with input content
+                                                                                   The extracted features are combined with tokens generated from
+and contention, as well as unknown accuracy beforehand. There-
+                                                                                   Transformer [52] layers, which encode previous detection results
+fore, we employ RL techniques to predict the optimal branch. This
+                                                                                   𝐷𝑖 into embeddings. These embeddings provide historical context
+approach involves two phases: offline training and online prediction.
+                                                                                   for informed decision-making. The combined features are passed to
+In the offline phase, each branch undergoes profiling on embedded
+                                                                                   a Structured State-Space Model (SSM) [16], enabling the controller
+GPUs using a previously unseen dataset, enabling the controller to
+                                                                                   to model temporal dependencies across consecutive frames. The
+learn input- and branch-specific latency and accuracy character-
+                                                                                   SSM output is enhanced with a positional embedding representing
+istics. During the online phase, the trained controller selects the
+                                                                                   contention 𝐶𝑖 , which encodes the current contention level in the
+optimal branch that meets the latency SLO and maximizes accuracy.
+                                                                                   feature space. Finally, the concatenated features pass through a
+Next, we detail our controller design.
+                                                                                   multi-layer perceptron (MLP) to generate the action distribution,
+3.4.1 CARL Controller. Our CARL controller dynamically sched-                      enabling effective branch selection aligned with latency objectives.
+ules tasks by considering contention levels and input content. It
+                                                                                   Supervised Training. We use supervised learning to train the
+employs supervised training for initial learning, followed by DPO
+                                                                                   CARL controller, aligning its initial policy with the Oracle’s target
+fine-tuning with preference labels provided by the Approximate
+                                                                                   action 𝑏 opt (provided by AOB, Sec. 3.4.2) for a given system state 𝑆,
+Oracle controller using Beam Search (AOB, Sec. 3.4.2). DPO re-
+                                                                                   predicting an action distribution 𝜋(𝑏 |𝑆). The training objective is
+fines branch selection through preference comparisons instead of
+                                                                                   to minimize the cross-entropy loss between the prediction and the
+absolute scores, ensuring efficient optimization.
+                                                                                   target shown in Eq. 2:
+   We frame branch scheduling as a Markov Decision Process
+(MDP), and consider learning CARL using RL. Formally, the states,
+actions, and rewards for the MDP are defined as follows. At each                                         min𝜋 L𝐶𝐸 (𝜋(𝑏 |𝑆), 𝑏 opt ),                       (2)
+timestep 𝑖 (𝑖 = 0, . . . , 𝑡), the state 𝑆𝑖 comprises the current input
+point cloud 𝑋𝑖 , previous detection results 𝐷𝑖 , and the current con-              DPO Training. While supervised learning optimizes decisions at
+tention level 𝐶𝑖 . Formally, the state is represented as 𝑆𝑖 = (𝑋𝑖 , 𝐷𝑖 , 𝐶𝑖 ).     each timestamp independently, DPO enhances the CARL controller
+The actions are the branch selections from the MEF, defined as                     by considering sequences of actions over time. This approach en-
+𝑏𝑖 ∈ B where B is the set of all possible branches. CARL selects                   ables the controller to balance short-term and long-term trade-offs,
+a proper branch 𝑏𝑖 based on the current state 𝑆𝑖 so as to optimize                 achieving superior overall performance. We initialize the policy
+the overall efficiency and accuracy. Unlike standard RL, we do not                 model 𝜋 and reference models 𝜋ref from the supervised-trained
+assume an explicit reward for each action, as rewards will be im-                  model. For each state 𝑆, we generate positive-negative action pairs
+plicitly provided by preference-based optimization in DPO. Further,                (𝑏𝑝 , 𝑏𝑛 ). The positive action 𝑏𝑝 is selected using the AOB, while
+we consider a discrete set of latency SLOs {𝑙 } and train separate                 the negative action 𝑏𝑛 is sampled from the reference model 𝜋 ref .
+models for individual latency SLOs.                                                As a result, the positive actions are often more favorable than the
+                                                                                   negative ones. The policy 𝜋 is our controller. In traditional DPO
+CARL’s Structure. The controller comprises a policy model, which                   training, both positive and negative actions are derived from the
+is updated during training, and a reference model, which remains                   reference model, with human annotations used to identify the posi-
+frozen and serves as a stable baseline for calculating the DPO loss,               tive action. In our approach, the AOB replaces human annotations
+MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA                                                                                                 Wang et al.
+
+                                                                                 Table 1: 2D models’ contention levels with concurrent 3D workloads.
+for determining the positive action, but the underlying preference-              Transformer-based models (e.g., ViT [9]) exhibit higher contention
+comparison mechanism remains unchanged. The training objective                   than convolutional models (e.g., MobileNet [34], EfficientNet [48]).
+is formulated as maximizing the expected log-sigmoid difference be-
+                                                                                   Models       MobileNet      EfficientNet   ResNet50        ViT
+tween the preferred and non-preferred branch probabilities relative
+                                                                                   Variants    V4 V3 V2       B0 B3 B5          N/A      Medium Base
+to a reference policy shown in Eq.3.                                              Contention
+                                                                                               32   36   31   28   30   42       43        62       69
+                                                                                  Levels (%)
+                                      𝜋(𝑏𝑝 |𝑆)
+                                                                     
+                                                            𝜋(𝑏𝑛 |𝑆)
+  max E(𝑆,𝑏𝑝 ,𝑏𝑛 )∼D log 𝜎 𝛽 log                   − 𝛽 log               , (3)
+   𝜋                                 𝜋 ref (𝑏𝑝 |𝑆)         𝜋 ref (𝑏𝑛 |𝑆)         4.2    MEF Training
+where 𝛽 is a hyperparameter controlling the degree of divergence                 We construct MEF by integrating and enhancing a diverse set of 3D
+from the reference model 𝜋ref , and D represents the dataset of pref-            detectors, including DSVT [53], CenterPoint [64], DV [68], PointPil-
+erence comparisons. This training objective leverages preference                 lars [23], and SECOND [60]. Rather than naïvely aggregating these
+comparisons to fine-tune the policy model, aligning it with the                  models, Agile3D systematically calibrates and optimizes each com-
+AOB controller’s decisions and thereby enhancing sequence-level                  ponent to achieve a balanced trade-off between inference latency
+performance. During training, the target policy 𝜋 is updated, while              and detection accuracy. To ensure optimal performance, we cali-
+the reference policy 𝜋 ref is kept frozen.                                       brate voxel-based detectors along the x and y dimensions (0.1–0.9
+                                                                                 m) and adjust the z-dimension (0.1–0.2 m) to align with LiDAR
+3.4.2 Oracle Controller. The Oracle controller represents the the-               sensor configurations. For pillar-based models, we calibrate the
+oretical upper bound for content-aware scheduling by selecting                   x and y dimensions (0.24–0.9 m) while preserving z-heights ac-
+the optimal branch for each point cloud with full knowledge of                   cording to dataset specifications. This distinction arises because
+ground-truth accuracy. However, implementing such an Oracle is                   voxel-based models require finer z-granularity to capture vertical
+infeasible, as identifying the optimal branch under contention and               details, whereas pillar-based models prioritize lateral coverage. We
+latency constraints requires an exhaustive search across all branch              tune the detectors in MEF to leverage their strengths in addressing
+combinations—a computationally prohibitive task. To approximate,                 the challenges of 3D point clouds. For large datasets like Waymo
+we employ an AOB, which efficiently identifies near-optimal branch               and nuScenes, we employ DV for efficiency and center-based heads
+schedules by iteratively refining a limited set of top candidates. AOB           for complex scenes. Each detector uses model-specific setups with
+serves two main purposes: #1. Training Labels for CARL: AOB                      standardized preprocessing and augmentations (e.g., rotation, scal-
+generates optimal branch selections per frame, used to fine-tune                 ing, and flipping along the X and Y axes). Our original MEF consists
+CARL via DPO, helping CARL approximate Oracle-level perfor-                      of nearly 100 branches, which we prune down to approximately 50
+mance in dynamic environments. #2. Benchmarking: Comparing                       based on profiling results on a hold-out profiling set. This process
+Agile3D’s performance to AOB provides insights into adaptability                 retains only those branches near the Pareto frontier during offline
+and areas for optimization under varying conditions.                             profiling, and reduces overall memory consumption.
+3.4.3 Online Distribution-Aware Look-Up Table (DA-LUT)-based
+                                                                                 4.3    Contention Generator (CG)
+Controller. We also consider a baseline controller with a distribution-
+aware look-up table to address branch execution variability (Sec. 3.1.2).        We enhance the GPU CGs from Chanakya [15] and LiteRecon-
+This DA-LUT controller leverages offline profiling data (mean/-                  fig [58], adapting them to simulate real-world workloads better.
+variance of latency and accuracy) for efficient branch selection.                Building upon the original CGs, our enhancements introduce syn-
+Assuming Gaussian latency distributions, it calculates confidence                thetic contention to mimic the contention level from several 2D
+levels (e.g., 99%) to minimize latency violations while maintaining              models running concurrently with the main 3D task. This setup
+SLOs. The controller stores key-value pairs in the format <branch,               emulates practical embedded systems where 2D models (e.g., pro-
+contention, latency mean, latency std, accuracy> and incurs only                 cessing camera data) and 3D models (e.g., processing LiDAR data)
+1 ms overhead. Lightweight and content-agnostic, the DA-LUT                      share GPU resources. Given the diversity of 3D models and their
+controller excels in low-contention scenarios where latency fluc-                varying sensitivity to contention, we streamline the evaluation by
+tuations are minimal, outperforming baselines without requiring                  selecting a representative medium-compute-intensity 3D model
+complex content reasoning.                                                       (DSVT-Pillar with pillar size 0.66). Additionally, prior CG mea-
+                                                                                 sures GPU utilization offline as a standalone process, neglect-
+4 Implementation                                                                 ing resource sharing during concurrent execution [13]. This ap-
+                                                                                 proach fails to capture real contention on mobile GPUs accurately.
+4.1 Hardware and Software                                                        To address this limitation, we introduce a metric that quantifies
+Hardware. We train Agile3D on NVIDIA A100 GPUs and evalu-                        the latency impact of CG on the primary 3D task, defined as
+ate it on two NVIDIA Jetson platforms: Orin: 12-core ARM CPU,                    Contention Level = (1 − 𝐿wo /𝐿w ) ∗ 100%, where 𝐿w / 𝐿wo denote
+2048-core Volta GPU, 64GB RAM; Xavier: 8-core ARM CPU, 512-                      the latency with and without contention, respectively.
+core Volta GPU, 32GB RAM. For stable performance, we set both                       Table 1 summarizes the contention levels induced by common
+platforms to max power mode and disable Dynamic Voltage and                      2D models, which range from 28% to 69%, lighter from the mo-
+Frequency Scaling. Software: We develop Agile3D using Python                     bile CNN models and heavier from the vision transformer models.
+and PyTorch, based on the OpenPCDet [50] codebases. Artifacts                    Given the significant variability in contention levels, we select four
+are open-sourced at https://doi.org/10.5281/zenodo.15073471                      representative levels—[38, 45, 64, 67]%—from our CG for evaluation.
+Agile3D: Adaptive Contention- and Content-Aware 3D Object Detection for Embedded GPUs                          MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA
+
+
+To enhance clarity and usability, we categorize these levels as Light,             KITTI : mAP is averaged across classes and difficulty levels at 40
+Moderate, Intense, and Peak, which are used consistently throughout                recall positions.
+our experiments.
+                                                                                   Adaptive Controller Baselines. Our controller baselines include
+4.4    CARL Training                                                               adaptive methods for 3D object detection, leveraging the same MEF.
+                                                                                   Chanakya [15]: originally designed for 2D workloads, we adapt its
+We collect latency and accuracy data to train the controller, us-                  RL-based, content-aware control approach to handle the increased
+ing distinct datasets to avoid overfitting. Training, profiling, and               complexity and dynamic nature of 3D point cloud processing. This
+testing datasets are split by time of day, weather, and location to                adaptation involves carefully engineering the reward structure and
+ensure diverse coverage, with each set containing samples from                     integrating it with MEF, which requires significant effort due to
+different conditions that help mitigate overfitting to specific sce-               the higher dimensionality and dynamic contention characteristics
+narios. We profile all branches on two embedded GPUs under vary-                   inherent to the 3D setting. LiteReconfig [58]: originally designed as
+ing contention levels, recording per-sample inference latency. The                 a lightweight contention- and content-aware controller for video
+sample-level accuracy trains the CARL controller to make intelli-                  detection, LiteReconfig is extended to 3D workloads by recalibrat-
+gent decisions, while the data set-level accuracy guides the DA-LUT                ing its contention sensitivity and content-awareness mechanisms.
+controller, ensuring efficient decisions for less dynamic scenarios.               This recalibration is non-trivial, given the higher dimensionality,
+During CARL controller training, we sample sequences of consec-                    dynamic contention patterns, and increased computational com-
+utive point clouds 𝑋 from the offline profiling data and randomly                  plexity inherent in 3D tasks. DA-LUT : Our LUT based controller
+generate contention levels 𝑐𝑖 for each sequence. The controller takes              described in Sec. 3.4.3. Oracle (AOB): The oracle controller described
+the state as input and selects a branch as the action. We retrieve                 in Sec. 3.4.2. By using the same set of control knobs for all meth-
+the corresponding latency and accuracy from the offline profiling                  ods, these controller baselines comprehensively cover a range of
+data. We train the controller 318,900 episodes using the AdamW                     scheduling strategies. DA-LUT is based on LUT, LiteReconfig uses
+optimizer with batch size 16 and a learning rate of 1e-5.                          supervised learning, and Chanakya considers RL. In addition, AOB
+                                                                                   provides an upper bound.
+5     Evaluation and Results
+We present our experiment setup in Sec. 5.1. In Sec. 5.2, we compare               Static Model Baselines. We include seven static 3D models as our
+Agile3D with prior adaptive controllers under various resource                     baselines when comparing with Agile3D under contention-free sce-
+contention conditions and latency SLOs. In Sec. 5.3, we evaluate                   narios, including DSVT [53]: a Transformer-based model with Voxel
+Agile3D under varying contention levels. In Sec. 5.4, we compare                   and Pillar variants, highlighting SOTA 3D encoders; CenterPoint
+Agile3D with SOTA static models in contention-free scenarios.                      (CP) [64]: Voxel and Pillar variants with center-based heads for ro-
+In Sec. 5.5, we examine different controller training strategies for               bust object localization; Part-𝐴2 [43]: a two-stage detector refining
+Agile3D. In Sec. 5.6, we demonstrate the effectiveness of our con-                 proposals for better accuracy and box scoring; PointPillars (PP) [23]:
+trol knobs. In Sec. 5.7, we present several microbenchmark results,                an efficient 2D convolution-based 3D detector; SSN [70]: an ex-
+including the system overhead, Pareto frontier distributions, and                  tension to PP with shape-aware grouping for improved geometric
+the influence of voxel/pillar size on model performance.                           features; PV-RCNN [42]: a combination of voxel and point-based
+                                                                                   abstraction for enhanced detection accuracy. SECOND [60]: a model
+                                                                                   using sparse convolutions for efficient voxel-based processing.
+5.1    Experimental Setup
+ Datasets. We primarily evaluate Agile3D on Waymo dataset [45]—
+                                                                                   5.2    Accuracy-Contention Pareto Frontier
+one of the largest datasets for point cloud based 3D object detection
+in urban driving scenarios. To demonstrate the generalization of                   Our main experiment evaluates the end-to-end performance of
+Agile3D, we also evaluate two other driving datasets: nuScenes [3]                 Agile3D under varying contention levels (Light, Moderate, Intense,
+and KITTI [14]. Waymo includes 1,150 sequences, with 798 / 202                     and Peak) and across multiple latency SLOs (500, 350, and 100 ms)
+/ 150 for training / validation / testing. We split the training set               on the Orin GPU using the Waymo dataset. These latency SLOs
+further (637 / 161 for training / profiling) and use the validation set            are designed for driving scenarios, where LiDAR point clouds are
+for testing. nuScenes contains 1,000 sequences, with 700 / 150 / 150               typically acquired at 10 Hz [45], whereas many existing systems
+for training / validation / testing. We partition the training set into            process these point clouds at only 2 Hz [3]. Moreover, these latency
+630 / 70 for training / profiling, and use the validation set for testing.         SLOs are challenging for 3D detection on mobile devices even
+KITTI has 7,481 training and 7,518 testing samples. The training                   without contention (see Sec. 3.1.2).
+set is split into 3,340 / 372 / 3,769 for training / profiling / testing.             The accuracy of Agile3D, in comparison to the baselines, are
+These benchmarks lack annotations for testing sets, thus reporting                 summarized in Fig. 7. [CARL+MEF] denotes our full design, while
+results on the validation set is a standard practice [6, 53, 58, 64, 69].          [DA-LUT+MEF] represents a simpler variant. We combine the prior
+Our splits ensure rigorous evaluation with unseen test data.                       adaptive controllers Chanakya and LiteReconfig with our MEF
+                                                                                   and retrain them, resulting in [Chanakya+MEF] and [LiteRecon-
+Metrics. Waymo: mean Average Precision (mAP) with IoU thresh-                      fig+MEF]. Across all latency SLOs, Agile3D maintains a latency
+olds of 0.7 (vehicles) and 0.5 (pedestrians/cyclists) for LEVEL2 diffi-            violation ratio below 10% and outperforms all adaptive controller
+culty. nuScenes: NuScenes Detection Score (NDS) combines mAP                       baselines by a noticeable margin. For example, under Intense con-
+with five complementary metrics for comprehensive evaluation.                      tention, Agile3D achieves 1.6-3% higher accuracy than the best
+MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA                                                                                        Wang et al.
+
+
+
+
+Figure 7: End-to-end evaluation of Agile3D across varying contention levels (Light / Moderate / Intense / Peak) and latency SLOs (500 ms [L], 350
+ms [M], and 100 ms [R]) using the Waymo dataset and on Orin GPU. Agile3D consistently achieves superior accuracy, shining on the Pareto
+frontier across all contention levels and latency SLOs.
+
+
+
+
+Figure 8: Agile3D adapts to changing con- Figure 9: Agile3D on Waymo (Orin) under three Figure 10: Switching overhead between branches
+tention levels on the Waymo test set on Orin latency SLOs (100, 350, 500 ms): Activating (on Orin, Xavier). Y-axis: source, X-axis: desti-
+under 500 ms latency SLO. Baselines fail to more control knobs improves accuracy and sat- nation branches. Mean overhead <1 ms with
+adapt to dynamism.                           isfies lower latency SLOs.                   pre-buffered models.
+
+adaptive method while meeting latency requirements. It is note-            the dense LiDAR data, experiments on the Waymo and nuScenes
+worthy that although Agile3D underperforms the oracle AOB, the             datasets are conducted on the Orin platform. In contrast, the KITTI
+performance gap is limited to 2–5%. Chanakya’s original design             dataset, with its lower data density and smaller detection range, is
+does not consider hard latency SLOs, thus leading to the worst             evaluated on the more resource-constrained Xavier platform. Ad-
+performance. Collectively, these results highlight Agile3D’s su-           ditionally, we focus on DA-LUT for nuScenes and KITTI datasets
+perior performance in a critical real-world application domain—            due to their limited annotated data.
+autonomous driving—despite device contention and tight latency                Figs. 11 to 13 illustrate Agile3D’s accuracy-latency trade-offs
+SLOs. Under contention scenarios, static approaches fail in most           versus baseline 3D models under no contention, evaluated across
+cases; therefore, they have been omitted from Fig. 7 for clarity.          three datasets. On Waymo (Orin, Fig. 11), Agile3D exceeds baselines
+                                                                           in both accuracy and latency, demonstrating adaptability within
+5.3     Adapting to Dynamic Contention                                     the 50 to 350 ms SLO range. Given the 200 ms SLO as an example,
+Agile3D features the ability to adapt to dynamic contention changes        while the baselines SECOND, PP, CP-Pillar, and CP-Voxel meet
+on the fly. We further evaluate this ability by simulating dynamic         the latency SLO, Agile3D achieves superior accuracy, surpassing
+contention levels using the Waymo test set. Specifically, we split         them by 4-11%. For nuScenes (Orin, Fig. 12), Agile3D outperforms
+the test set into ten segments and process each segment under              all baselines in both accuracy and inference speed (2-4X faster
+randomly shuffled contention levels, ensuring compliance with the          speed, 7-16% higher accuracy). Additionally, it achieves accuracy
+500 ms latency SLO. We perform smoothing within each contention            levels comparable to DSVT-Pillar while majorly improved speed
+level region for ease of interpretation, but observe that even the         (1.3x). The same insights can be observed from the KITTI dataset
+fluctuations rarely violate the latency SLO. Fig. 8 illustrates that       (Xavier, Fig. 13), Agile3D can always satisfy the 150 ms SLO, while
+Agile3D dynamically adjusts to changing contention on the fly,             most of the baselines fail. While PP and CP-Pillar variants meet
+meeting latency requirements while optimizing performance. Static          latency SLOs, Agile3D surpasses them in accuracy by 3-7%. These
+models like DSVT-Pillar and DSVT-Voxel fail to adapt, either vio-          trends hold consistently across all datasets, highlighting Agile3D’s
+lating the latency SLO or under-utilizing the latency budget. These        superiority in dynamic settings.
+results highlight Agile3D’s strong capability to respond to dynamic
+conditions changes at runtime.                                             5.5     Comparing Training Strategies
+                                                                           A key design choice of Agile3D lies in its training strategy—a
+5.4     Accuracy-Latency Pareto Frontier                                   combination of supervised pre-training with DPO fine-tuning. This
+We further evaluate the performance of Agile3D without con-                is a sharp contrast to DA-LUT (statistical modeling), LiteReconfig
+tention. By removing contention, this scenario offers a theoretically      (supervised training) and Chanakya (Q-learning). We fix the con-
+interesting case for assessing accuracy-latency trade-offs and com-        trol knobs and evaluate the effects of training strategies. Table 2
+paring Agile3D to SOTA static 3D object detection models. Due to           presents the results on the Waymo dataset and using Orin GPU.
+Agile3D: Adaptive Contention- and Content-Aware 3D Object Detection for Embedded GPUs                              MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA
+
+
+
+
+Figure 11: Waymo Performance (Orin). Agile3D Figure 12: nuScenes Performance (Orin). Ag- Figure 13: KITTI Performance (Xavier). Ag-
+achieves 1-10% higher accuracy than DSVT, CP, ile3D demonstrates 4-16% accuracy gain over ile3D maintains 2-7% higher accuracy than
+Part𝐴2 , SECOND, and PP while adapting to 100- CP, SSN, and PP, while meeting 100-250 ms CP, PP, and SECOND under 50-150 ms latency
+400 ms SLOs – operating 2.8-8X faster than SLOs, outperforming baselines needing 120- SLOs, where baselines require 60-375 ms (1.3-
+baselines (230-850 ms for the same 64% mAP). 800 ms (1.2-4X slower).                      2.3X slower).
+
+
+
+
+Figure 14: Pareto Frontier: DSVT branches ex- Figure 15: Voxel/pillar size vs. performance: Figure 16: Smaller voxels enhance AP for
+cel in accuracy, while CP branches optimize Smaller sizes do not consistently improve ac- smaller objects (e.g., pedestrians and cyclists)
+latency, balancing performance.             curacy despite higher costs.                  but offer diminishing returns for vehicles.
+
+We additionally include the vanilla LUT that ignores the variance                      accuracy. Higher latency SLOs provide additional slack, further
+of latency, as well as the oracle AOB as the upper bound. While                        boosting performance with the same number of knobs. We conduct
+vanilla LUT achieves top accuracy in some cases, it suffers from                       this experiment using both Orin and Xavier, observing a similar
+the highest latency violations (up to 49.95%). Supervised learning                     trend. However, detailed results are omitted due to space constraints.
+(LiteReconfig) and RL (Chanakya) both reduce the violation rate,                       These findings supports our design of control knobs (Sec. 3.3.1) and
+yet at the cost of decreased accuracy. Instead, Agile3D’s training                     demonstrates the role of these knobs in adapting and optimizing
+strategy (supervised learning with DPO fine-tuning) strikes a bal-                     performance across datasets and hardware platforms.
+ance, achieving robust performance with low latency violations
+across varying contention levels.                                                      5.7    Microbenchmarks
+Table 2: A comparison among training strategies including oracle                       System Overhead. Agile3D introduce system overhead in three
+AOB, vanilla LUT, statistical modeling (stat), supervised learning                     respects: memory to buffer all branches, switching overhead within
+(SL), reinforcement learning (RL), and supervised learning followed                    the MEF, and controller overhead. Agile3D buffers all MEF branches
+by DPO fine-tuning (SL+DPO). Accuracy (%), latency (ms), and latency                   (i.e., individual models) in memory, because of the efficient 3D
+violation rate (%) under 500 ms latency SLO are reported using Orin                    model structures discussed in Sec. 3.1.1, the MEF uses <8 GB of
+GPU. Gray: infeasible settings with either latency violations over                     RAM, well below the memory capacity of modern mobile devices.
+10% or using an oracle; Bold: best accuracy within the 10% limit.                      The switching between branches will introduce a minor branch-
+ Controller        Light           Moderate           Intense            Peak          switching overhead. Fig. 10[L], [R] shows this overhead on Orin and
+ AOB            74.38/385/0.65    73.53/378/0.61    70.46/364/0.09    70.15/359/1.14   Xavier. Pre-buffering limits overhead to under 1 ms, as transitions
+ Vanilla LUT   71.45/506/48.76   70.90/501/49.95   68.97/505/48.35   68.21/472/37.41   only require memory to GPU cache operations. In contrast, loading
+ Stat           70.90/430/3.29    69.84/381/0.10    67.10/340/0.63    65.97/328/0.74   models from disk causes latency spikes exceeding 200 ms. Disk
+ SL             69.87/285/0.00    69.87/340/0.00    67.08/340/0.63    65.96/328/0.74
+ RL             68.09/347/0.34    67.62/262/0.37    66.76/347/0.23    63.71/181/0.00   to GPU cache switching costs are 2,394x higher on Xavier (335.16
+ SL+DPO        70.99/415/5.27    70.18/407/0.14    68.73/477/1.14    66.68/362/5.64    ms vs. 0.14 ms) and 839x higher on Orin (209.86 ms vs. 0.25 ms).
+                                                                                       During inference, the controller does not need to be triggered on
+                                                                                       every point cloud because of the consistency of consecutive point
+5.6    Effects of Control Knobs                                                        clouds, the average overhead from the controller is about 1ms for
+Moving forward, we benchmark the effects of control knobs on                           DA-LUT or 8ms for CARL. The total overheads represent only a
+Agile3D’s performance under varying conditions. Fig. 9 illustrates                     small fraction of the total latency budget (200–500 ms).
+the accuracy under various latency SLOs (100 ms, 350 ms, and 500
+ms) with different control knobs, using the Waymo dataset and                          Pareto Frontier Distributions. Fig. 14 presents the Pareto fron-
+Orin platform. The results suggest that activating more control                        tiers of all branches, reported on Waymo using Orin. The results
+knobs enables Agile3D to meet stricter latency SLOs and improve                        illustrate individual branch contributions to the accuracy-latency
+MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA                                                                                      Wang et al.
+
+
+spectrum. DSVT branches dominate the high-accuracy region, re-           utilize different vehicles and LiDAR sensors). Given the available
+flecting their precision, while CP branches excel in the low-latency     datasets, Agile3D adheres to standard machine learning practices,
+region due to their efficiency. Voxel-based models achieve the high-     incurring only a one-time training cost per dataset setup. Such re-
+est accuracy, whereas pillar-based models prioritize efficiency.         training is essential because datasets inherently vary across diverse
+                                                                         hardware and environmental conditions (e.g., vehicles, LiDAR con-
+Voxel/Pillar Size vs. Performance. Figs. 15 and 16 illustrates the       figurations, and cities worldwide). Future work should investigate
+impact of voxel/pillar sizes on DSVT performance using the Waymo         online training strategies using real-time profiling data, potentially
+data on Orin. Smaller voxel sizes theoretically offer higher reso-       enabling Agile3D to generalize effectively to previously unseen
+lution but do not consistently enhance accuracy. Pedestrians and         hardware setups and operating environments.
+cyclists are more sensitive to voxel size, with accuracy ranging
+from 62-74% and 64-72%, respectively, while vehicles show limited        Evaluation under real-world scenarios. We evaluate Agile3D
+variation (64-69%). Overly fine-grained voxelization struggles to        under synthetic contentions in a laboratory environment. Synthetic
+capture holistic spatial patterns needed for larger objects. Addition-   contention has been widely adopted in prior studies, including
+ally, smaller sizes increase computational workload and latency,         SOTA approaches such as Chanakya [15] and LiteReconfig [58], due
+producing larger intermediate feature maps that limit efficiency         to its effectiveness in creating reproducible training and evaluation
+gains despite theoretical benefits.                                      scenarios. Future work should consider evaluating performance
+                                                                         under realistic GPU resource-sharing conditions.
+6    Related Works
+                                                                         8   Conclusion
+Adaptive Vision Systems for Mobiles. Efficient data processing
+for LiDAR or cameras on resource-limited mobile devices poses a          Agile3D, our adaptive 3D object detection system for embedded
+significant challenge due to strict latency requirements and lim-        GPUs, excels in achieving SOTA accuracy while consistently meet-
+ited computational resources. Lightweight DNNs, whether hand-            ing stringent runtime latency SLOs across diverse resource con-
+crafted [18, 19, 67] or designed via neural-architecture search meth-    tention levels. By leveraging the MEF and CARL controller, Agile3D
+ods [25, 47, 55], address resource limits yet fundamentally lack run-    efficiently buffers all 3D models in GPU memory, enabling rapid
+time adaptability to varying SLOs or input content. Recent works         model switching within 1 ms. The system features two comple-
+introduce adaptability, either within single models [7, 21, 57, 59] or   mentary and innovative controllers: #1. CARL Controller: designed
+ensembles [11], leveraging techniques like early exits [51, 57], in-     for high contention scenarios with significant latency ranges, com-
+put simplification [29, 37], mixture of experts [39], or task-specific   bines supervised training with DPO fine-tuning. This enables it
+designs [10]. Specifically, adaptive 2D object detection has been        to dynamically adapt to resource and input fluctuations, ensur-
+explored in video domains [7, 15, 58, 59], often employing multi-        ing optimal performance. #2. DA-LUT Controller: Optimized for
+branch designs [20, 36, 65]. However, as detailed in Sec. 3.1, these     contention-free scenarios, it efficiently selects execution branches
+techniques are inadequate for 3D detection due to sparse data struc-     with minimal overhead. Across multiple datasets and hardware plat-
+tures and irregular computations in point clouds, leading to high        forms, Agile3D demonstrates superior adaptability and accuracy-
+variance in latencies.                                                   latency trade-offs. It consistently meets latency SLOs—100-500 ms
+                                                                         on Waymo (Orin), 100-250 ms on nuScenes (Orin), 33-75 ms on
+Systems for Serving DNN Models. The systems community has                KITTI (Orin), and 50-100 ms on KITTI (Xavier)—while achieving up
+explored model selection techniques to satisfy latency and accuracy      to +3% over adaptive controllers like Chanakya and LiteReconfig,
+SLOs. INFaaS [40] automates model and hardware selections for            and +7% accuracy gains over 3D detection models such as DSVT,
+cloud platforms like AWS but is unsuitable for embedded devices or       CenterPoint, and PointPillars. With its robust performance under
+the streaming data. Clockwork [17] ensures tail-latency SLOs when        varying contention levels and ability to meet stringent latency con-
+scheduling DNNs on GPUs in cloud environments but lacks mobile           straints, Agile3D emerges as a leading solution for adaptive 3D
+deployment. Jellyfish [30] combines data and DNN adaptation for          detection on embedded GPUs.
+latency guarantees in edge networks, relying on desktop-level GPUs.
+                                                                         Acknowledgments. This material is based in part upon work sup-
+OFA [4] trains a versatile model pruned for deployment but lacks
+                                                                         ported by the National Science Foundation under Grant Numbers
+runtime adaptability. HAT [54] optimizes transformers for specific
+                                                                         CNS-2333491 / 2333487 (NSF Frontier) and CNS-2146449 (NSF CA-
+hardware pre-deployment, while ElasticViT [49] uses NAS to train
+                                                                         REER award), and by the Army Research Lab under contract num-
+ViT supernets and select optimal subnets for deployment. These
+                                                                         ber W911NF-2020221. Any opinions, findings, and conclusions or
+systems primarily target cloud or edge computing. In contrast, our
+                                                                         recommendations expressed in this material are those of the au-
+work addresses low-latency solutions for 3D object detection in
+                                                                         thors and do not necessarily reflect the views of the sponsors. The
+autonomous driving tasks, ensuring latency and accuracy SLOs
+                                                                         authors thank the reviewers and artifact evaluators for their enthu-
+directly on embedded GPUs where data is generated.
+                                                                         siastic comments, and the anonymous shepherd for their insightful
+                                                                         feedback.
+7    Discussion
+Generalizability of Agile3D. To achieve optimal performance,
+Agile3D requires offline MEF training, profiling, and CARL con-
+troller training using datasets collected from each specific dataset
+hardware configuration (e.g., Waymo, nuScenes, and KITTI, which
+Agile3D: Adaptive Contention- and Content-Aware 3D Object Detection for Embedded GPUs                                            MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA
+
+
+References                                                                                        Neural Networks and Learning Systems 32, 8 (2020), 3412–3432.
+ [1] Aghdam, H. H., Heravi, E. J., Demilew, S. S., and Laganiere, R. Rad: Realtime           [25] Lin, J., Chen, W.-M., Lin, Y., Gan, C., Han, S., et al. Mcunet: Tiny deep learning
+     and accurate 3d object detection on embedded systems. In Proceedings of the                  on iot devices. Advances in Neural Information Processing Systems 33 (2020),
+     IEEE/CVF Conference on Computer Vision and Pattern Recognition (2021), pp. 2875–             11711–11722.
+     2883.                                                                                   [26] Liu, W., Anguelov, D., Erhan, D., Szegedy, C., Reed, S., Fu, C.-Y., and Berg, A. C.
+ [2] Arnold, E., Al-Jarrah, O. Y., Dianati, M., Fallah, S., Oxtoby, D., and Mouza-                Ssd: Single shot multibox detector. In Computer Vision–ECCV 2016: 14th European
+     kitis, A. A survey on 3d object detection methods for autonomous driving                     Conference, Amsterdam, The Netherlands, October 11–14, 2016, Proceedings, Part I
+     applications. IEEE Transactions on Intelligent Transportation Systems 20, 10 (2019),         14 (2016), Springer, pp. 21–37.
+     3782–3795.                                                                              [27] MacGlashan, J., Ho, M. K., Loftin, R., Peng, B., Wang, G., Roberts, D. L.,
+ [3] Caesar, H., Bankiti, V., Lang, A. H., Vora, S., Liong, V. E., Xu, Q., Krishnan,              Taylor, M. E., and Littman, M. L. Interactive learning from policy-dependent
+     A., Pan, Y., Baldan, G., and Beijbom, O. nuscenes: A multimodal dataset for                  human feedback. In International conference on machine learning (2017), PMLR,
+     autonomous driving. In Proceedings of the IEEE/CVF conference on computer vision             pp. 2285–2294.
+     and pattern recognition (2020), pp. 11621–11631.                                        [28] Mao, J., Shi, S., Wang, X., and Li, H. 3d object detection for autonomous driving:
+ [4] Cai, H., Gan, C., Wang, T., Zhang, Z., and Han, S. Once for all: Train one                   A comprehensive survey. International Journal of Computer Vision 131, 8 (2023),
+     network and specialize it for efficient deployment. In International Conference on           1909–1963.
+     Learning Representations (2020).                                                        [29] Meng, Y., Lin, C.-C., Panda, R., Sattigeri, P., Karlinsky, L., Oliva, A., Saenko,
+ [5] Chen, Q., Wang, Y., Yang, T., Zhang, X., Cheng, J., and Sun, J. You only look                K., and Feris, R. Ar-net: Adaptive frame resolution for efficient action recognition.
+     one-level feature. In Proceedings of the IEEE/CVF conference on computer vision              In Computer Vision–ECCV 2020: 16th European Conference, Glasgow, UK, August
+     and pattern recognition (2021), pp. 13039–13048.                                             23–28, 2020, Proceedings, Part VII 16 (2020), Springer, pp. 86–104.
+ [6] Chen, X., Ma, H., Wan, J., Li, B., and Xia, T. Multi-view 3d object detection net-      [30] Nigade, V., Bauszat, P., Bal, H., and Wang, L. Jellyfish: Timely inference
+     work for autonomous driving. In Proceedings of the IEEE conference on Computer               serving for dynamic edge networks. In 2022 IEEE Real-Time Systems Symposium
+     Vision and Pattern Recognition (2017), pp. 1907–1915.                                        (RTSS) (2022), IEEE, pp. 277–290.
+ [7] Chin, T.-W., Ding, R., and Marculescu, D. Adascale: Towards real-time video             [31] Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C., Mishkin, P., Zhang,
+     object detection using adaptive scaling. Proceedings of Machine Learning and                 C., Agarwal, S., Slama, K., Ray, A., et al. Training language models to follow
+     Systems 1 (2019), 431–441.                                                                   instructions with human feedback. Advances in neural information processing
+ [8] Christiano, P. F., Leike, J., Brown, T., Martic, M., Legg, S., and Amodei,                   systems 35 (2022), 27730–27744.
+     D. Deep reinforcement learning from human preferences. Advances in neural               [32] Qi, C. R., Su, H., Mo, K., and Guibas, L. J. Pointnet: Deep learning on point sets
+     information processing systems 30 (2017).                                                    for 3d classification and segmentation. In Proceedings of the IEEE conference on
+ [9] Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Un-                   computer vision and pattern recognition (2017), pp. 652–660.
+     terthiner, T., Dehghani, M., Minderer, M., Heigold, G., Gelly, S., Uszkoreit,           [33] Qi, C. R., Yi, L., Su, H., and Guibas, L. J. Pointnet++: Deep hierarchical feature
+     J., and Houlsby, N. An image is worth 16x16 words: Transformers for image                    learning on point sets in a metric space. In Advances in neural information
+     recognition at scale. ICLR (2021).                                                           processing systems (2017), p. 5105–5114.
+[10] Fang, B., Zeng, X., Zhang, F., Xu, H., and Zhang, M. Flexdnn: Input-adaptive            [34] Qin, D., Leichner, C., Delakis, M., Fornoni, M., Luo, S., Yang, F., Wang, W.,
+     on-device deep learning for efficient mobile vision. In 2020 IEEE/ACM Symposium              Banbury, C., Ye, C., Akin, B., et al. Mobilenetv4: Universal models for the
+     on Edge Computing (SEC) (2020), IEEE, pp. 84–95.                                             mobile ecosystem. In European Conference on Computer Vision (2025), Springer,
+[11] Fang, B., Zeng, X., and Zhang, M. Nestdnn: Resource-aware multi-tenant on-                   pp. 78–96.
+     device deep learning for continuous mobile vision. In Proceedings of the 24th           [35] Rafailov, R., Sharma, A., Mitchell, E., Manning, C. D., Ermon, S., and Finn,
+     Annual International Conference on Mobile Computing and Networking (2018),                   C. Direct preference optimization: Your language model is secretly a reward
+     pp. 115–127.                                                                                 model. Advances in Neural Information Processing Systems 36 (2024).
+[12] Feng, C., Zhong, Y., Gao, Y., Scott, M. R., and Huang, W. Tood: Task-aligned            [36] Ran, X., Chen, H., Zhu, X., Liu, Z., and Chen, J. Deepdecision: A mobile
+     one-stage object detection. In 2021 IEEE/CVF International Conference on Computer            deep learning framework for edge video analytics. In IEEE INFOCOM 2018-IEEE
+     Vision (ICCV) (2021), IEEE Computer Society, pp. 3490–3499.                                  Conference on Computer Communications (2018), IEEE, pp. 1421–1429.
+[13] Forum, N. D. Questions on per-process gpu utilization, 2024. Accessed: 2024-12-         [37] Rao, Y., Zhao, W., Liu, B., Lu, J., Zhou, J., and Hsieh, C.-J. Dynamicvit: Effi-
+     07.                                                                                          cient vision transformers with dynamic token sparsification. Advances in neural
+[14] Geiger, A., Lenz, P., and Urtasun, R. Are we ready for autonomous driving?                   information processing systems 34 (2021), 13937–13949.
+     the kitti vision benchmark suite. In 2012 IEEE conference on computer vision and        [38] Ren, S., He, K., Girshick, R., and Sun, J. Faster r-cnn: Towards real-time ob-
+     pattern recognition (2012), IEEE, pp. 3354–3361.                                             ject detection with region proposal networks. Advances in neural information
+[15] Ghosh, A., Balloli, V., Nambi, A., Singh, A., and Ganu, T. Chanakya: Learning                processing systems 28 (2015).
+     runtime decisions for adaptive real-time perception. In Advances in Neural Infor-       [39] Riqelme, C., Puigcerver, J., Mustafa, B., Neumann, M., Jenatton, R., Su-
+     mation Processing Systems (2023), A. Oh, T. Naumann, A. Globerson, K. Saenko,                sano Pinto, A., Keysers, D., and Houlsby, N. Scaling vision with sparse mixture
+     M. Hardt, and S. Levine, Eds., vol. 36, Curran Associates, Inc., pp. 55668–55680.            of experts. Advances in Neural Information Processing Systems 34 (2021), 8583–
+[16] Gu, A., and Dao, T. Mamba: Linear-time sequence modeling with selective state                8595.
+     spaces, 2024.                                                                           [40] Romero, F., Li, Q., Yadwadkar, N. J., and Kozyrakis, C. { INFaaS } : Auto-
+[17] Gujarati, A., Karimi, R., Alzayat, S., Hao, W., Kaufmann, A., Vigfusson, Y.,                 mated model-less inference serving. In 2021 USENIX Annual Technical Conference
+     and Mace, J. Serving { DNNs } like clockwork: Performance predictability from                (USENIX ATC 21) (2021), pp. 397–411.
+     the bottom up. In 14th USENIX Symposium on Operating Systems Design and                 [41] Schulman, J., Wolski, F., Dhariwal, P., Radford, A., and Klimov, O. Proximal
+     Implementation (OSDI 20) (2020), pp. 443–462.                                                policy optimization algorithms, 2017.
+[18] Han, K., Wang, Y., Tian, Q., Guo, J., Xu, C., and Xu, C. Ghostnet: More features        [42] Shi, S., Guo, C., Jiang, L., Wang, Z., Shi, J., Wang, X., and Li, H. Pv-rcnn: Point-
+     from cheap operations. In Proceedings of the IEEE/CVF conference on computer                 voxel feature set abstraction for 3d object detection. In Proceedings of the IEEE/CVF
+     vision and pattern recognition (2020), pp. 1580–1589.                                        Conference on Computer Vision and Pattern Recognition (2020), pp. 10529–10538.
+[19] Howard, A., Sandler, M., Chu, G., Chen, L.-C., Chen, B., Tan, M., Wang, W.,             [43] Shi, S., Wang, Z., Shi, J., Wang, X., and Li, H. From points to parts: 3d object
+     Zhu, Y., Pang, R., Vasudevan, V., et al. Searching for mobilenetv3. In Proceedings           detection from point cloud with part-aware and part-aggregation network. IEEE
+     of the IEEE/CVF international conference on computer vision (2019), pp. 1314–1324.           transactions on pattern analysis and machine intelligence 43, 8 (2020), 2647–2664.
+[20] Jiang, A. H., Wong, D. L.-K., Canel, C., Tang, L., Misra, I., Kaminsky, M.,             [44] Sualeh, M., and Kim, G.-W. Visual-lidar based 3d object detection and tracking
+     Kozuch, M. A., Pillai, P., Andersen, D. G., and Ganger, G. R. Mainstream:                    for embedded systems. IEEE Access 8 (2020), 156285–156298.
+     Dynamic { Stem-Sharing } for { Multi-Tenant } video processing. In 2018 USENIX          [45] Sun, P., Kretzschmar, H., Dotiwalla, X., Chouard, A., Patnaik, V., Tsui, P.,
+     Annual Technical Conference (USENIX ATC 18) (2018), pp. 29–42.                               Guo, J., Zhou, Y., Chai, Y., Caine, B., et al. Scalability in perception for au-
+[21] Jiang, J., Ananthanarayanan, G., Bodik, P., Sen, S., and Stoica, I. Chameleon:               tonomous driving: Waymo open dataset. In Proceedings of the IEEE/CVF conference
+     scalable adaptation of video analytics. In Proceedings of the 2018 Conference of             on computer vision and pattern recognition (2020), pp. 2446–2454.
+     the ACM Special Interest Group on Data Communication (2018), pp. 253–266.               [46] Sun, P., Zhang, R., Jiang, Y., Kong, T., Xu, C., Zhan, W., Tomizuka, M., Li,
+[22] Karumbunathan, L. S. Nvidia jetson agx orin series, 2022.                                    L., Yuan, Z., Wang, C., et al. Sparse r-cnn: End-to-end object detection with
+[23] Lang, A. H., Vora, S., Caesar, H., Zhou, L., Yang, J., and Beijbom, O. Pointpillars:         learnable proposals. In Proceedings of the IEEE/CVF conference on computer vision
+     Fast encoders for object detection from point clouds. In Proceedings of the                  and pattern recognition (2021), pp. 14454–14463.
+     IEEE/CVF conference on computer vision and pattern recognition (2019), pp. 12697–       [47] Tan, M., Chen, B., Pang, R., Vasudevan, V., Sandler, M., Howard, A., and
+     12705.                                                                                       Le, Q. V. Mnasnet: Platform-aware neural architecture search for mobile. In
+[24] Li, Y., Ma, L., Zhong, Z., Liu, F., Chapman, M. A., Cao, D., and Li, J. Deep learning        Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition
+     for lidar point clouds in autonomous driving: A review. IEEE Transactions on                 (2019), pp. 2820–2828.
+                                                                                             [48] Tan, M., and Le, Q. Efficientnet: Rethinking model scaling for convolutional
+MobiSys ’25, June 23–27, 2025, Anaheim, CA, USA                                                                                                                        Wang et al.
+
+
+     neural networks. In International conference on machine learning (2019), PMLR,               Systems (2020), pp. 449–462.
+     pp. 6105–6114.                                                                          [60] Yan, Y., Mao, Y., and Li, B. Second: Sparsely embedded convolutional detection.
+[49] Tang, C., Zhang, L. L., Jiang, H., Xu, J., Cao, T., Zhang, Q., Yang, Y., Wang,               Sensors 18, 10 (2018), 3337.
+     Z., and Yang, M. Elasticvit: Conflict-aware supernet training for deploying fast        [61] Yang, B., Luo, W., and Urtasun, R. Pixor: Real-time 3d object detection from
+     vision transformer on diverse mobile devices. In Proceedings of the IEEE/CVF                 point clouds. In Proceedings of the IEEE conference on Computer Vision and Pattern
+     International Conference on Computer Vision (2023), pp. 5829–5840.                           Recognition (2018), pp. 7652–7660.
+[50] Team, O. D. Openpcdet: An open-source toolbox for 3d object detection from              [62] Yang, H., He, T., Liu, J., Chen, H., Wu, B., Lin, B., He, X., and Ouyang, W. Gd-
+     point clouds. https://github.com/open-mmlab/OpenPCDet, 2020.                                 mae: generative decoder for mae pre-training on lidar point clouds. In Proceedings
+[51] Teerapittayanon, S., McDanel, B., and Kung, H.-T. Branchynet: Fast inference                 of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (2023),
+     via early exiting from deep neural networks. In 2016 23rd International Conference           pp. 9403–9414.
+     on Pattern Recognition (ICPR) (2016), IEEE, pp. 2464–2469.                              [63] Yang, J., Shi, S., Ding, R., Wang, Z., and Qi, X. Towards efficient 3d object
+[52] Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N.,                detection with knowledge distillation. Advances in Neural Information Processing
+     Kaiser, Ł., and Polosukhin, I. Attention is all you need. Advances in neural                 Systems 35 (2022), 21300–21313.
+     information processing systems 30 (2017).                                               [64] Yin, T., Zhou, X., and Krahenbuhl, P. Center-based 3d object detection and
+[53] Wang, H., Shi, C., Shi, S., Lei, M., Wang, S., He, D., Schiele, B., and Wang,                tracking. In Proceedings of the IEEE/CVF conference on computer vision and pattern
+     L. Dsvt: Dynamic sparse voxel transformer with rotated sets. In Proceedings                  recognition (2021), pp. 11784–11793.
+     of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (2023),           [65] Zhang, H., Ananthanarayanan, G., Bodik, P., Philipose, M., Bahl, P., and
+     pp. 13520–13529.                                                                             Freedman, M. J. Live video analytics at scale with approximation and { Delay-
+[54] Wang, H., Wu, Z., Liu, Z., Cai, H., Zhu, L., Gan, C., and Han, S. Hat: Hardware-             Tolerance } . In 14th USENIX Symposium on Networked Systems Design and Imple-
+     aware transformers for efficient natural language processing. In Annual Confer-              mentation (NSDI 17) (2017), pp. 377–392.
+     ence of the Association for Computational Linguistics (2020).                           [66] Zhang, H., Chang, H., Ma, B., Wang, N., and Chen, X. Dynamic r-cnn: Towards
+[55] Wu, B., Dai, X., Zhang, P., Wang, Y., Sun, F., Wu, Y., Tian, Y., Vajda, P., Jia, Y.,         high quality object detection via dynamic training. In Computer Vision–ECCV
+     and Keutzer, K. Fbnet: Hardware-aware efficient convnet design via differen-                 2020: 16th European Conference, Glasgow, UK, August 23–28, 2020, Proceedings,
+     tiable neural architecture search. In Proceedings of the IEEE/CVF Conference on              Part XV 16 (2020), Springer, pp. 260–275.
+     Computer Vision and Pattern Recognition (2019), pp. 10734–10742.                        [67] Zhang, X., Zhou, X., Lin, M., and Sun, J. Shufflenet: An extremely efficient
+[56] Wu, Y., Wang, Y., Zhang, S., and Ogai, H. Deep 3d object detection networks                  convolutional neural network for mobile devices. In Proceedings of the IEEE
+     using lidar data: A review. IEEE Sensors Journal 21, 2 (2020), 1152–1171.                    conference on computer vision and pattern recognition (2018), pp. 6848–6856.
+[57] Xu, R., Kumar, R., Wang, P., Bai, P., Meghanath, G., Chaterji, S., Mitra, S., and       [68] Zhou, Y., Sun, P., Zhang, Y., Anguelov, D., Gao, J., Ouyang, T., Guo, J., Ngiam,
+     Bagchi, S. Approxnet: Content and contention-aware video object classification               J., and Vasudevan, V. End-to-end multi-view fusion for 3d object detection in
+     system for embedded clients. ACM Transactions on Sensor Networks (TOSN) 18, 1                lidar point clouds. In Conference on Robot Learning (2020), PMLR, pp. 923–932.
+     (2021), 1–27.                                                                           [69] Zhou, Y., and Tuzel, O. Voxelnet: End-to-end learning for point cloud based
+[58] Xu, R., Lee, J., Wang, P., Bagchi, S., Li, Y., and Chaterji, S. Litereconfig: cost           3d object detection. In Proceedings of the IEEE conference on computer vision and
+     and content aware reconfiguration of video object detection systems for mobile               pattern recognition (2018), pp. 4490–4499.
+     gpus. In Proceedings of the Seventeenth European Conference on Computer Systems         [70] Zhu, X., Ma, Y., Wang, T., Xu, Y., Shi, J., and Lin, D. Ssn: Shape signature
+     (2022), pp. 334–351.                                                                         networks for multi-class object detection from point clouds. In Computer Vision–
+[59] Xu, R., Zhang, C.-l., Wang, P., Lee, J., Mitra, S., Chaterji, S., Li, Y., and Bagchi,        ECCV 2020: 16th European Conference, Glasgow, UK, August 23–28, 2020, Proceed-
+     S. Approxdet: content and contention-aware approximate object detection for                  ings (2020), Springer, pp. 581–597.
+     mobiles. In Proceedings of the 18th Conference on Embedded Networked Sensor
+

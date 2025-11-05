@@ -1,0 +1,44 @@
+{
+  "project": "AGILE3D PKL-to-Web Converter",
+  "units": [
+    {
+      "unit_id": "U01",
+      "title": "CLI Skeleton with Argparse",
+      "status": "done",
+      "tests": 28,
+      "test_pass_rate": "100%",
+      "log_file": "SE-Log-U01.md"
+    },
+    {
+      "unit_id": "U02",
+      "title": "PKL Reader & Schema Mapping",
+      "status": "done",
+      "tests": 10,
+      "test_pass_rate": "100%",
+      "log_file": "SE-Log-U02.md"
+    },
+    {
+      "unit_id": "U03",
+      "title": "Point Cloud Downsampling & Quantization",
+      "status": "done",
+      "tests": 30,
+      "test_pass_rate": "100%",
+      "log_file": "SE-Log-U03.md",
+      "features": [
+        "100k/50k downsampling",
+        "fp16/int16 quantization",
+        "Error metrics",
+        "Structured arrays"
+      ]
+    }
+  ],
+  "totals": {
+    "units_complete": 3,
+    "total_tests": 76,
+    "test_pass_rate": "100%",
+    "total_code_loc": 450,
+    "total_test_loc": 950
+  },
+  "last_updated": "2025-10-31",
+  "next_unit": "U01-4 (Emit Manifest/Frames)"
+}
