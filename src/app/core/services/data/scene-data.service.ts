@@ -304,24 +304,29 @@ export class SceneDataService implements OnDestroy {
    * @param positions - New Float32Array of positions
    */
   public updatePointsAttribute(points: THREE.Points, positions: Float32Array): void {
-    const positionAttr = points.geometry.getAttribute('position') as THREE.BufferAttribute;
+    let positionAttr = points.geometry.getAttribute('position') as THREE.BufferAttribute | undefined;
+    const itemSize = positionAttr?.itemSize ?? 3;
 
     if (positionAttr && positionAttr.array.length === positions.length) {
       // Same length - update in place
       positionAttr.set(positions);
       positionAttr.needsUpdate = true;
+    } else if (positionAttr && positionAttr.array.length >= positions.length && itemSize === 3) {
+      // Buffer is larger (capacity) - copy into existing array to avoid realloc
+      (positionAttr.array as Float32Array).set(positions.subarray(0, positionAttr.array.length));
+      positionAttr.needsUpdate = true;
     } else {
-      // Different length - recreate attribute
+      // Different size or itemSize - recreate attribute
       console.log('[SceneDataService] recreating position attribute', {
         oldLength: positionAttr?.array.length ?? 0,
         newLength: positions.length,
       });
-      const stride = positionAttr?.itemSize ?? 3;
-      points.geometry.setAttribute('position', new THREE.BufferAttribute(positions, stride));
+      positionAttr = new THREE.BufferAttribute(positions, 3);
+      points.geometry.setAttribute('position', positionAttr);
     }
 
     // Update draw range to render only the actual points
-    const pointCount = positions.length / (positionAttr?.itemSize ?? 3);
+    const pointCount = positions.length / 3;
     points.geometry.setDrawRange(0, pointCount);
   }
 

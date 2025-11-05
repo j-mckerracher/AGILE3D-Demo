@@ -200,7 +200,29 @@ export class FrameStreamService {
     
     // Parse points in worker here, before creating the StreamedFrame
     // This ensures parsing happens once and avoids ArrayBuffer detachment issues
-    const points = await this.sceneData.parseInWorker(pointsBuffer, 3);
+    let parsed = await this.sceneData.parseInWorker(pointsBuffer, 3);
+
+    // Determine actual stride from manifest pointCount if available
+    const pointCount = frame.pointCount ?? Math.floor(parsed.length / 4);
+    const detectedStride = pointCount > 0 ? Math.round(parsed.length / pointCount) : 3;
+
+    // If stride > 3 (e.g., XYZ + intensity), repack to XYZ only
+    let points: Float32Array;
+    if (detectedStride !== 3 && pointCount > 0 && parsed.length % pointCount === 0) {
+      const stride = detectedStride;
+      const out = new Float32Array(pointCount * 3);
+      for (let i = 0, j = 0; i < pointCount; i++) {
+        const base = i * stride;
+        out[j++] = parsed[base]!;     // x
+        out[j++] = parsed[base + 1]!; // y
+        out[j++] = parsed[base + 2]!; // z
+      }
+      points = out;
+      // Optional: free parsed buffer for GC
+      parsed = out;
+    } else {
+      points = parsed;
+    }
     
     const gt = this.sequenceData.mapGTToDetections(frame.id, gtFile.boxes);
     
