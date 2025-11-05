@@ -101,65 +101,12 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check for sequence mode via query param
-    const seqId = this.debug.getQueryParam('sequence');
-    if (seqId) {
-      console.log('[MainDemo] Sequence mode enabled:', seqId);
-      this.isSequenceMode = true;
-      await this.initSequenceMode(seqId);
-      return;
-    }
-
-    // Handle tier QA hook (WP-2.3.2)
-    const tierParam = this.debug.getQueryParam('tier');
-    if (tierParam === 'fallback') {
-      console.log('[MainDemo] QA Hook: tier=fallback - disabling auto tier');
-      this.tierManager.setAutoTierEnabled(false);
-      this.tierManager.setTier('fallback');
-    }
-
-    // Load branch configurations for synthetic detection variations
-    // This is needed because scene metadata only has one AGILE3D prediction set
-    await this.loadBranchConfigs();
-
-    // Subscribe to scene changes for reactive scene switching
-    this.stateService.scene$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((sceneId) => {
-        console.log('[MainDemo] Scene changed:', sceneId);
-        this.loadScene(sceneId);
-      });
-
-    // Subscribe to branch changes for reactive AGILE3D detection updates
-    this.simulationService.activeBranch$
-      .pipe(
-        debounceTime(100),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((branchId) => {
-        console.log('[MainDemo] Branch changed:', branchId);
-        this.updateAgileDetections(branchId);
-      });
-
-    // Subscribe to system parameter changes for reactive BASELINE detection updates
-    // Baseline performance varies with voxel size and contention even though it's a fixed algorithm
-    this.stateService.currentParams$
-      .pipe(
-        debounceTime(100),
-        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((params) => {
-        console.log('[MainDemo] System params changed:', params);
-        this.currentContentionPct = params.contentionPct; // Store for use in variations
-        this.updateBaselineDetectionsFromParams(params.voxelSize, params.contentionPct);
-      });
-
-    // Load initial scene with instrumentation (WP-2.3.2, NFR-1.8)
-    // Note: This will be triggered by the scene$ subscription above
-    // but we need to ensure it happens after subscriptions are set up
-    await this.loadScene(this.stateService.currentScene$.value);
+    // Sequence mode is now the default
+    // Use query param to select which sequence, default to v_1784_1828
+    const seqId = this.debug.getQueryParam('sequence') || 'v_1784_1828';
+    console.log('[MainDemo] Sequence mode enabled:', seqId);
+    this.isSequenceMode = true;
+    await this.initSequenceMode(seqId);
   }
 
   /**
