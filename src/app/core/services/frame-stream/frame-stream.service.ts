@@ -180,6 +180,8 @@ export class FrameStreamService {
     }
   }
 
+  private debugLoggedOnce = false;
+
   private async fetchFrame(index: number, signal?: AbortSignal): Promise<StreamedFrame> {
     if (!this.manifest) throw new Error('No manifest loaded');
     
@@ -208,6 +210,17 @@ export class FrameStreamService {
 
     // If stride > 3 (e.g., XYZ + intensity), repack to XYZ only
     let points: Float32Array;
+    if (this.debugLoggedOnce === false) {
+      console.log('[FrameStream] parsed frame sample', {
+        id: frame.id,
+        floats: parsed.length,
+        pointCount,
+        detectedStride,
+        first6: [parsed[0], parsed[1], parsed[2], parsed[3], parsed[4], parsed[5]],
+      });
+      this.debugLoggedOnce = true;
+    }
+
     if (detectedStride !== 3 && pointCount > 0 && parsed.length % pointCount === 0) {
       const stride = detectedStride;
       const out = new Float32Array(pointCount * 3);
