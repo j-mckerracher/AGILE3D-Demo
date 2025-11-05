@@ -41,6 +41,8 @@ import { StateService } from '../../core/services/state/state.service';
 import { SceneId } from '../../core/models/config-and-metrics';
 import { SyntheticDetectionVariationService } from '../../core/services/simulation/synthetic-detection-variation.service';
 import { PaperDataService } from '../../core/services/data/paper-data.service';
+import { SequenceDataService } from '../../core/services/data/sequence-data.service';
+import { FrameStreamService } from '../../core/services/frame-stream/frame-stream.service';
 
 @Component({
   selector: 'app-main-demo',
@@ -67,12 +69,15 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   private readonly stateService = inject(StateService);
   private readonly detectionVariation = inject(SyntheticDetectionVariationService);
   private readonly paperData = inject(PaperDataService);
+  private readonly sequenceData = inject(SequenceDataService);
+  private readonly frameStream = inject(FrameStreamService);
 
   private readonly destroy$ = new Subject<void>();
   private currentMetadata?: SceneMetadata;
   private branchConfigs: Map<string, any> = new Map(); // Cache for branch configs
   private rawBaselineDetections: Detection[] = []; // Store raw baseline for reprocessing
   private currentContentionPct: number = 38; // Track current contention for baseline updates
+  private isSequenceMode = false; // Track if we're in sequence playback mode
 
   protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
@@ -93,6 +98,15 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       this.showError.set(true);
       this.loading.set(false);
       this.cdr.markForCheck();
+      return;
+    }
+
+    // Check for sequence mode via query param
+    const seqId = this.debug.getQueryParam('sequence');
+    if (seqId) {
+      console.log('[MainDemo] Sequence mode enabled:', seqId);
+      this.isSequenceMode = true;
+      await this.initSequenceMode(seqId);
       return;
     }
 
@@ -169,6 +183,10 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    
+    if (this.isSequenceMode) {
+      this.frameStream.stop();
+    }
   }
 
   /**
@@ -456,5 +474,86 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     );
 
     return match ?? branchId;
+  }
+
+  /**
+   * Initialize sequence playback mode.
+   * Loads manifest, creates shared Points, and starts streaming frames.
+   */
+  private async initSequenceMode(seqId: string): Promise<void> {
+    this.loading.set(true);
+    this.loadError.set(null);
+    this.showError.set(false);
+
+    try {
+      console.log('[MainDemo] Loading sequence manifest:', seqId);
+      const manifest = await this.sequenceData.loadManifest(seqId);
+      
+      console.log('[MainDemo] Manifest loaded', {
+        sequenceId: manifest.sequenceId,
+        frameCount: manifest.frames.length,
+        fps: manifest.fps,
+      });
+
+      // Compute max point count from manifest
+      const maxPts = Math.max(...manifest.frames.map(f => f.pointCount || 0)) || 200000;
+      console.log('[MainDemo] Max points:', maxPts);
+
+      // Create shared Points instance for patch-in-place updates
+      this.sharedPoints = this.sceneData.ensureSharedPoints(maxPts, 3);
+      console.log('[MainDemo] Shared Points created for sequence playback');
+
+      // Subscribe to frame stream
+      this.frameStream.currentFrame$
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(async (streamedFrame) => {
+          if (!streamedFrame) return;
+
+          try {
+            // Parse points in worker
+            const positions = await this.sceneData.parseInWorker(streamedFrame.points, 3);
+            
+            // Update shared Points geometry
+            if (this.sharedPoints) {
+              this.sceneData.updatePointsAttribute(this.sharedPoints, positions);
+            }
+
+            // Update detections - use GT for baseline, GT for AGILE3D until det files available
+            this.baselineDetections = streamedFrame.gt;
+            this.agile3dDetections = streamedFrame.det ?? streamedFrame.gt;
+
+            this.cdr.markForCheck();
+          } catch (err) {
+            console.error('[MainDemo] Frame processing error:', err);
+          }
+        });
+
+      // Subscribe to stream errors
+      this.frameStream.errors$
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((error) => {
+          if (error) {
+            this.loadError.set(error);
+            this.showError.set(true);
+            this.cdr.markForCheck();
+          }
+        });
+
+      // Start streaming
+      this.frameStream.start(manifest, {
+        fps: manifest.fps || 10,
+        prefetch: 2,
+      });
+
+      console.log('[MainDemo] Frame stream started');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error loading sequence';
+      console.error('[MainDemo] initSequenceMode error:', msg);
+      this.loadError.set(msg);
+      this.showError.set(true);
+    } finally {
+      this.loading.set(false);
+      this.cdr.markForCheck();
+    }
   }
 }

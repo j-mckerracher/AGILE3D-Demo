@@ -50,6 +50,9 @@ export class SceneDataService implements OnDestroy {
   /** Worker timeout duration in milliseconds */
   private readonly WORKER_TIMEOUT_MS = 10_000;
 
+  /** Shared Points instance for sequence playback (patch-in-place) */
+  private sharedPoints: THREE.Points | null = null;
+
   /**
    * Load scene metadata from JSON file.
    *
@@ -253,6 +256,73 @@ export class SceneDataService implements OnDestroy {
 
     // Create and cache Points instance
     return this.createPointsFromPositions(positions, cacheKey, stride);
+  }
+
+  /**
+   * Ensure a shared THREE.Points instance exists for sequence playback.
+   *
+   * Creates or returns a singleton Points object with a buffer sized for the maximum
+   * point count. This object is reused across frames to avoid per-frame allocations.
+   *
+   * @param capacityPoints - Maximum number of points expected
+   * @param stride - Number of floats per point (default: 3 for [x,y,z])
+   * @returns THREE.Points instance
+   */
+  public ensureSharedPoints(capacityPoints: number, stride = 3): THREE.Points {
+    if (this.sharedPoints) {
+      console.log('[SceneDataService] reusing shared Points instance');
+      return this.sharedPoints;
+    }
+
+    console.log('[SceneDataService] creating shared Points instance', {
+      capacity: capacityPoints,
+      stride,
+    });
+
+    // Create buffer geometry with capacity for max points
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(capacityPoints * stride);
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, stride));
+
+    // Create material
+    const material = new THREE.PointsMaterial({
+      color: 0x888888,
+      size: 0.05,
+    });
+
+    this.sharedPoints = new THREE.Points(geometry, material);
+    return this.sharedPoints;
+  }
+
+  /**
+   * Update the position attribute of a THREE.Points instance.
+   *
+   * Patches the existing BufferAttribute in-place if the length matches.
+   * If the length differs, recreates the attribute but reuses the Points object.
+   *
+   * @param points - THREE.Points instance to update
+   * @param positions - New Float32Array of positions
+   */
+  public updatePointsAttribute(points: THREE.Points, positions: Float32Array): void {
+    const positionAttr = points.geometry.getAttribute('position') as THREE.BufferAttribute;
+
+    if (positionAttr && positionAttr.array.length === positions.length) {
+      // Same length - update in place
+      positionAttr.set(positions);
+      positionAttr.needsUpdate = true;
+    } else {
+      // Different length - recreate attribute
+      console.log('[SceneDataService] recreating position attribute', {
+        oldLength: positionAttr?.array.length ?? 0,
+        newLength: positions.length,
+      });
+      const stride = positionAttr?.itemSize ?? 3;
+      points.geometry.setAttribute('position', new THREE.BufferAttribute(positions, stride));
+    }
+
+    // Update draw range to render only the actual points
+    const pointCount = positions.length / (positionAttr?.itemSize ?? 3);
+    points.geometry.setDrawRange(0, pointCount);
   }
 
   /**
