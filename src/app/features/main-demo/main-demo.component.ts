@@ -78,6 +78,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   private rawBaselineDetections: Detection[] = []; // Store raw baseline for reprocessing
   private currentContentionPct: number = 38; // Track current contention for baseline updates
   private isSequenceMode = false; // Track if we're in sequence playback mode
+  private firstFrameLogged = false; // Track if we've logged first frame bounds
 
   protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
@@ -460,12 +461,24 @@ export class MainDemoComponent implements OnInit, OnDestroy {
             // Parse points in worker
             const positions = await this.sceneData.parseInWorker(streamedFrame.points, 3);
             
-            console.log('[MainDemo] Frame parsed', {
-              frameId: streamedFrame.frame.id,
-              pointCount: positions.length / 3,
-              gtDetections: streamedFrame.gt.length,
-              samplePoints: positions.slice(0, 9) // First 3 points
-            });
+            if (!this.firstFrameLogged) {
+              // Log detailed bounds for first frame only
+              console.log('[MainDemo] First frame parsed', {
+                frameId: streamedFrame.frame.id,
+                pointCount: positions.length / 3,
+                gtDetections: streamedFrame.gt.length,
+                firstPoint: [positions[0], positions[1], positions[2]],
+                bounds: {
+                  minX: Math.min(...Array.from(positions).filter((_, i) => i % 3 === 0)),
+                  maxX: Math.max(...Array.from(positions).filter((_, i) => i % 3 === 0)),
+                  minY: Math.min(...Array.from(positions).filter((_, i) => i % 3 === 1)),
+                  maxY: Math.max(...Array.from(positions).filter((_, i) => i % 3 === 1)),
+                  minZ: Math.min(...Array.from(positions).filter((_, i) => i % 3 === 2)),
+                  maxZ: Math.max(...Array.from(positions).filter((_, i) => i % 3 === 2))
+                }
+              });
+              this.firstFrameLogged = true;
+            }
             
             // Update shared Points geometry
             if (this.sharedPoints) {
