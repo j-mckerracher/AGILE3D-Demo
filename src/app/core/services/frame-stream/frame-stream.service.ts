@@ -1,12 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { SequenceManifest, FrameRef, Detection } from '../../models/sequence.models';
 import { SequenceDataService } from '../data/sequence-data.service';
+import { SceneDataService } from '../data/scene-data.service';
 
 export interface StreamedFrame {
   index: number;
   frame: FrameRef;
-  points: ArrayBuffer;
+  points: Float32Array;  // Changed from ArrayBuffer to Float32Array
   gt: Detection[];
   det?: Detection[];
 }
@@ -23,6 +24,9 @@ interface PrefetchEntry {
   providedIn: 'root'
 })
 export class FrameStreamService {
+  private readonly sequenceData = inject(SequenceDataService);
+  private readonly sceneData = inject(SceneDataService);
+  
   private manifest: SequenceManifest | null = null;
   private currentIndex = 0;
   private intervalId: any = null;
@@ -39,8 +43,6 @@ export class FrameStreamService {
   currentFrame$: Observable<StreamedFrame | null> = this.currentFrameSubject.asObservable();
   status$: Observable<StreamStatus> = this.statusSubject.asObservable();
   errors$: Observable<string | null> = this.errorsSubject.asObservable();
-
-  constructor(private sequenceData: SequenceDataService) {}
 
   start(manifest: SequenceManifest, opts?: { fps?: number; prefetch?: number }): void {
     this.stop();
@@ -187,7 +189,7 @@ export class FrameStreamService {
     const seqId = this.manifest.sequenceId;
     
     // Fetch points and GT in parallel
-    const [points, gtFile] = await Promise.all([
+    const [pointsBuffer, gtFile] = await Promise.all([
       this.sequenceData.fetchPoints(seqId, frame.urls.points),
       frame.urls.gt ? this.sequenceData.fetchGT(seqId, frame.urls.gt) : Promise.resolve({ boxes: [] })
     ]);
@@ -195,6 +197,10 @@ export class FrameStreamService {
     if (signal?.aborted) {
       throw new Error('Aborted');
     }
+    
+    // Parse points in worker here, before creating the StreamedFrame
+    // This ensures parsing happens once and avoids ArrayBuffer detachment issues
+    const points = await this.sceneData.parseInWorker(pointsBuffer, 3);
     
     const gt = this.sequenceData.mapGTToDetections(frame.id, gtFile.boxes);
     

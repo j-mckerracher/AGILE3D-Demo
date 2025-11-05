@@ -454,16 +454,16 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       // Subscribe to frame stream
       this.frameStream.currentFrame$
         .pipe(takeUntil(this.destroy$))
-        .subscribe(async (streamedFrame) => {
+        .subscribe((streamedFrame) => {
           if (!streamedFrame) return;
 
           try {
-            // Parse points in worker
-            const positions = await this.sceneData.parseInWorker(streamedFrame.points, 3);
+            // Points are already parsed as Float32Array from frame stream
+            const positions = streamedFrame.points;
             
             if (!this.firstFrameLogged) {
               // Log detailed bounds for first frame only
-              console.log('[MainDemo] First frame parsed', {
+              console.log('[MainDemo] First frame received', {
                 frameId: streamedFrame.frame.id,
                 pointCount: positions.length / 3,
                 gtDetections: streamedFrame.gt.length,
