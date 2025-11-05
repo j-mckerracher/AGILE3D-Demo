@@ -460,6 +460,13 @@ export class MainDemoComponent implements OnInit, OnDestroy {
             // Parse points in worker
             const positions = await this.sceneData.parseInWorker(streamedFrame.points, 3);
             
+            console.log('[MainDemo] Frame parsed', {
+              frameId: streamedFrame.frame.id,
+              pointCount: positions.length / 3,
+              gtDetections: streamedFrame.gt.length,
+              samplePoints: positions.slice(0, 9) // First 3 points
+            });
+            
             // Update shared Points geometry
             if (this.sharedPoints) {
               this.sceneData.updatePointsAttribute(this.sharedPoints, positions);

@@ -11,7 +11,7 @@ interface GTBox {
   dy: number;
   dz: number;
   heading: number;
-  label: number;
+  label?: number;  // Optional - may not be present in Waymo data
 }
 
 interface GTFile {
@@ -42,26 +42,28 @@ export class SequenceDataService {
   }
 
   mapGTToDetections(frameId: string, boxes: GTBox[]): Detection[] {
-    return boxes
-      .map((box, i) => {
-        const detectionClass = LABEL_MAP[box.label];
-        if (!detectionClass) {
-          console.warn(`[SequenceDataService] Unknown label ${box.label} in frame ${frameId}`);
-          return null;
-        }
-        return {
-          id: `${i}-${frameId}`,
-          class: detectionClass,
-          center: [box.x, box.y, box.z] as [number, number, number],
-          dimensions: {
-            width: box.dx,
-            length: box.dy,
-            height: box.dz
-          },
-          yaw: box.heading,
-          confidence: 1.0
-        };
-      })
-      .filter((d): d is Detection => d !== null);
+    return boxes.map((box, i) => {
+      // If label is present, use it; otherwise default to 'vehicle'
+      // Many Waymo sequences don't include labels in the GT boxes
+      const detectionClass = box.label !== undefined ? LABEL_MAP[box.label] : 'vehicle';
+      
+      if (!detectionClass) {
+        console.warn(`[SequenceDataService] Unknown label ${box.label} in frame ${frameId}, skipping`);
+        return null;
+      }
+      
+      return {
+        id: `${i}-${frameId}`,
+        class: detectionClass,
+        center: [box.x, box.y, box.z] as [number, number, number],
+        dimensions: {
+          width: box.dx,
+          length: box.dy,
+          height: box.dz
+        },
+        yaw: box.heading,
+        confidence: 1.0
+      };
+    }).filter((d): d is Detection => d !== null);
   }
 }
