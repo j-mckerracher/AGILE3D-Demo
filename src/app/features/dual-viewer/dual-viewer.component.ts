@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SceneViewerComponent } from '../scene-viewer/scene-viewer.component';
 import { CameraSyncControlsComponent } from '../camera-controls/camera-sync-controls.component';
@@ -347,7 +347,7 @@ import * as THREE from 'three';
     `,
   ],
 })
-export class DualViewerComponent implements OnInit {
+export class DualViewerComponent implements OnInit, OnChanges {
   /** Detections to display in the baseline viewer */
   @Input() public baselineDetections: Detection[] = [];
 
@@ -402,6 +402,17 @@ export class DualViewerComponent implements OnInit {
     } else {
       console.log('[DualViewer] creating synthetic geometry');
       this.sharedGeometry = this.createSharedPointCloud(this.pointCount);
+    }
+  }
+
+  public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['inputPoints'] && this.inputPoints) {
+      // Switch to external shared Points geometry when it becomes available
+      console.log('[DualViewer] switching to external Points geometry', {
+        uuid: this.inputPoints.geometry.uuid,
+        vertices: this.inputPoints.geometry.getAttribute('position')?.count ?? 0,
+      });
+      this.sharedGeometry = this.inputPoints.geometry as THREE.BufferGeometry;
     }
   }
 
