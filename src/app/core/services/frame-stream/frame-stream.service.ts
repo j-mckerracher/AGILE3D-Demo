@@ -35,6 +35,7 @@ export class FrameStreamService {
   private readonly MAX_MISSES = 3;
   private readonly TIMEOUT_MS = 3000;
   private readonly RETRY_DELAYS = [250, 750];
+  private loop = false;
 
   private currentFrameSubject = new BehaviorSubject<StreamedFrame | null>(null);
   private statusSubject = new BehaviorSubject<StreamStatus>('stopped');
@@ -44,11 +45,12 @@ export class FrameStreamService {
   status$: Observable<StreamStatus> = this.statusSubject.asObservable();
   errors$: Observable<string | null> = this.errorsSubject.asObservable();
 
-  start(manifest: SequenceManifest, opts?: { fps?: number; prefetch?: number }): void {
+  start(manifest: SequenceManifest, opts?: { fps?: number; prefetch?: number; loop?: boolean }): void {
     this.stop();
     this.manifest = manifest;
     this.currentIndex = 0;
     this.consecutiveMisses = 0;
+    this.loop = opts?.loop ?? this.loop ?? false;
     
     const fps = opts?.fps ?? manifest.fps ?? 10;
     const prefetchCount = opts?.prefetch ?? 2;
@@ -124,8 +126,17 @@ export class FrameStreamService {
     if (!this.manifest) return;
     
     if (this.currentIndex >= this.manifest.frames.length) {
-      this.stop();
-      return;
+      if (this.loop) {
+        // Wrap to start and reset prefetch queue
+        this.currentIndex = 0;
+        this.prefetchQueue.forEach(entry => entry.controller.abort());
+        this.prefetchQueue = [];
+        this.consecutiveMisses = 0;
+        this.errorsSubject.next(null);
+      } else {
+        this.stop();
+        return;
+      }
     }
     
     // Check if frame is prefetched
@@ -161,16 +172,26 @@ export class FrameStreamService {
 
   private schedulePrefetch(prefetchCount: number): void {
     if (!this.manifest) return;
-    
-    // Remove fetches that are too old
-    const minIndex = this.currentIndex;
-    this.prefetchQueue = this.prefetchQueue.filter(e => e.index >= minIndex);
+    const len = this.manifest.frames.length;
+
+    if (!this.loop) {
+      // Remove fetches that are too old
+      const minIndex = this.currentIndex;
+      this.prefetchQueue = this.prefetchQueue.filter(e => e.index >= minIndex);
+    } else {
+      // Keep only entries that fall within the next window when looping
+      const window = new Set<number>();
+      for (let i = 1; i <= prefetchCount; i++) {
+        window.add((this.currentIndex + i) % len);
+      }
+      this.prefetchQueue = this.prefetchQueue.filter(e => window.has(e.index));
+    }
     
     // Add new prefetches
     for (let i = 0; i < prefetchCount; i++) {
-      const targetIndex = this.currentIndex + i + 1;
+      const targetIndex = this.loop ? (this.currentIndex + i + 1) % len : this.currentIndex + i + 1;
       
-      if (targetIndex >= this.manifest.frames.length) break;
+      if (!this.loop && targetIndex >= len) break;
       if (this.prefetchQueue.some(e => e.index === targetIndex)) continue;
       
       const controller = new AbortController();

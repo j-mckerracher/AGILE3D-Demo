@@ -515,6 +515,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       this.frameStream.start(manifest, {
         fps: manifest.fps || 10,
         prefetch: 2,
+        loop: true,
       });
 
       console.log('[MainDemo] Frame stream started');
