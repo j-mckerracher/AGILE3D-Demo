@@ -462,20 +462,25 @@ export class MainDemoComponent implements OnInit, OnDestroy {
             const positions = streamedFrame.points;
             
             if (!this.firstFrameLogged) {
+              // Compute bounds safely without spreading huge arrays
+              let minX = Infinity, minY = Infinity, minZ = Infinity;
+              let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+              for (let i = 0; i < positions.length; i += 3) {
+                const x = positions[i]!;
+                const y = positions[i + 1]!;
+                const z = positions[i + 2]!;
+                if (x < minX) minX = x; if (x > maxX) maxX = x;
+                if (y < minY) minY = y; if (y > maxY) maxY = y;
+                if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+              }
+
               // Log detailed bounds for first frame only
               console.log('[MainDemo] First frame received', {
                 frameId: streamedFrame.frame.id,
                 pointCount: positions.length / 3,
                 gtDetections: streamedFrame.gt.length,
                 firstPoint: [positions[0], positions[1], positions[2]],
-                bounds: {
-                  minX: Math.min(...Array.from(positions).filter((_, i) => i % 3 === 0)),
-                  maxX: Math.max(...Array.from(positions).filter((_, i) => i % 3 === 0)),
-                  minY: Math.min(...Array.from(positions).filter((_, i) => i % 3 === 1)),
-                  maxY: Math.max(...Array.from(positions).filter((_, i) => i % 3 === 1)),
-                  minZ: Math.min(...Array.from(positions).filter((_, i) => i % 3 === 2)),
-                  maxZ: Math.max(...Array.from(positions).filter((_, i) => i % 3 === 2))
-                }
+                bounds: { minX, maxX, minY, maxY, minZ, maxZ }
               });
               this.firstFrameLogged = true;
             }
