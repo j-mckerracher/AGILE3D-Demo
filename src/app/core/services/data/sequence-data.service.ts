@@ -57,10 +57,13 @@ export class SequenceDataService {
         class: detectionClass,
         center: [box.x, box.y, box.z] as [number, number, number],
         dimensions: {
-          width: box.dx,
-          length: box.dy,
+          // Waymo uses dx=length (x-axis), dy=width (y-axis), dz=height (z-axis)
+          // Our renderer expects width on X, length on Y. Swap dx/dy here.
+          width: box.dy,
+          length: box.dx,
           height: box.dz
         },
+        // Waymo heading is yaw about +Z in radians; same convention as renderer
         yaw: box.heading,
         confidence: 1.0
       };
