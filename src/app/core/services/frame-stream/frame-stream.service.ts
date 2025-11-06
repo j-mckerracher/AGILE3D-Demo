@@ -3,16 +3,36 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { SequenceManifest, FrameRef, Detection } from '../../models/sequence.models';
 import { SequenceDataService } from '../data/sequence-data.service';
 import { SceneDataService } from '../data/scene-data.service';
+import { classifyDetections } from '../../utils/bev-iou.utils';
+
+export interface BranchDetections {
+  detections: Detection[];
+  classification: Map<string, 'tp' | 'fp' | 'fn'>;
+  delay?: number;
+}
 
 export interface StreamedFrame {
   index: number;
   frame: FrameRef;
   points: Float32Array;  // Changed from ArrayBuffer to Float32Array
   gt: Detection[];
-  det?: Detection[];
+  agile?: BranchDetections;
+  baseline?: BranchDetections;
+  det?: Detection[];  // Deprecated - kept for backward compatibility
 }
 
 export type StreamStatus = 'stopped' | 'playing' | 'paused' | 'error';
+
+export interface StreamConfig {
+  fps?: number;
+  prefetch?: number;
+  loop?: boolean;
+  activeBranch?: string;
+  baselineBranch?: string;
+  simulateDelay?: boolean;
+  scoreThreshold?: number;
+  iouThreshold?: number;
+}
 
 interface PrefetchEntry {
   index: number;
@@ -26,7 +46,7 @@ interface PrefetchEntry {
 export class FrameStreamService {
   private readonly sequenceData = inject(SequenceDataService);
   private readonly sceneData = inject(SceneDataService);
-  
+
   private manifest: SequenceManifest | null = null;
   private currentIndex = 0;
   private intervalId: any = null;
@@ -37,6 +57,20 @@ export class FrameStreamService {
   private readonly RETRY_DELAYS = [250, 750];
   private loop = false;
 
+  // Detection branch configuration
+  private activeBranch = 'CP_Pillar_032';
+  private baselineBranch = 'DSVT_Voxel_038';
+  private baselineFallback = 'DSVT_Voxel_030';
+  private simulateDelay = false;
+  private scoreThreshold = 0.7;
+  private iouThreshold = 0.5;
+
+  // Progressive delay parameters
+  private currentDelay = 0;
+  private readonly INITIAL_DELAY = 2;
+  private readonly DELAY_GROWTH = 0.2;
+  private readonly MAX_DELAY = 10;
+
   private currentFrameSubject = new BehaviorSubject<StreamedFrame | null>(null);
   private statusSubject = new BehaviorSubject<StreamStatus>('stopped');
   private errorsSubject = new BehaviorSubject<string | null>(null);
@@ -45,22 +79,32 @@ export class FrameStreamService {
   status$: Observable<StreamStatus> = this.statusSubject.asObservable();
   errors$: Observable<string | null> = this.errorsSubject.asObservable();
 
-  start(manifest: SequenceManifest, opts?: { fps?: number; prefetch?: number; loop?: boolean }): void {
+  start(manifest: SequenceManifest, opts?: StreamConfig): void {
     this.stop();
     this.manifest = manifest;
     this.currentIndex = 0;
     this.consecutiveMisses = 0;
     this.loop = opts?.loop ?? this.loop ?? false;
-    
+
+    // Configure detection branches
+    this.activeBranch = opts?.activeBranch ?? 'CP_Pillar_032';
+    this.baselineBranch = opts?.baselineBranch ?? 'DSVT_Voxel_038';
+    this.simulateDelay = opts?.simulateDelay ?? false;
+    this.scoreThreshold = opts?.scoreThreshold ?? 0.7;
+    this.iouThreshold = opts?.iouThreshold ?? 0.5;
+
+    // Reset progressive delay
+    this.currentDelay = this.simulateDelay ? this.INITIAL_DELAY : 0;
+
     const fps = opts?.fps ?? manifest.fps ?? 10;
     const prefetchCount = opts?.prefetch ?? 2;
     const intervalMs = 1000 / fps;
 
     this.statusSubject.next('playing');
-    
+
     // Start prefetching
     this.schedulePrefetch(prefetchCount);
-    
+
     this.intervalId = setInterval(() => {
       this.tick(prefetchCount);
     }, intervalMs);
@@ -124,7 +168,7 @@ export class FrameStreamService {
 
   private async tick(prefetchCount: number): Promise<void> {
     if (!this.manifest) return;
-    
+
     if (this.currentIndex >= this.manifest.frames.length) {
       if (this.loop) {
         // Wrap to start and reset prefetch queue
@@ -133,22 +177,32 @@ export class FrameStreamService {
         this.prefetchQueue = [];
         this.consecutiveMisses = 0;
         this.errorsSubject.next(null);
+        // Reset progressive delay on loop
+        this.currentDelay = this.simulateDelay ? this.INITIAL_DELAY : 0;
       } else {
         this.stop();
         return;
       }
     }
-    
+
+    // Update progressive delay
+    if (this.simulateDelay) {
+      this.currentDelay = Math.min(
+        this.INITIAL_DELAY + this.currentIndex * this.DELAY_GROWTH,
+        this.MAX_DELAY
+      );
+    }
+
     // Check if frame is prefetched
     const prefetched = this.prefetchQueue.find(e => e.index === this.currentIndex);
-    
+
     if (prefetched) {
       try {
         const frame = await prefetched.promise;
         this.currentFrameSubject.next(frame);
         this.consecutiveMisses = 0;
         this.errorsSubject.next(null);
-        
+
         // Remove from queue
         this.prefetchQueue = this.prefetchQueue.filter(e => e.index !== this.currentIndex);
       } catch (error) {
@@ -165,7 +219,7 @@ export class FrameStreamService {
         this.handleFrameMiss(error);
       }
     }
-    
+
     this.currentIndex++;
     this.schedulePrefetch(prefetchCount);
   }
@@ -205,22 +259,28 @@ export class FrameStreamService {
 
   private async fetchFrame(index: number, signal?: AbortSignal): Promise<StreamedFrame> {
     if (!this.manifest) throw new Error('No manifest loaded');
-    
+
     const frame = this.manifest.frames[index];
     if (!frame) throw new Error(`Frame ${index} not found in manifest`);
-    
+
     const seqId = this.manifest.sequenceId;
-    
+
+    // Determine baseline frame index (with progressive delay)
+    const baselineIndex = this.simulateDelay
+      ? Math.max(0, index - Math.floor(this.currentDelay))
+      : index;
+    const baselineFrame = this.manifest.frames[baselineIndex];
+
     // Fetch points and GT in parallel
     const [pointsBuffer, gtFile] = await Promise.all([
       this.sequenceData.fetchPoints(seqId, frame.urls.points),
       frame.urls.gt ? this.sequenceData.fetchGT(seqId, frame.urls.gt) : Promise.resolve({ boxes: [] })
     ]);
-    
+
     if (signal?.aborted) {
       throw new Error('Aborted');
     }
-    
+
     // Parse points in worker here, before creating the StreamedFrame
     // This ensures parsing happens once and avoids ArrayBuffer detachment issues
     let parsed = await this.sceneData.parseInWorker(pointsBuffer, 3);
@@ -300,13 +360,68 @@ export class FrameStreamService {
     }
     
     const gt = this.sequenceData.mapGTToDetections(frame.id, gtFile.boxes);
-    
+
+    // Fetch detections from both branches
+    let agile: BranchDetections | undefined;
+    let baseline: BranchDetections | undefined;
+
+    // Fetch AGILE3D detections (current frame)
+    const agileUrl = frame.urls.det?.[this.activeBranch];
+    if (agileUrl) {
+      try {
+        const detFile = await this.sequenceData.fetchDet(seqId, agileUrl);
+        const detections = this.sequenceData.mapDetToDetections(
+          this.activeBranch,
+          frame.id,
+          detFile.boxes,
+          this.scoreThreshold
+        );
+        const classification = classifyDetections(detections, gt, this.iouThreshold);
+        agile = { detections, classification };
+      } catch (error) {
+        console.warn(`[FrameStream] Failed to fetch ${this.activeBranch} detections for frame ${index}:`, error);
+      }
+    }
+
+    // Fetch baseline detections (potentially delayed frame)
+    if (baselineFrame) {
+      let baselineUrl = baselineFrame.urls.det?.[this.baselineBranch];
+
+      // Fallback to alternative baseline if primary not found
+      if (!baselineUrl && this.baselineFallback) {
+        baselineUrl = baselineFrame.urls.det?.[this.baselineFallback];
+      }
+
+      if (baselineUrl) {
+        try {
+          const detFile = await this.sequenceData.fetchDet(seqId, baselineUrl);
+          const detections = this.sequenceData.mapDetToDetections(
+            this.baselineBranch,
+            baselineFrame.id,
+            detFile.boxes,
+            this.scoreThreshold
+          );
+          // Classify against GT from the *current* frame (not the delayed frame)
+          const classification = classifyDetections(detections, gt, this.iouThreshold);
+          baseline = {
+            detections,
+            classification,
+            delay: this.simulateDelay ? this.currentDelay : 0
+          };
+        } catch (error) {
+          console.warn(`[FrameStream] Failed to fetch baseline detections for frame ${baselineIndex}:`, error);
+        }
+      }
+    }
+
     return {
       index,
       frame,
       points,
       gt,
-      det: undefined
+      agile,
+      baseline,
+      det: agile?.detections  // Backward compatibility
     };
   }
 

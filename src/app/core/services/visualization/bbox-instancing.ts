@@ -169,7 +169,7 @@ function createInstancedMesh(
   classType: DetectionClass,
   color: THREE.Color,
   diffMode: DiffMode,
-  _diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
+  diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
 ): THREE.InstancedMesh {
   const count = detections.length;
 
@@ -188,6 +188,7 @@ function createInstancedMesh(
 
   const matrix = new THREE.Matrix4();
   const instanceColor = new THREE.Color();
+  const fpColor = new THREE.Color('#ff3b30'); // Red color for false positives
 
   for (let i = 0; i < count; i++) {
     const det = detections[i];
@@ -203,9 +204,14 @@ function createInstancedMesh(
 
     mesh.setMatrixAt(i, matrix);
 
-    // Set instance color
-    // Copy supplied color directly to preserve component values as provided
-    instanceColor.copy(color);
+    // Set instance color based on classification
+    // FP detections get red color, TP detections keep class color
+    const classification = diffClassification?.get(det.id);
+    if (classification === 'fp') {
+      instanceColor.copy(fpColor);
+    } else {
+      instanceColor.copy(color);
+    }
     mesh.setColorAt(i, instanceColor);
 
     // Note: Three.js InstancedMesh doesn't support per-instance opacity directly
@@ -260,7 +266,7 @@ export function updateInstancedMesh(
   detections: Detection[],
   color: THREE.Color,
   diffMode: DiffMode = 'off',
-  _diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
+  diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
 ): boolean {
   // Can only update if count matches
   if (mesh.count !== detections.length) {
@@ -269,6 +275,7 @@ export function updateInstancedMesh(
 
   const matrix = new THREE.Matrix4();
   const instanceColor = new THREE.Color();
+  const fpColor = new THREE.Color('#ff3b30'); // Red color for false positives
 
   for (let i = 0; i < detections.length; i++) {
     const det = detections[i];
@@ -283,8 +290,14 @@ export function updateInstancedMesh(
 
     mesh.setMatrixAt(i, matrix);
 
-    // Update color
-    instanceColor.copy(color);
+    // Update color based on classification
+    // FP detections get red color, TP detections keep class color
+    const classification = diffClassification?.get(det.id);
+    if (classification === 'fp') {
+      instanceColor.copy(fpColor);
+    } else {
+      instanceColor.copy(color);
+    }
     mesh.setColorAt(i, instanceColor);
   }
 

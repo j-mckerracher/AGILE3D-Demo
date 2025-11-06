@@ -83,6 +83,8 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
   protected agile3dDetections: Detection[] = [];
+  protected baselineDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
+  protected agile3dDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
 
   protected readonly loading = signal<boolean>(true);
   protected readonly loadError = signal<string | null>(null);
@@ -460,7 +462,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
           try {
             // Points are already parsed as Float32Array from frame stream
             const positions = streamedFrame.points;
-            
+
             if (!this.firstFrameLogged) {
               // Compute bounds safely without spreading huge arrays
               let minX = Infinity, minY = Infinity, minZ = Infinity;
@@ -479,20 +481,28 @@ export class MainDemoComponent implements OnInit, OnDestroy {
                 frameId: streamedFrame.frame.id,
                 pointCount: positions.length / 3,
                 gtDetections: streamedFrame.gt.length,
+                agileDetections: streamedFrame.agile?.detections.length ?? 0,
+                baselineDetections: streamedFrame.baseline?.detections.length ?? 0,
                 firstPoint: [positions[0], positions[1], positions[2]],
                 bounds: { minX, maxX, minY, maxY, minZ, maxZ }
               });
               this.firstFrameLogged = true;
             }
-            
+
             // Update shared Points geometry
             if (this.sharedPoints) {
               this.sceneData.updatePointsAttribute(this.sharedPoints, positions);
             }
 
-            // Update detections - use GT for baseline, GT for AGILE3D until det files available
+            // Update detections from frame stream
+            // Left viewer: GT boxes only
+            // Right viewer: AGILE3D detections with TP/FP coloring
             this.baselineDetections = streamedFrame.gt;
-            this.agile3dDetections = streamedFrame.det ?? streamedFrame.gt;
+            this.agile3dDetections = streamedFrame.agile?.detections ?? streamedFrame.gt;
+
+            // Store classification maps for TP/FP coloring
+            this.agile3dDiffClassification = streamedFrame.agile?.classification;
+            this.baselineDiffClassification = streamedFrame.baseline?.classification;
 
             this.cdr.markForCheck();
           } catch (err) {

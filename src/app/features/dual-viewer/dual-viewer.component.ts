@@ -43,7 +43,7 @@ import * as THREE from 'three';
         aria-labelledby="baseline-viewer-label"
         [attr.aria-hidden]="activeViewer !== 'baseline'"
       >
-        <h2 id="baseline-viewer-label" class="viewer-label">DSVT-Voxel (Baseline)</h2>
+        <h2 id="baseline-viewer-label" class="viewer-label">Ground Truth</h2>
         <app-scene-viewer
           viewerId="baseline"
           [sharedPointGeometry]="sharedGeometry"
