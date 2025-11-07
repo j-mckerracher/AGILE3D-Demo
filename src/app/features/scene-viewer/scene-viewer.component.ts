@@ -324,9 +324,10 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
     const bgColor = this.viewerColors?.background ?? new THREE.Color(0x1a1a1a);
     this.scene.background = bgColor;
 
-    // Camera
+    // Camera - bird's eye view from behind (-Y) and above
     this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    this.camera.position.set(25, 25, 25);
+    this.camera.up.set(0, 0, 1); // Ensure Z-up for Waymo coordinate system
+    this.camera.position.set(0, -120, 80); // Behind and above the scene center
 
     // Renderer with DPR clamping
     const clampedDpr = Math.min(window.devicePixelRatio, 1.75);
@@ -338,7 +339,8 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
-    this.controls.target.set(0, 0, 2.5); // Look at center of point cloud (z: 0-5)
+    this.controls.target.set(0, 0, 0); // Look at scene center
+    this.controls.update(); // Ensure OrbitControls picks up the new target
 
     // Attach controls to CameraControlService
     this.cameraControl.attach(this.viewerId, this.controls);

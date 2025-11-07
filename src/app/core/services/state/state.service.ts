@@ -28,7 +28,8 @@ export class StateService implements OnDestroy {
   private readonly activeBranchSubject = new BehaviorSubject<string>('CP_Pillar_032');
 
   // Camera synchronization (private subjects)
-  private readonly cameraPosSubject = new BehaviorSubject<Vec3>([0, 0, 10]);
+  // Bird's eye view: camera positioned behind (-Y) and above the scene center
+  private readonly cameraPosSubject = new BehaviorSubject<Vec3>([0, -120, 80]);
   private readonly cameraTargetSubject = new BehaviorSubject<Vec3>([0, 0, 0]);
   private readonly independentCameraSubject = new BehaviorSubject<boolean>(false);
 
