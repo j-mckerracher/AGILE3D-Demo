@@ -78,6 +78,10 @@ import {
           <span class="tooltip-label">Confidence:</span>
           <span class="tooltip-value">{{ (tooltipContent().confidence * 100).toFixed(1) }}%</span>
         </div>
+        <div class="tooltip-row" *ngIf="paneLabel">
+          <span class="tooltip-label">Pane:</span>
+          <span class="tooltip-value">{{ paneLabel }}</span>
+        </div>
         <div class="tooltip-row" *ngIf="tooltipContent().matchesGt">
           <span class="tooltip-label">Matches GT:</span>
           <span class="tooltip-value">{{ tooltipContent().matchesGt }}</span>
@@ -171,6 +175,9 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
 
   /** Number of synthetic points to generate if no sharedPointGeometry provided (default 50k) */
   @Input() public pointCount = 50_000;
+
+  /** Label for which pane this viewer represents (e.g., 'GT', 'AGILE3D') */
+  @Input() public paneLabel: string = '';
 
   /** Show FPS overlay (WP-2.3.2: default false, enabled via debug mode) */
   @Input() public showFps = false;
@@ -408,10 +415,10 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
 
       // Add batches to scene
       if (this.scene) {
-        for (const classType of ['vehicle', 'pedestrian', 'cyclist'] as DetectionClass[]) {
-          const mesh = this.classBatches[classType];
-          if (mesh) {
-            this.scene.add(mesh);
+      for (const classType of ['vehicle', 'pedestrian', 'cyclist'] as DetectionClass[]) {
+          const obj = this.classBatches[classType];
+          if (obj) {
+            this.scene.add(obj);
           }
         }
       }
@@ -517,13 +524,17 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    // Collect all meshes for raycasting
+    // Collect all meshes for raycasting (groups may contain multiple instanced meshes)
     const meshes: THREE.InstancedMesh[] = [];
+    const collectMeshes = (obj: THREE.Object3D) => {
+      obj.traverse((child) => {
+        const m = child as unknown as THREE.InstancedMesh;
+        if ((m as any).isInstancedMesh) meshes.push(m);
+      });
+    };
     for (const classType of ['vehicle', 'pedestrian', 'cyclist'] as DetectionClass[]) {
-      const mesh = this.classBatches[classType];
-      if (mesh) {
-        meshes.push(mesh);
-      }
+      const obj = this.classBatches?.[classType];
+      if (obj) collectMeshes(obj);
     }
 
     const intersects = this.raycaster.intersectObjects(meshes, false);

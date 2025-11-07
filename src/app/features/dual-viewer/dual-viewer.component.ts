@@ -34,6 +34,27 @@ import * as THREE from 'three';
   imports: [CommonModule, SceneViewerComponent, CameraSyncControlsComponent],
   template: `
     <div class="dual-viewer-container">
+      <!-- Small Legend Overlay -->
+      <div class="legend-overlay" aria-hidden="false">
+        <div class="legend-title">Legend</div>
+        <div class="legend-row">
+          <span class="legend-swatch swatch-vehicle" aria-hidden="true"></span>
+          <span class="legend-text">Vehicle (TP)</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-swatch swatch-pedestrian" aria-hidden="true"></span>
+          <span class="legend-text">Pedestrian (TP)</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-swatch swatch-cyclist" aria-hidden="true"></span>
+          <span class="legend-text">Cyclist (TP)</span>
+        </div>
+        <div class="legend-row">
+          <span class="legend-swatch swatch-fp" aria-hidden="true"></span>
+          <span class="legend-text">FP (red)</span>
+        </div>
+      </div>
+
       <!-- Baseline Viewer Region (NFR-3.3, NFR-3.4) -->
       <section
         class="viewer-panel"
@@ -43,13 +64,14 @@ import * as THREE from 'three';
         aria-labelledby="baseline-viewer-label"
         [attr.aria-hidden]="activeViewer !== 'baseline'"
       >
-        <h2 id="baseline-viewer-label" class="viewer-label">DSVT-Voxel (Baseline)</h2>
+        <h2 id="baseline-viewer-label" class="viewer-label">{{ leftTitle }}</h2>
         <app-scene-viewer
           viewerId="baseline"
           [sharedPointGeometry]="sharedGeometry"
           [detections]="baselineDetections"
-          [diffMode]="diffMode"
+          [diffMode]="effectiveDiffMode"
           [diffClassification]="baselineDiffClassification"
+          [paneLabel]="'GT'"
           [showFps]="showFps"
         />
       </section>
@@ -76,6 +98,18 @@ import * as THREE from 'three';
         <app-camera-sync-controls />
       </div>
 
+      <!-- FP Only Toggle -->
+      <button
+        class="fp-toggle"
+        type="button"
+        (click)="toggleFPOnly()"
+        [attr.aria-pressed]="effectiveDiffMode === 'fp'"
+        aria-label="Toggle show only false positives"
+        title="Show only false positives"
+      >
+        FP Only: {{ effectiveDiffMode === 'fp' ? 'On' : 'Off' }}
+      </button>
+
       <!-- Ground Truth Toggle (Placeholder for future WP) -->
       <button
         class="gt-toggle"
@@ -97,15 +131,19 @@ import * as THREE from 'three';
         aria-labelledby="agile3d-viewer-label"
         [attr.aria-hidden]="activeViewer !== 'agile3d'"
       >
-        <h2 id="agile3d-viewer-label" class="viewer-label">AGILE3D</h2>
+        <h2 id="agile3d-viewer-label" class="viewer-label">{{ rightTitle }}</h2>
         <app-scene-viewer
           viewerId="agile3d"
           [sharedPointGeometry]="sharedGeometry"
           [detections]="agile3dDetections"
-          [diffMode]="diffMode"
+          [diffMode]="effectiveDiffMode"
           [diffClassification]="agile3dDiffClassification"
+          [paneLabel]="'AGILE3D'"
           [showFps]="showFps"
         />
+        <div class="no-dets-overlay" *ngIf="!agile3dDetections || agile3dDetections.length === 0">
+          No detections for branch
+        </div>
       </section>
     </div>
   `,
@@ -206,12 +244,50 @@ import * as THREE from 'three';
       }
 
       /* Camera Sync Controls (WP-2.1.3) */
+      /* Legend overlay */
+      .legend-overlay {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        padding: 8px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        z-index: 1003;
+        min-width: 160px;
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+      .legend-title { font-weight: 700; margin-bottom: 4px; }
+      .legend-row { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
+      .legend-swatch { width: 14px; height: 10px; border: 2px solid currentColor; background: transparent; }
+      .swatch-vehicle { color: var(--ag3d-color-class-vehicle); }
+      .swatch-pedestrian { color: var(--ag3d-color-class-pedestrian); }
+      .swatch-cyclist { color: var(--ag3d-color-class-cyclist); }
+      .swatch-fp { color: #ff3b30; }
+
       .camera-controls-container {
         position: absolute;
         top: 12px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 1003;
+      }
+
+      /* FP Only Toggle */
+      .fp-toggle {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 1003;
+        padding: 6px 10px;
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        border: 1px solid #555;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
       }
 
       /* Ground Truth Toggle (Placeholder) */
@@ -262,6 +338,18 @@ import * as THREE from 'three';
         z-index: 1001;
         border-radius: 3px;
         border-left: 3px solid #4a9eff;
+      }
+
+      .no-dets-overlay {
+        position: absolute;
+        top: 80px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 6px 10px;
+        font-size: 12px;
+        border-radius: 4px;
+        z-index: 1001;
       }
 
       app-scene-viewer {
@@ -355,13 +443,20 @@ export class DualViewerComponent implements OnInit, OnChanges {
   @Input() public agile3dDetections: Detection[] = [];
 
   /** Diff mode for visual encoding (TP/FP/FN highlighting) */
-  @Input() public diffMode: DiffMode = 'off';
+  @Input() public diffMode: DiffMode = 'all';
+
+  /** Effective diff mode used internally and toggleable */
+  protected effectiveDiffMode: DiffMode = 'all';
 
   /** Optional: diff classification map (detection ID -> 'tp'|'fp'|'fn') */
   @Input() public baselineDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
 
   /** Optional: diff classification map for AGILE3D viewer */
   @Input() public agile3dDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
+
+  /** Panel titles */
+  @Input() public leftTitle: string = 'Ground Truth';
+  @Input() public rightTitle: string = 'AGILE3D';
 
   /** Show ground truth overlay (placeholder for future WP) */
   @Input() public showGroundTruth = false;
@@ -389,6 +484,7 @@ export class DualViewerComponent implements OnInit, OnChanges {
   private lastToggleTimestamp?: number;
 
   public ngOnInit(): void {
+    this.effectiveDiffMode = this.diffMode;
     // Priority: inputPoints > inputGeometry > synthetic
     if (this.inputPoints) {
       console.log('[DualViewer] using external Points instance (WP-2.1.1)', {
@@ -406,6 +502,9 @@ export class DualViewerComponent implements OnInit, OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['diffMode'] && changes['diffMode'].currentValue) {
+      this.effectiveDiffMode = changes['diffMode'].currentValue;
+    }
     if (changes['inputPoints'] && this.inputPoints) {
       // Switch to external shared Points geometry when it becomes available
       console.log('[DualViewer] switching to external Points geometry', {
@@ -470,5 +569,10 @@ export class DualViewerComponent implements OnInit, OnChanges {
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return geometry;
+  }
+
+  /** Toggle diff mode between 'all' and 'fp' for quick debugging */
+  protected toggleFPOnly(): void {
+    this.effectiveDiffMode = this.effectiveDiffMode === 'fp' ? 'all' : 'fp';
   }
 }

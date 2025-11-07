@@ -37,6 +37,9 @@ function quantizeColorFloat32(c: THREE.Color): void {
 import * as THREE from 'three';
 import { Detection, DetectionClass } from '../../models/scene.models';
 
+// FP color override (red)
+const FP_COLOR = new THREE.Color(0xff3b30);
+
 /**
  * Diff mode for visual encoding.
  */
@@ -55,9 +58,9 @@ export interface ClassColors {
  * Result of buildClassBatches containing per-class InstancedMesh objects.
  */
 export interface ClassBatches {
-  vehicle: THREE.InstancedMesh | null;
-  pedestrian: THREE.InstancedMesh | null;
-  cyclist: THREE.InstancedMesh | null;
+  vehicle: THREE.Object3D | null; // Group or InstancedMesh
+  pedestrian: THREE.Object3D | null;
+  cyclist: THREE.Object3D | null;
 }
 
 /**
@@ -117,7 +120,7 @@ export function buildClassBatches(
       continue;
     }
 
-    batches[classType] = createInstancedMesh(
+    batches[classType] = createClassGroup(
       filtered,
       classType,
       colors[classType],
@@ -162,32 +165,83 @@ function filterByDiffMode(
 }
 
 /**
- * Create InstancedMesh for a single class.
+ * Create a THREE.Group for a single class containing up to two InstancedMeshes:
+ * - TP mesh in class color
+ * - FP mesh in red
+ * If no diffClassification is provided or mode filters to one side, the group
+ * contains only the applicable mesh(es).
  */
-function createInstancedMesh(
+function createClassGroup(
   detections: Detection[],
   classType: DetectionClass,
   color: THREE.Color,
   diffMode: DiffMode,
-  _diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
+  diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
+): THREE.Object3D {
+  const group = new THREE.Group();
+  group.name = `bbox-group-${classType}`;
+
+  // If no classification map, just create single mesh with class color
+  if (!diffClassification || diffMode === 'off') {
+    const mesh = createInstancedMesh(detections, classType, color);
+    group.add(mesh);
+    return group;
+  }
+
+  // Partition detections
+  const tpDet: Detection[] = [];
+  const fpDet: Detection[] = [];
+  const other: Detection[] = [];
+  for (const d of detections) {
+    const cls = diffClassification.get(d.id);
+    if (cls === 'fp') fpDet.push(d);
+    else if (cls === 'tp') tpDet.push(d);
+    else other.push(d);
+  }
+
+  // Apply mode filtering
+  if (diffMode === 'fp') {
+    if (fpDet.length > 0) group.add(createInstancedMesh(fpDet, classType, FP_COLOR));
+    return group;
+  }
+  if (diffMode === 'tp') {
+    const arr = tpDet.length > 0 ? tpDet : other; // treat unknown as TP for class color
+    if (arr.length > 0) group.add(createInstancedMesh(arr, classType, color));
+    return group;
+  }
+  // 'all' or anything else: add both (TP/class + FP/red)
+  const tpAll = tpDet.concat(other);
+  if (tpAll.length > 0) group.add(createInstancedMesh(tpAll, classType, color));
+  if (fpDet.length > 0) group.add(createInstancedMesh(fpDet, classType, FP_COLOR));
+  return group;
+}
+
+/**
+ * Create InstancedMesh with a uniform wireframe color.
+ */
+function createInstancedMesh(
+  detections: Detection[],
+  classType: DetectionClass,
+  color: THREE.Color
 ): THREE.InstancedMesh {
   const count = detections.length;
 
   // Shared box geometry (1x1x1 unit cube)
   const geometry = new THREE.BoxGeometry(1, 1, 1);
 
-  // Determine material opacity based on diff mode
+  // Wireframe material with uniform class color (vertexColors disabled for wireframe)
   const material = new THREE.MeshBasicMaterial({
     wireframe: true,
     transparent: true,
-    vertexColors: true,
+    vertexColors: false,
+    color: color,
   });
 
   const mesh = new THREE.InstancedMesh(geometry, material, count);
   mesh.name = `bbox-${classType}`;
 
   const matrix = new THREE.Matrix4();
-  const instanceColor = new THREE.Color();
+  // No per-instance color for wireframe in step 1 (uniform class color)
 
   for (let i = 0; i < count; i++) {
     const det = detections[i];
@@ -203,39 +257,16 @@ function createInstancedMesh(
 
     mesh.setMatrixAt(i, matrix);
 
-    // Set instance color
-    // Copy supplied color directly to preserve component values as provided
-    instanceColor.copy(color);
-    mesh.setColorAt(i, instanceColor);
+    // No per-instance color in step 1; material.color provides uniform class color
 
     // Note: Three.js InstancedMesh doesn't support per-instance opacity directly
     // We handle overall opacity via material based on diff mode below
   }
 
   // Apply opacity to material (affects all instances)
-  // For per-instance opacity, we'd need custom shader or separate meshes
-  // For now, use uniform opacity for the entire class
-  if (diffMode !== 'off' && diffMode !== 'all') {
-    // Single mode (tp, fp, fn) - apply specific opacity
-    if (diffMode === 'fp') {
-      material.opacity = 0.4;
-    } else {
-      material.opacity = 1.0;
-    }
-  } else {
-    material.opacity = 1.0;
-  }
-
-  // Force instanceColor attribute creation by accessing after first set
-  if (!mesh.instanceColor) {
-    (mesh as unknown as { instanceColor: THREE.InstancedBufferAttribute | null }).instanceColor =
-      (mesh.geometry.getAttribute('instanceColor') as THREE.InstancedBufferAttribute) ?? null;
-  }
+  material.opacity = 1.0;
 
   mesh.instanceMatrix.needsUpdate = true;
-  if (mesh.instanceColor) {
-    mesh.instanceColor.needsUpdate = true;
-  }
 
   // Store detection metadata in userData for raycasting
   mesh.userData['detections'] = detections;
@@ -260,7 +291,7 @@ export function updateInstancedMesh(
   detections: Detection[],
   color: THREE.Color,
   diffMode: DiffMode = 'off',
-  _diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
+  diffClassification?: Map<string, 'tp' | 'fp' | 'fn'>
 ): boolean {
   // Can only update if count matches
   if (mesh.count !== detections.length) {
@@ -268,7 +299,6 @@ export function updateInstancedMesh(
   }
 
   const matrix = new THREE.Matrix4();
-  const instanceColor = new THREE.Color();
 
   for (let i = 0; i < detections.length; i++) {
     const det = detections[i];
@@ -283,9 +313,7 @@ export function updateInstancedMesh(
 
     mesh.setMatrixAt(i, matrix);
 
-    // Update color
-    instanceColor.copy(color);
-    mesh.setColorAt(i, instanceColor);
+    // No per-instance color updates in step 1; material.color provides uniform class color
   }
 
   mesh.instanceMatrix.needsUpdate = true;
@@ -293,13 +321,10 @@ export function updateInstancedMesh(
     mesh.instanceColor.needsUpdate = true;
   }
 
-  // Update material opacity based on diff mode
+  // Keep uniform opacity and update material color to class color
   const material = mesh.material as THREE.MeshBasicMaterial;
-  if (diffMode === 'fp') {
-    material.opacity = 0.4;
-  } else {
-    material.opacity = 1.0;
-  }
+  material.opacity = 1.0;
+  material.color.copy(color);
 
   // Update metadata
   mesh.userData['detections'] = detections;
@@ -314,15 +339,18 @@ export function updateInstancedMesh(
  */
 export function disposeClassBatches(batches: ClassBatches): void {
   for (const classType of ['vehicle', 'pedestrian', 'cyclist'] as DetectionClass[]) {
-    const mesh = batches[classType];
-    if (mesh) {
-      mesh.geometry.dispose();
-      if (Array.isArray(mesh.material)) {
-        mesh.material.forEach((m) => m.dispose());
-      } else {
-        mesh.material.dispose();
+    const obj = batches[classType];
+    if (!obj) continue;
+
+    obj.traverse((child) => {
+      const m = child as unknown as THREE.InstancedMesh;
+      // Dispose only on InstancedMesh
+      if ((m as any).isInstancedMesh) {
+        m.geometry.dispose();
+        if (Array.isArray(m.material)) m.material.forEach((mm) => mm.dispose());
+        else m.material.dispose();
       }
-    }
+    });
   }
 }
 

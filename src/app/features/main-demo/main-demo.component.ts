@@ -83,6 +83,8 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
   protected agile3dDetections: Detection[] = [];
+  protected agile3dDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
+  protected rightTitle: string = 'AGILE3D';
 
   protected readonly loading = signal<boolean>(true);
   protected readonly loadError = signal<string | null>(null);
@@ -490,9 +492,30 @@ export class MainDemoComponent implements OnInit, OnDestroy {
               this.sceneData.updatePointsAttribute(this.sharedPoints, positions);
             }
 
-            // Update detections - use GT for baseline, GT for AGILE3D until det files available
+            // Update detections for viewers
             this.baselineDetections = streamedFrame.gt;
-            this.agile3dDetections = streamedFrame.det ?? streamedFrame.gt;
+
+            // Prefer AGILE3D detections; fall back to GT if not available
+            if (streamedFrame.agile?.det) {
+              this.agile3dDetections = streamedFrame.agile.det;
+              // Build classification map for AGILE3D (TP/FP)
+              const flags = streamedFrame.agile.cls;
+              const dets = streamedFrame.agile.det;
+              const map = new Map<string, 'tp' | 'fp'>();
+              for (let i = 0; i < dets.length; i++) {
+                const det = dets[i];
+                if (!det) continue;
+                const isTP = flags?.[i] === true;
+                map.set(det.id, isTP ? 'tp' : 'fp');
+              }
+              this.agile3dDiffClassification = map;
+            } else {
+              this.agile3dDetections = streamedFrame.det ?? streamedFrame.gt;
+              this.agile3dDiffClassification = undefined;
+            }
+
+            // Update right viewer title with active branch
+            this.rightTitle = `AGILE3D (${this.frameStream.activeBranch})`;
 
             this.cdr.markForCheck();
           } catch (err) {

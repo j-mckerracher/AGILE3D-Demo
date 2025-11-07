@@ -218,6 +218,8 @@ export class FrameStreamService {
       
       const controller = new AbortController();
       const promise = this.fetchFrame(targetIndex, controller.signal);
+      // Attach a no-op catch to prevent unhandled rejection logs for aborted prefetches
+      promise.catch(() => {});
       
       this.prefetchQueue.push({ index: targetIndex, controller, promise });
     }
