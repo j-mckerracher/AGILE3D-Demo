@@ -55,3 +55,7 @@ Thumbs.db
 # Package lock files (using npm)
 package-lock.json
 yarn.lock
+
+# Large detection PKL files (not committed)
+*.pkl
+assets/data/*.pkl

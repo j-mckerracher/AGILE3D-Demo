@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { SequenceManifest, Detection, LABEL_MAP } from '../../models/sequence.models';
 
+export const DET_SCORE_THRESH = 0.7;
+
 interface GTBox {
   x: number;
   y: number;
@@ -16,6 +18,22 @@ interface GTBox {
 
 interface GTFile {
   boxes: GTBox[];
+}
+
+interface DetBox {
+  x: number;
+  y: number;
+  z: number;
+  dx: number;
+  dy: number;
+  dz: number;
+  heading: number;
+  score?: number;
+  label?: number;
+}
+
+interface DetFile {
+  boxes: DetBox[];
 }
 
 @Injectable({
@@ -39,6 +57,11 @@ export class SequenceDataService {
   async fetchGT(seqId: string, url: string): Promise<GTFile> {
     const fullUrl = `assets/data/sequences/${seqId}/${url}`;
     return firstValueFrom(this.http.get<GTFile>(fullUrl));
+  }
+
+  async fetchDet(seqId: string, url: string): Promise<DetFile> {
+    const fullUrl = `assets/data/sequences/${seqId}/${url}`;
+    return firstValueFrom(this.http.get<DetFile>(fullUrl));
   }
 
   mapGTToDetections(frameId: string, boxes: GTBox[]): Detection[] {
@@ -68,5 +91,32 @@ export class SequenceDataService {
         confidence: 1.0
       };
     }).filter((d): d is Detection => d !== null);
+  }
+
+  mapDetToDetections(branchId: string, boxes: DetBox[], scoreThresh: number = DET_SCORE_THRESH): Detection[] {
+    return boxes
+      .filter(box => (box.score ?? 1.0) >= scoreThresh)
+      .map((box, i) => {
+        const detectionClass = box.label !== undefined ? LABEL_MAP[box.label] : 'vehicle';
+        
+        if (!detectionClass) {
+          console.warn(`[SequenceDataService] Unknown label ${box.label} in branch ${branchId}, skipping`);
+          return null;
+        }
+        
+        return {
+          id: `${i}-${branchId}`,
+          class: detectionClass,
+          center: [box.x, box.y, box.z] as [number, number, number],
+          dimensions: {
+            // Same coordinate mapping as GT: swap dx/dy
+            width: box.dy,
+            length: box.dx,
+            height: box.dz
+          },
+          yaw: box.heading,
+          confidence: box.score ?? 1.0
+        };
+      }).filter((d): d is Detection => d !== null);
   }
 }

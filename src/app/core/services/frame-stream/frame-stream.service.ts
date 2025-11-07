@@ -1,15 +1,25 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { SequenceManifest, FrameRef, Detection } from '../../models/sequence.models';
-import { SequenceDataService } from '../data/sequence-data.service';
+import { SequenceDataService, DET_SCORE_THRESH } from '../data/sequence-data.service';
 import { SceneDataService } from '../data/scene-data.service';
+import { classifyDetectionsFast, cacheGTCorners } from './bev-iou.util';
+
+export interface DetectionSet {
+  det: Detection[];
+  cls: boolean[];  // true = TP, false = FP
+  delay?: number;
+}
 
 export interface StreamedFrame {
   index: number;
   frame: FrameRef;
   points: Float32Array;  // Changed from ArrayBuffer to Float32Array
   gt: Detection[];
-  det?: Detection[];
+  gtCorners?: any[];  // cached corners for perf
+  agile?: DetectionSet;
+  baseline?: DetectionSet;
+  det?: Detection[];  // legacy: populated for backward compat
 }
 
 export type StreamStatus = 'stopped' | 'playing' | 'paused' | 'error';
@@ -36,6 +46,18 @@ export class FrameStreamService {
   private readonly TIMEOUT_MS = 3000;
   private readonly RETRY_DELAYS = [250, 750];
   private loop = false;
+  
+  // Detection configuration
+  activeBranch = 'CP_Pillar_032';
+  baselineBranch = 'DSVT_Pillar_030';  // Fallback if _038 not available
+  simulateDelay = false;
+  detScoreThresh = DET_SCORE_THRESH;
+  iouThresh = 0.5;
+  
+  // Progressive delay simulation
+  private delayInitial = 2;
+  private delayGrowth = 0.2;
+  private delayMax = 10;
 
   private currentFrameSubject = new BehaviorSubject<StreamedFrame | null>(null);
   private statusSubject = new BehaviorSubject<StreamStatus>('stopped');
@@ -217,6 +239,38 @@ export class FrameStreamService {
       frame.urls.gt ? this.sequenceData.fetchGT(seqId, frame.urls.gt) : Promise.resolve({ boxes: [] })
     ]);
     
+    // Fetch detections in parallel if URLs exist
+    let agileDetFile: any = null;
+    let baselineDetFile: any = null;
+    
+    const detFetches: Promise<any>[] = [];
+    
+    // Try to fetch active branch detections
+    const agileUrl = frame.urls.det?.[this.activeBranch];
+    if (agileUrl) {
+      detFetches.push(
+        this.sequenceData.fetchDet(seqId, agileUrl)
+          .then(f => { agileDetFile = f; })
+          .catch(() => { /* silently skip */ })
+      );
+    }
+    
+    // Try baseline, with fallback
+    const baselineUrl = frame.urls.det?.[this.baselineBranch] ||
+                       frame.urls.det?.['DSVT_Voxel_038'] ||
+                       frame.urls.det?.['DSVT_Pillar_038'];
+    if (baselineUrl) {
+      detFetches.push(
+        this.sequenceData.fetchDet(seqId, baselineUrl)
+          .then(f => { baselineDetFile = f; })
+          .catch(() => { /* silently skip */ })
+      );
+    }
+    
+    if (detFetches.length > 0) {
+      await Promise.all(detFetches);
+    }
+    
     if (signal?.aborted) {
       throw new Error('Aborted');
     }
@@ -301,12 +355,80 @@ export class FrameStreamService {
     
     const gt = this.sequenceData.mapGTToDetections(frame.id, gtFile.boxes);
     
+    // Convert detections to Box2D format for IoU computation
+    const gtCorners = cacheGTCorners(gt.map(d => ({
+      x: d.center[0],
+      y: d.center[1],
+      dx: d.dimensions.length,
+      dy: d.dimensions.width,
+      heading: d.yaw
+    })));
+    
+    // Process detection sets
+    let agile: DetectionSet | undefined;
+    let baseline: DetectionSet | undefined;
+    
+    if (agileDetFile) {
+      const agileDetections = this.sequenceData.mapDetToDetections(
+        this.activeBranch,
+        agileDetFile.boxes,
+        this.detScoreThresh
+      );
+      const agileCls = classifyDetectionsFast(
+        agileDetections.map(d => ({
+          x: d.center[0],
+          y: d.center[1],
+          dx: d.dimensions.length,
+          dy: d.dimensions.width,
+          heading: d.yaw
+        })),
+        gtCorners,
+        this.iouThresh
+      );
+      agile = { det: agileDetections, cls: agileCls };
+    }
+    
+    if (baselineDetFile) {
+      // Compute delayed index for baseline
+      let delayedIndex = index;
+      let currentDelay = 0;
+      
+      if (this.simulateDelay) {
+        currentDelay = Math.min(
+          this.delayMax,
+          this.delayInitial + index * this.delayGrowth
+        );
+        delayedIndex = Math.max(0, Math.floor(index - currentDelay));
+      }
+      
+      const baselineDetections = this.sequenceData.mapDetToDetections(
+        this.baselineBranch,
+        baselineDetFile.boxes,
+        this.detScoreThresh
+      );
+      const baselineCls = classifyDetectionsFast(
+        baselineDetections.map(d => ({
+          x: d.center[0],
+          y: d.center[1],
+          dx: d.dimensions.length,
+          dy: d.dimensions.width,
+          heading: d.yaw
+        })),
+        gtCorners,
+        this.iouThresh
+      );
+      baseline = { det: baselineDetections, cls: baselineCls, delay: currentDelay };
+    }
+    
     return {
       index,
       frame,
       points,
       gt,
-      det: undefined
+      gtCorners,
+      agile,
+      baseline,
+      det: agile?.det  // legacy support
     };
   }
 
