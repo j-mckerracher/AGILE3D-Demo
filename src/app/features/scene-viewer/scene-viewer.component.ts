@@ -327,7 +327,7 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
     // Camera - bird's eye view from behind (-Y) and above
     this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     this.camera.up.set(0, 0, 1); // Ensure Z-up for Waymo coordinate system
-    this.camera.position.set(0, -120, 80); // Behind and above the scene center
+    this.camera.position.set(-111.62, -3.48, 37.96); // Behind and above the scene center
 
     // Renderer with DPR clamping
     const clampedDpr = Math.min(window.devicePixelRatio, 1.75);
