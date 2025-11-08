@@ -44,6 +44,16 @@ import { PaperDataService } from '../../core/services/data/paper-data.service';
 import { SequenceDataService } from '../../core/services/data/sequence-data.service';
 import { FrameStreamService } from '../../core/services/frame-stream/frame-stream.service';
 
+/**
+ * Mapping from SceneId to sequence identifiers.
+ * Used for dynamic scene switching via control panel.
+ */
+const SCENE_TO_SEQUENCE: Record<SceneId, string> = {
+  'vehicle-heavy': 'v_1784_1828',
+  'pedestrian-heavy': 'p_7513_7557',
+  'mixed': 'c_7910_7954',
+};
+
 @Component({
   selector: 'app-main-demo',
   standalone: true,
@@ -79,11 +89,14 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   private currentContentionPct: number = 38; // Track current contention for baseline updates
   private isSequenceMode = false; // Track if we're in sequence playback mode
   private firstFrameLogged = false; // Track if we've logged first frame bounds
+  private currentSequenceId: string = ''; // Track active sequence for scene switching
 
   protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
   protected agile3dDetections: Detection[] = [];
+  protected baselineDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>; // TP/FP map for baseline
   protected agile3dDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
+  protected leftTitle: string = 'Baseline';
   protected rightTitle: string = 'AGILE3D';
 
   protected readonly loading = signal<boolean>(true);
@@ -105,11 +118,26 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     }
 
     // Sequence mode is now the default
-    // Use query param to select which sequence, default to v_1784_1828
+    // Use query param to select initial sequence, default to v_1784_1828
     const seqId = this.debug.getQueryParam('sequence') || 'v_1784_1828';
     console.log('[MainDemo] Sequence mode enabled:', seqId);
     this.isSequenceMode = true;
-    await this.initSequenceMode(seqId);
+    await this.loadSequence(seqId);
+
+    // Subscribe to scene changes for dynamic sequence switching
+    this.stateService.scene$
+      .pipe(
+        distinctUntilChanged(),
+        debounceTime(100), // Debounce rapid clicks
+        takeUntil(this.destroy$)
+      )
+      .subscribe((sceneId) => {
+        const newSeqId = SCENE_TO_SEQUENCE[sceneId];
+        if (newSeqId && newSeqId !== this.currentSequenceId) {
+          console.log('[MainDemo] Scene changed:', sceneId, '→', newSeqId);
+          this.loadSequence(newSeqId);
+        }
+      });
   }
 
   /**
@@ -427,10 +455,19 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Initialize sequence playback mode.
-   * Loads manifest, creates shared Points, and starts streaming frames.
+   * Load and start playback of a sequence.
+   * Handles both initial load and dynamic scene switching.
+   * Stops current playback, loads new manifest, and restarts streaming.
    */
-  private async initSequenceMode(seqId: string): Promise<void> {
+  private async loadSequence(seqId: string): Promise<void> {
+    // Stop current playback if switching sequences
+    if (this.currentSequenceId && this.currentSequenceId !== seqId) {
+      console.log('[MainDemo] Stopping current sequence:', this.currentSequenceId);
+      this.frameStream.stop();
+      this.firstFrameLogged = false; // Reset for new sequence
+    }
+
+    this.currentSequenceId = seqId;
     this.loading.set(true);
     this.loadError.set(null);
     this.showError.set(false);
@@ -438,7 +475,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     try {
       console.log('[MainDemo] Loading sequence manifest:', seqId);
       const manifest = await this.sequenceData.loadManifest(seqId);
-      
+
       console.log('[MainDemo] Manifest loaded', {
         sequenceId: manifest.sequenceId,
         frameCount: manifest.frames.length,
@@ -492,10 +529,28 @@ export class MainDemoComponent implements OnInit, OnDestroy {
               this.sceneData.updatePointsAttribute(this.sharedPoints, positions);
             }
 
-            // Update detections for viewers
-            this.baselineDetections = streamedFrame.gt;
+            // Update detections for viewers - both use predictions with TP/FP classification
+            // Left pane: Baseline (DSVT) predictions
+            if (streamedFrame.baseline?.det) {
+              this.baselineDetections = streamedFrame.baseline.det;
+              // Build classification map for baseline (TP/FP)
+              const baselineFlags = streamedFrame.baseline.cls;
+              const baselineDets = streamedFrame.baseline.det;
+              const baselineMap = new Map<string, 'tp' | 'fp'>();
+              for (let i = 0; i < baselineDets.length; i++) {
+                const det = baselineDets[i];
+                if (!det) continue;
+                const isTP = baselineFlags?.[i] === true;
+                baselineMap.set(det.id, isTP ? 'tp' : 'fp');
+              }
+              this.baselineDiffClassification = baselineMap;
+            } else {
+              // Fallback to GT if baseline not available (shouldn't happen)
+              this.baselineDetections = streamedFrame.gt;
+              this.baselineDiffClassification = undefined;
+            }
 
-            // Prefer AGILE3D detections; fall back to GT if not available
+            // Right pane: AGILE3D predictions
             if (streamedFrame.agile?.det) {
               this.agile3dDetections = streamedFrame.agile.det;
               // Build classification map for AGILE3D (TP/FP)
@@ -514,7 +569,8 @@ export class MainDemoComponent implements OnInit, OnDestroy {
               this.agile3dDiffClassification = undefined;
             }
 
-            // Update right viewer title with active branch
+            // Update viewer titles with branch names
+            this.leftTitle = `Baseline (${this.frameStream.baselineBranch})`;
             this.rightTitle = `AGILE3D (${this.frameStream.activeBranch})`;
 
             this.cdr.markForCheck();
