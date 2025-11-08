@@ -2,7 +2,9 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
 import { AdvancedKnobs, SceneId, SystemParams, VoxelSize } from '../../models/config-and-metrics';
-import { Vec3 } from '../../models/scene.models';
+import { Vec3, DetectionClass } from '../../models/scene.models';
+import { DiffMode } from '../visualization/bbox-instancing';
+import { DET_SCORE_THRESH } from '../data/sequence-data.service';
 
 /**
  * Aggregated comparison input values derived from primary state knobs.
@@ -28,6 +30,20 @@ export class StateService implements OnDestroy {
   private readonly activeBranchSubject = new BehaviorSubject<string>('CP_Pillar_032');
   private readonly baselineBranchSubject = new BehaviorSubject<string>('DSVT_Pillar_030');
   private readonly availableBranchesSubject = new BehaviorSubject<string[]>([]);
+  private readonly scoreThresholdSubject = new BehaviorSubject<number>(DET_SCORE_THRESH);
+  private readonly labelMaskSubject = new BehaviorSubject<DetectionClass[] | null>(null);
+  private readonly diffModeSubject = new BehaviorSubject<DiffMode>('all');
+  private readonly delaySimulationSubject = new BehaviorSubject<{
+    enabled: boolean;
+    initial: number;
+    growth: number;
+    max: number;
+  }>({
+    enabled: false,
+    initial: 2,
+    growth: 0.2,
+    max: 10,
+  });
 
   // Camera synchronization (private subjects)
   // Bird's eye view: camera positioned behind (-Y) and above the scene center
@@ -60,6 +76,27 @@ export class StateService implements OnDestroy {
   public readonly activeBranch$: Observable<string> = this.activeBranchSubject.asObservable();
   public readonly baselineBranch$: Observable<string> = this.baselineBranchSubject.asObservable();
   public readonly availableBranches$: Observable<string[]> = this.availableBranchesSubject.asObservable();
+  public readonly scoreThreshold$: Observable<number> = this.scoreThresholdSubject.asObservable();
+  public readonly labelMask$: Observable<DetectionClass[] | null> = this.labelMaskSubject.asObservable();
+  public readonly diffMode$: Observable<DiffMode> = this.diffModeSubject.asObservable();
+  public readonly delaySimulation$: Observable<{
+    enabled: boolean;
+    initial: number;
+    growth: number;
+    max: number;
+  }> = this.delaySimulationSubject.asObservable();
+  public readonly detectionFilters$: Observable<{
+    scoreThreshold: number;
+    labelMask: DetectionClass[] | null;
+  }> = combineLatest([this.scoreThresholdSubject, this.labelMaskSubject]).pipe(
+    map(([scoreThreshold, labelMask]) => ({ scoreThreshold, labelMask })),
+    distinctUntilChanged(
+      (a, b) =>
+        a.scoreThreshold === b.scoreThreshold &&
+        arraysEqual(a.labelMask ?? [], b.labelMask ?? [])
+    ),
+    shareReplay(1)
+  );
   public readonly cameraPos$ = this.cameraPosSubject;
   public readonly cameraTarget$ = this.cameraTargetSubject;
   public readonly independentCamera$: Observable<boolean> =
@@ -222,6 +259,66 @@ export class StateService implements OnDestroy {
     if (this.independentCameraSubject.value !== value) this.independentCameraSubject.next(value);
   }
 
+  public setScoreThreshold(value: number): void {
+    if (this.scoreThresholdSubject.value !== value) {
+      this.scoreThresholdSubject.next(value);
+    }
+  }
+
+  public setLabelMask(mask: DetectionClass[] | null): void {
+    if (mask === null) {
+      if (this.labelMaskSubject.value !== null) {
+        this.labelMaskSubject.next(null);
+      }
+      return;
+    }
+    const normalized = uniqueOrdered(mask) as DetectionClass[];
+    if (!arraysEqual(this.labelMaskSubject.value ?? [], normalized)) {
+      this.labelMaskSubject.next(normalized);
+    }
+  }
+
+  public setDetectionFilters(config: {
+    scoreThreshold?: number;
+    labelMask?: DetectionClass[] | null;
+  }): void {
+    if (typeof config.scoreThreshold === 'number') {
+      this.setScoreThreshold(config.scoreThreshold);
+    }
+    if (config.labelMask !== undefined) {
+      this.setLabelMask(config.labelMask);
+    }
+  }
+
+  public setDiffMode(mode: DiffMode): void {
+    if (this.diffModeSubject.value !== mode) {
+      this.diffModeSubject.next(mode);
+    }
+  }
+
+  public setDelaySimulation(config: {
+    enabled: boolean;
+    initial?: number;
+    growth?: number;
+    max?: number;
+  }): void {
+    const current = this.delaySimulationSubject.value;
+    const next = {
+      enabled: config.enabled,
+      initial: config.initial ?? current.initial,
+      growth: config.growth ?? current.growth,
+      max: config.max ?? current.max,
+    };
+    if (
+      current.enabled !== next.enabled ||
+      current.initial !== next.initial ||
+      current.growth !== next.growth ||
+      current.max !== next.max
+    ) {
+      this.delaySimulationSubject.next(next);
+    }
+  }
+
   private pickActiveBranch(branches: string[], preferred?: string): string | undefined {
     if (preferred && branches.includes(preferred)) {
       return preferred;
@@ -275,6 +372,10 @@ export class StateService implements OnDestroy {
     this.cameraTargetSubject.complete();
     this.independentCameraSubject.complete();
     this.advancedKnobsSubject.complete();
+    this.scoreThresholdSubject.complete();
+    this.labelMaskSubject.complete();
+    this.diffModeSubject.complete();
+    this.delaySimulationSubject.complete();
   }
 }
 

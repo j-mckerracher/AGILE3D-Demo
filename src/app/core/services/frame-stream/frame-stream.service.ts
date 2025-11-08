@@ -1,9 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import * as THREE from 'three';
 import { SequenceManifest, FrameRef, Detection } from '../../models/sequence.models';
+import { DetectionClass } from '../../models/scene.models';
 import { SequenceDataService, DET_SCORE_THRESH } from '../data/sequence-data.service';
 import { SceneDataService } from '../data/scene-data.service';
 import { classifyDetectionsFast, cacheGTCorners } from './bev-iou.util';
+import { SequenceRegistryEntry } from '../data/sequence-registry.service';
+import { DiffMode } from '../visualization/bbox-instancing';
 
 export interface DetectionSet {
   det: Detection[];
@@ -20,6 +24,8 @@ export interface StreamedFrame {
   agile?: DetectionSet;
   baseline?: DetectionSet;
   det?: Detection[];  // legacy: populated for backward compat
+  rawAgile?: Detection[];
+  rawBaseline?: Detection[];
 }
 
 export type StreamStatus = 'stopped' | 'playing' | 'paused' | 'error';
@@ -28,6 +34,17 @@ interface PrefetchEntry {
   index: number;
   controller: AbortController;
   promise: Promise<StreamedFrame>;
+}
+
+interface RawFrameData {
+  index: number;
+  frame: FrameRef;
+  points: Float32Array;
+  gt: Detection[];
+  gtCorners: any[];
+  agileRaw?: Detection[];
+  baselineRaw?: Detection[];
+  baselineDelay?: number;
 }
 
 @Injectable({
@@ -47,6 +64,8 @@ export class FrameStreamService {
   private readonly RETRY_DELAYS = [250, 750];
   private loop = false;
   private prefetchCount = 2;
+  private sharedPoints: THREE.Points | null = null;
+  private lastRawFrame: RawFrameData | null = null;
   
   // Detection configuration
   activeBranch = 'CP_Pillar_032';
@@ -54,6 +73,8 @@ export class FrameStreamService {
   simulateDelay = false;
   detScoreThresh = DET_SCORE_THRESH;
   iouThresh = 0.5;
+  private labelMask: Set<DetectionClass> | null = null;
+  private diffMode: DiffMode = 'all';
   
   // Progressive delay simulation
   private delayInitial = 2;
@@ -63,10 +84,44 @@ export class FrameStreamService {
   private currentFrameSubject = new BehaviorSubject<StreamedFrame | null>(null);
   private statusSubject = new BehaviorSubject<StreamStatus>('stopped');
   private errorsSubject = new BehaviorSubject<string | null>(null);
+  private loadingSubject = new BehaviorSubject<boolean>(false);
 
   currentFrame$: Observable<StreamedFrame | null> = this.currentFrameSubject.asObservable();
   status$: Observable<StreamStatus> = this.statusSubject.asObservable();
   errors$: Observable<string | null> = this.errorsSubject.asObservable();
+  loading$: Observable<boolean> = this.loadingSubject.asObservable();
+
+  async loadSequence(
+    entry: SequenceRegistryEntry,
+    opts?: { loop?: boolean; fps?: number; prefetch?: number }
+  ): Promise<SequenceManifest> {
+    this.loadingSubject.next(true);
+    this.stop();
+    this.lastRawFrame = null;
+
+    try {
+      this.sequenceData.setBasePath(entry.sequenceId, entry.basePath);
+      const manifest = await this.sequenceData.loadManifest(entry.sequenceId);
+
+      const maxPts = Math.max(...manifest.frames.map((f) => f.pointCount ?? 0)) || 200_000;
+      this.sceneData.ensureSharedPoints(maxPts, 3);
+
+      this.loop = opts?.loop ?? true;
+      const fps = opts?.fps ?? manifest.fps ?? 10;
+      const prefetch = opts?.prefetch ?? this.prefetchCount;
+
+      this.start(manifest, { fps, prefetch, loop: this.loop });
+      this.sharedPoints = this.sceneData.ensureSharedPoints(maxPts, 3);
+
+      return manifest;
+    } finally {
+      this.loadingSubject.next(false);
+    }
+  }
+
+  getSharedPoints(): THREE.Points | null {
+    return this.sharedPoints;
+  }
 
   start(manifest: SequenceManifest, opts?: { fps?: number; prefetch?: number; loop?: boolean }): void {
     this.stop();
@@ -129,6 +184,8 @@ export class FrameStreamService {
     this.manifest = null;
     this.currentIndex = 0;
     this.consecutiveMisses = 0;
+    this.lastRawFrame = null;
+    this.sharedPoints = null;
   }
 
   seek(index: number): void {
@@ -146,12 +203,29 @@ export class FrameStreamService {
     this.schedulePrefetch(this.prefetchCount);
   }
 
+  setBranches(activeBranch: string, baselineBranch: string): void {
+    let changed = false;
+    if (this.activeBranch !== activeBranch) {
+      this.activeBranch = activeBranch;
+      changed = true;
+    }
+    if (this.baselineBranch !== baselineBranch) {
+      this.baselineBranch = baselineBranch;
+      changed = true;
+    }
+    if (changed) {
+      this.resetPrefetchWindow();
+      this.reprocessLastFrame();
+    }
+  }
+
   setActiveBranch(branch: string): void {
     if (this.activeBranch === branch) {
       return;
     }
     this.activeBranch = branch;
     this.resetPrefetchWindow();
+    this.reprocessLastFrame();
   }
 
   setBaselineBranch(branch: string): void {
@@ -160,6 +234,44 @@ export class FrameStreamService {
     }
     this.baselineBranch = branch;
     this.resetPrefetchWindow();
+    this.reprocessLastFrame();
+  }
+
+  setFilters(config: { scoreThreshold?: number; labelMask?: DetectionClass[] | null }): void {
+    if (typeof config.scoreThreshold === 'number') {
+      this.detScoreThresh = config.scoreThreshold;
+    }
+    if (config.labelMask) {
+      this.labelMask = new Set(config.labelMask);
+    } else if (config.labelMask === null) {
+      this.labelMask = null;
+    }
+    this.reprocessLastFrame();
+  }
+
+  setDiffMode(mode: DiffMode): void {
+    if (this.diffMode === mode) return;
+    this.diffMode = mode;
+    this.reprocessLastFrame();
+  }
+
+  setDelaySimulation(config: {
+    enabled: boolean;
+    initial?: number;
+    growth?: number;
+    max?: number;
+  }): void {
+    this.simulateDelay = config.enabled;
+    if (typeof config.initial === 'number') {
+      this.delayInitial = config.initial;
+    }
+    if (typeof config.growth === 'number') {
+      this.delayGrowth = config.growth;
+    }
+    if (typeof config.max === 'number') {
+      this.delayMax = config.max;
+    }
+    this.reprocessLastFrame();
   }
 
   private async tick(prefetchCount: number): Promise<void> {
@@ -394,71 +506,33 @@ export class FrameStreamService {
     })));
     
     // Process detection sets
-    let agile: DetectionSet | undefined;
-    let baseline: DetectionSet | undefined;
-    
-    if (agileDetFile) {
-      const agileDetections = this.sequenceData.mapDetToDetections(
-        this.activeBranch,
-        agileDetFile.boxes,
-        this.detScoreThresh
+    let currentDelay = 0;
+    if (this.simulateDelay) {
+      currentDelay = Math.min(
+        this.delayMax,
+        this.delayInitial + index * this.delayGrowth
       );
-      const agileCls = classifyDetectionsFast(
-        agileDetections.map(d => ({
-          x: d.center[0],
-          y: d.center[1],
-          dx: d.dimensions.length,
-          dy: d.dimensions.width,
-          heading: d.yaw
-        })),
-        gtCorners,
-        this.iouThresh
-      );
-      agile = { det: agileDetections, cls: agileCls };
     }
-    
-    if (baselineDetFile) {
-      // Compute delayed index for baseline
-      let delayedIndex = index;
-      let currentDelay = 0;
-      
-      if (this.simulateDelay) {
-        currentDelay = Math.min(
-          this.delayMax,
-          this.delayInitial + index * this.delayGrowth
-        );
-        delayedIndex = Math.max(0, Math.floor(index - currentDelay));
-      }
-      
-      const baselineDetections = this.sequenceData.mapDetToDetections(
-        this.baselineBranch,
-        baselineDetFile.boxes,
-        this.detScoreThresh
-      );
-      const baselineCls = classifyDetectionsFast(
-        baselineDetections.map(d => ({
-          x: d.center[0],
-          y: d.center[1],
-          dx: d.dimensions.length,
-          dy: d.dimensions.width,
-          heading: d.yaw
-        })),
-        gtCorners,
-        this.iouThresh
-      );
-      baseline = { det: baselineDetections, cls: baselineCls, delay: currentDelay };
-    }
-    
-    return {
+
+    const agileRaw = agileDetFile
+      ? this.sequenceData.mapDetToDetections(this.activeBranch, agileDetFile.boxes, 0)
+      : undefined;
+    const baselineRaw = baselineDetFile
+      ? this.sequenceData.mapDetToDetections(this.baselineBranch, baselineDetFile.boxes, 0)
+      : undefined;
+
+    const rawFrame: RawFrameData = {
       index,
       frame,
       points,
       gt,
       gtCorners,
-      agile,
-      baseline,
-      det: agile?.det  // legacy support
+      agileRaw,
+      baselineRaw,
+      baselineDelay: currentDelay,
     };
+
+    return this.buildStreamedFrameFromRaw(rawFrame);
   }
 
   private async fetchFrameWithRetry(index: number): Promise<StreamedFrame> {
@@ -507,5 +581,103 @@ export class FrameStreamService {
       this.statusSubject.next('error');
       this.errorsSubject.next(`Failed to load ${this.MAX_MISSES} consecutive frames. Network issue?`);
     }
+  }
+
+  private buildStreamedFrameFromRaw(raw: RawFrameData): StreamedFrame {
+    this.lastRawFrame = raw;
+
+    const agile = this.buildDetectionSet(raw.agileRaw, raw.gtCorners, this.activeBranch);
+    const baseline = this.buildDetectionSet(raw.baselineRaw, raw.gtCorners, this.baselineBranch, raw.baselineDelay);
+
+    const streamed: StreamedFrame = {
+      index: raw.index,
+      frame: raw.frame,
+      points: raw.points,
+      gt: raw.gt,
+      gtCorners: raw.gtCorners,
+      agile,
+      baseline,
+      det: agile?.det,
+      rawAgile: raw.agileRaw,
+      rawBaseline: raw.baselineRaw,
+    };
+
+    return streamed;
+  }
+
+  private buildDetectionSet(
+    rawDetections: Detection[] | undefined,
+    gtCorners: any[],
+    branch: string,
+    delay?: number
+  ): DetectionSet | undefined {
+    if (!rawDetections || rawDetections.length === 0) {
+      return undefined;
+    }
+
+    const filtered = this.applyFilters(rawDetections);
+    if (filtered.length === 0) {
+      return { det: [], cls: [], delay };
+    }
+
+    const cls = classifyDetectionsFast(
+      filtered.map((d) => ({
+        x: d.center[0],
+        y: d.center[1],
+        dx: d.dimensions.length,
+        dy: d.dimensions.width,
+        heading: d.yaw,
+      })),
+      gtCorners,
+      this.iouThresh
+    );
+
+    const { detections, flags } = this.applyDiffMode(filtered, cls);
+    return {
+      det: detections,
+      cls: flags,
+      delay,
+    };
+  }
+
+  private applyFilters(detections: Detection[]): Detection[] {
+    return detections.filter((det) => {
+      const passesScore = (det.confidence ?? 1) >= this.detScoreThresh;
+      const passesLabel =
+        !this.labelMask || this.labelMask.size === 0 || this.labelMask.has(det.class as DetectionClass);
+      return passesScore && passesLabel;
+    });
+  }
+
+  private applyDiffMode(
+    detections: Detection[],
+    cls: boolean[]
+  ): { detections: Detection[]; flags: boolean[] } {
+    if (this.diffMode === 'all' || this.diffMode === 'off') {
+      return { detections, flags: cls };
+    }
+
+    if (this.diffMode === 'tp') {
+      const dets = detections.filter((_, idx) => cls[idx] === true);
+      const flags = cls.filter((flag) => flag === true);
+      return { detections: dets, flags };
+    }
+
+    if (this.diffMode === 'fp') {
+      const dets = detections.filter((_, idx) => cls[idx] === false);
+      const flags = cls.filter((flag) => flag === false);
+      return { detections: dets, flags };
+    }
+
+    // FN mode currently unsupported due to lack of GT diff data; return empty set.
+    return { detections: [], flags: [] };
+  }
+
+  private reprocessLastFrame(): void {
+    if (!this.lastRawFrame) {
+      return;
+    }
+    const reprocessed = this.buildStreamedFrameFromRaw({ ...this.lastRawFrame });
+    this.currentFrameSubject.next(reprocessed);
   }
 }

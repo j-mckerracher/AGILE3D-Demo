@@ -48,6 +48,7 @@ import {
   SequenceRegistryService,
 } from '../../core/services/data/sequence-registry.service';
 import { SequenceManifest } from '../../core/models/sequence.models';
+import { DiffMode } from '../../core/services/visualization/bbox-instancing';
 
 @Component({
   selector: 'app-main-demo',
@@ -93,6 +94,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     baselineBranch?: string;
     activeBranch?: string;
   } = {};
+  private frameStreamSubscriptionsEstablished = false;
 
   protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
@@ -101,6 +103,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   protected agile3dDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
   protected leftTitle: string = 'Baseline';
   protected rightTitle: string = 'AGILE3D';
+  protected diffMode: DiffMode = 'all';
 
   protected readonly loading = signal<boolean>(true);
   protected readonly loadError = signal<string | null>(null);
@@ -121,6 +124,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     }
 
     await this.initializeSequenceRegistry();
+    this.ensureFrameStreamSubscriptions();
 
     this.stateService.activeBranch$
       .pipe(distinctUntilChanged(), takeUntil(this.destroy$))
@@ -129,6 +133,22 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     this.stateService.baselineBranch$
       .pipe(distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((branchId) => this.frameStream.setBaselineBranch(branchId));
+
+    this.stateService.detectionFilters$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((filters) => this.frameStream.setFilters(filters));
+
+    this.stateService.diffMode$
+      .pipe(distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((mode) => {
+        this.diffMode = mode;
+        this.frameStream.setDiffMode(mode);
+        this.cdr.markForCheck();
+      });
+
+    this.stateService.delaySimulation$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((config) => this.frameStream.setDelaySimulation(config));
 
     // Sequence mode is now the default
     // Use query param to select initial sequence, otherwise runtime-config default
@@ -145,7 +165,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     console.log('[MainDemo] Sequence mode enabled:', initialEntry.sequenceId);
     this.isSequenceMode = true;
     this.stateService.setScene(initialEntry.sceneId);
-    await this.loadSequence(initialEntry.sequenceId);
+    await this.loadSequence(initialEntry);
 
     // Subscribe to scene changes for dynamic sequence switching
     this.stateService.scene$
@@ -157,6 +177,101 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       .subscribe((sceneId) => {
         this.loadSequenceByScene(sceneId);
       });
+  }
+
+  private ensureFrameStreamSubscriptions(): void {
+    if (this.frameStreamSubscriptionsEstablished) {
+      return;
+    }
+
+    this.frameStream.currentFrame$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((streamedFrame) => {
+        if (!streamedFrame) return;
+
+        try {
+          const positions = streamedFrame.points;
+
+          if (!this.firstFrameLogged) {
+            let minX = Infinity, minY = Infinity, minZ = Infinity;
+            let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+            for (let i = 0; i < positions.length; i += 3) {
+              const x = positions[i]!;
+              const y = positions[i + 1]!;
+              const z = positions[i + 2]!;
+              if (x < minX) minX = x; if (x > maxX) maxX = x;
+              if (y < minY) minY = y; if (y > maxY) maxY = y;
+              if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+            }
+
+            console.log('[MainDemo] First frame received', {
+              frameId: streamedFrame.frame.id,
+              pointCount: positions.length / 3,
+              gtDetections: streamedFrame.gt.length,
+              firstPoint: [positions[0], positions[1], positions[2]],
+              bounds: { minX, maxX, minY, maxY, minZ, maxZ }
+            });
+            this.firstFrameLogged = true;
+          }
+
+          if (this.sharedPoints) {
+            this.sceneData.updatePointsAttribute(this.sharedPoints, positions);
+          }
+
+          if (streamedFrame.baseline?.det) {
+            this.baselineDetections = streamedFrame.baseline.det;
+            const baselineFlags = streamedFrame.baseline.cls;
+            const baselineDets = streamedFrame.baseline.det;
+            const baselineMap = new Map<string, 'tp' | 'fp'>();
+            for (let i = 0; i < baselineDets.length; i++) {
+              const det = baselineDets[i];
+              if (!det) continue;
+              const isTP = baselineFlags?.[i] === true;
+              baselineMap.set(det.id, isTP ? 'tp' : 'fp');
+            }
+            this.baselineDiffClassification = baselineMap;
+          } else {
+            this.baselineDetections = streamedFrame.gt;
+            this.baselineDiffClassification = undefined;
+          }
+
+          if (streamedFrame.agile?.det) {
+            this.agile3dDetections = streamedFrame.agile.det;
+            const flags = streamedFrame.agile.cls;
+            const dets = streamedFrame.agile.det;
+            const map = new Map<string, 'tp' | 'fp'>();
+            for (let i = 0; i < dets.length; i++) {
+              const det = dets[i];
+              if (!det) continue;
+              const isTP = flags?.[i] === true;
+              map.set(det.id, isTP ? 'tp' : 'fp');
+            }
+            this.agile3dDiffClassification = map;
+          } else {
+            this.agile3dDetections = streamedFrame.det ?? streamedFrame.gt;
+            this.agile3dDiffClassification = undefined;
+          }
+
+          this.leftTitle = `Baseline (${this.frameStream.baselineBranch})`;
+          this.rightTitle = `AGILE3D (${this.frameStream.activeBranch})`;
+
+          this.cdr.markForCheck();
+        } catch (err) {
+          console.error('[MainDemo] Frame processing error:', err);
+        }
+      });
+
+    this.frameStream.errors$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((error) => {
+        if (error) {
+          this.loadError.set(error);
+          this.showError.set(true);
+          this.cdr.markForCheck();
+        }
+      });
+
+    this.frameStreamSubscriptionsEstablished = true;
   }
 
   private async initializeSequenceRegistry(): Promise<void> {
@@ -205,12 +320,15 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       return;
     }
 
+     this.sequenceEntriesByScene.set(entry.sceneId, entry);
+     this.sequenceEntriesById.set(entry.sequenceId, entry);
+
     if (entry.sequenceId === this.currentSequenceId) {
       return;
     }
 
     console.log('[MainDemo] Scene changed:', sceneId, '→', entry.sequenceId);
-    await this.loadSequence(entry.sequenceId);
+    await this.loadSequence(entry);
   }
 
   /**
@@ -532,29 +650,20 @@ export class MainDemoComponent implements OnInit, OnDestroy {
    * Handles both initial load and dynamic scene switching.
    * Stops current playback, loads new manifest, and restarts streaming.
    */
-  private async loadSequence(seqId: string): Promise<void> {
-    const registryEntry = await this.resolveSequenceEntry(seqId);
-    if (!registryEntry) {
-      console.error('[MainDemo] Unable to resolve sequence entry for id:', seqId);
-      return;
-    }
-
-    // Stop current playback if switching sequences
-    if (this.currentSequenceId && this.currentSequenceId !== registryEntry.sequenceId) {
+  private async loadSequence(entry: SequenceRegistryEntry): Promise<void> {
+    if (this.currentSequenceId && this.currentSequenceId !== entry.sequenceId) {
       console.log('[MainDemo] Stopping current sequence:', this.currentSequenceId);
       this.frameStream.stop();
-      this.firstFrameLogged = false; // Reset for new sequence
+      this.firstFrameLogged = false;
     }
 
-    this.currentSequenceId = registryEntry.sequenceId;
+    this.currentSequenceId = entry.sequenceId;
     this.loading.set(true);
     this.loadError.set(null);
     this.showError.set(false);
 
     try {
-      this.sequenceData.setBasePath(registryEntry.sequenceId, registryEntry.basePath);
-      console.log('[MainDemo] Loading sequence manifest:', registryEntry.manifestUrl);
-      const manifest = await this.sequenceData.loadManifest(registryEntry.sequenceId);
+      const manifest = await this.frameStream.loadSequence(entry, { loop: true });
 
       console.log('[MainDemo] Manifest loaded', {
         sequenceId: manifest.sequenceId,
@@ -564,129 +673,15 @@ export class MainDemoComponent implements OnInit, OnDestroy {
 
       const branchList = this.extractBranchList(manifest);
       this.stateService.setAvailableBranches(branchList, {
-        baseline: registryEntry.defaultBaselineBranch ?? this.registryDefaults.baselineBranch,
-        active: registryEntry.defaultActiveBranch ?? this.registryDefaults.activeBranch,
+        baseline: entry.defaultBaselineBranch ?? this.registryDefaults.baselineBranch,
+        active: entry.defaultActiveBranch ?? this.registryDefaults.activeBranch,
       });
 
-      // Compute max point count from manifest
-      const maxPts = Math.max(...manifest.frames.map(f => f.pointCount || 0)) || 200000;
-      console.log('[MainDemo] Max points:', maxPts);
-
-      // Create shared Points instance for patch-in-place updates
-      this.sharedPoints = this.sceneData.ensureSharedPoints(maxPts, 3);
-      console.log('[MainDemo] Shared Points created for sequence playback');
-
-      // Subscribe to frame stream
-      this.frameStream.currentFrame$
-        .pipe(takeUntil(this.destroy$))
-        .subscribe((streamedFrame) => {
-          if (!streamedFrame) return;
-
-          try {
-            // Points are already parsed as Float32Array from frame stream
-            const positions = streamedFrame.points;
-            
-            if (!this.firstFrameLogged) {
-              // Compute bounds safely without spreading huge arrays
-              let minX = Infinity, minY = Infinity, minZ = Infinity;
-              let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-              for (let i = 0; i < positions.length; i += 3) {
-                const x = positions[i]!;
-                const y = positions[i + 1]!;
-                const z = positions[i + 2]!;
-                if (x < minX) minX = x; if (x > maxX) maxX = x;
-                if (y < minY) minY = y; if (y > maxY) maxY = y;
-                if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
-              }
-
-              // Log detailed bounds for first frame only
-              console.log('[MainDemo] First frame received', {
-                frameId: streamedFrame.frame.id,
-                pointCount: positions.length / 3,
-                gtDetections: streamedFrame.gt.length,
-                firstPoint: [positions[0], positions[1], positions[2]],
-                bounds: { minX, maxX, minY, maxY, minZ, maxZ }
-              });
-              this.firstFrameLogged = true;
-            }
-            
-            // Update shared Points geometry
-            if (this.sharedPoints) {
-              this.sceneData.updatePointsAttribute(this.sharedPoints, positions);
-            }
-
-            // Update detections for viewers - both use predictions with TP/FP classification
-            // Left pane: Baseline (DSVT) predictions
-            if (streamedFrame.baseline?.det) {
-              this.baselineDetections = streamedFrame.baseline.det;
-              // Build classification map for baseline (TP/FP)
-              const baselineFlags = streamedFrame.baseline.cls;
-              const baselineDets = streamedFrame.baseline.det;
-              const baselineMap = new Map<string, 'tp' | 'fp'>();
-              for (let i = 0; i < baselineDets.length; i++) {
-                const det = baselineDets[i];
-                if (!det) continue;
-                const isTP = baselineFlags?.[i] === true;
-                baselineMap.set(det.id, isTP ? 'tp' : 'fp');
-              }
-              this.baselineDiffClassification = baselineMap;
-            } else {
-              // Fallback to GT if baseline not available (shouldn't happen)
-              this.baselineDetections = streamedFrame.gt;
-              this.baselineDiffClassification = undefined;
-            }
-
-            // Right pane: AGILE3D predictions
-            if (streamedFrame.agile?.det) {
-              this.agile3dDetections = streamedFrame.agile.det;
-              // Build classification map for AGILE3D (TP/FP)
-              const flags = streamedFrame.agile.cls;
-              const dets = streamedFrame.agile.det;
-              const map = new Map<string, 'tp' | 'fp'>();
-              for (let i = 0; i < dets.length; i++) {
-                const det = dets[i];
-                if (!det) continue;
-                const isTP = flags?.[i] === true;
-                map.set(det.id, isTP ? 'tp' : 'fp');
-              }
-              this.agile3dDiffClassification = map;
-            } else {
-              this.agile3dDetections = streamedFrame.det ?? streamedFrame.gt;
-              this.agile3dDiffClassification = undefined;
-            }
-
-            // Update viewer titles with branch names
-            this.leftTitle = `Baseline (${this.frameStream.baselineBranch})`;
-            this.rightTitle = `AGILE3D (${this.frameStream.activeBranch})`;
-
-            this.cdr.markForCheck();
-          } catch (err) {
-            console.error('[MainDemo] Frame processing error:', err);
-          }
-        });
-
-      // Subscribe to stream errors
-      this.frameStream.errors$
-        .pipe(takeUntil(this.destroy$))
-        .subscribe((error) => {
-          if (error) {
-            this.loadError.set(error);
-            this.showError.set(true);
-            this.cdr.markForCheck();
-          }
-        });
-
-      // Start streaming
-      this.frameStream.start(manifest, {
-        fps: manifest.fps || 10,
-        prefetch: 2,
-        loop: true,
-      });
-
-      console.log('[MainDemo] Frame stream started');
+      this.sharedPoints = this.frameStream.getSharedPoints() ?? undefined;
+      console.log('[MainDemo] Shared Points ready for sequence playback');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error loading sequence';
-      console.error('[MainDemo] initSequenceMode error:', msg);
+      console.error('[MainDemo] loadSequence error:', msg);
       this.loadError.set(msg);
       this.showError.set(true);
     } finally {
