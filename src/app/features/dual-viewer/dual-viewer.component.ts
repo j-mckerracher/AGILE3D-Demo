@@ -113,6 +113,7 @@ import * as THREE from 'three';
       </button>
 
       <!-- Ground Truth Toggle (Placeholder for future WP) -->
+      <!-- COMMENTED OUT: GT button removed
       <button
         class="gt-toggle"
         type="button"
@@ -123,6 +124,7 @@ import * as THREE from 'three';
         <span class="toggle-icon" aria-hidden="true">GT</span>
         <span class="toggle-text">Ground Truth</span>
       </button>
+      -->
 
       <!-- AGILE3D Viewer Region (NFR-3.3, NFR-3.4) -->
       <section
@@ -293,6 +295,7 @@ import * as THREE from 'three';
       }
 
       /* Ground Truth Toggle (Placeholder) */
+      /* COMMENTED OUT: GT button styles removed
       .gt-toggle {
         position: absolute;
         top: 80px;
@@ -325,6 +328,7 @@ import * as THREE from 'three';
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
+      */
 
       .viewer-label {
         position: absolute;
