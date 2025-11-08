@@ -94,9 +94,11 @@ import * as THREE from 'three';
       </button>
 
       <!-- Camera Sync Controls (WP-2.1.3) -->
+      <!-- COMMENTED OUT: Independent camera feature disabled
       <div class="camera-controls-container">
         <app-camera-sync-controls />
       </div>
+      -->
 
       <!-- FP Only Toggle -->
       <button
@@ -278,7 +280,7 @@ import * as THREE from 'three';
       .fp-toggle {
         position: absolute;
         top: 12px;
-        left: 12px;
+        left: 72%;
         z-index: 1003;
         padding: 6px 10px;
         background: rgba(0,0,0,0.8);
