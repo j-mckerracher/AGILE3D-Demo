@@ -46,6 +46,7 @@ export class FrameStreamService {
   private readonly TIMEOUT_MS = 3000;
   private readonly RETRY_DELAYS = [250, 750];
   private loop = false;
+  private prefetchCount = 2;
   
   // Detection configuration
   activeBranch = 'CP_Pillar_032';
@@ -76,6 +77,7 @@ export class FrameStreamService {
     
     const fps = opts?.fps ?? manifest.fps ?? 10;
     const prefetchCount = opts?.prefetch ?? 2;
+    this.prefetchCount = prefetchCount;
     const intervalMs = 1000 / fps;
 
     this.statusSubject.next('playing');
@@ -107,7 +109,7 @@ export class FrameStreamService {
     this.errorsSubject.next(null);
     
     this.intervalId = setInterval(() => {
-      this.tick(2);
+      this.tick(this.prefetchCount);
     }, intervalMs);
   }
 
@@ -141,7 +143,23 @@ export class FrameStreamService {
     this.errorsSubject.next(null);
     
     // Restart prefetch
-    this.schedulePrefetch(2);
+    this.schedulePrefetch(this.prefetchCount);
+  }
+
+  setActiveBranch(branch: string): void {
+    if (this.activeBranch === branch) {
+      return;
+    }
+    this.activeBranch = branch;
+    this.resetPrefetchWindow();
+  }
+
+  setBaselineBranch(branch: string): void {
+    if (this.baselineBranch === branch) {
+      return;
+    }
+    this.baselineBranch = branch;
+    this.resetPrefetchWindow();
   }
 
   private async tick(prefetchCount: number): Promise<void> {
@@ -223,6 +241,15 @@ export class FrameStreamService {
       
       this.prefetchQueue.push({ index: targetIndex, controller, promise });
     }
+  }
+
+  private resetPrefetchWindow(): void {
+    if (!this.manifest) {
+      return;
+    }
+    this.prefetchQueue.forEach((entry) => entry.controller.abort());
+    this.prefetchQueue = [];
+    this.schedulePrefetch(this.prefetchCount);
   }
 
   private debugLoggedOnce = false;

@@ -43,16 +43,11 @@ import { SyntheticDetectionVariationService } from '../../core/services/simulati
 import { PaperDataService } from '../../core/services/data/paper-data.service';
 import { SequenceDataService } from '../../core/services/data/sequence-data.service';
 import { FrameStreamService } from '../../core/services/frame-stream/frame-stream.service';
-
-/**
- * Mapping from SceneId to sequence identifiers.
- * Used for dynamic scene switching via control panel.
- */
-const SCENE_TO_SEQUENCE: Record<SceneId, string> = {
-  'vehicle-heavy': 'v_1784_1828',
-  'pedestrian-heavy': 'p_7513_7557',
-  'mixed': 'c_7910_7954',
-};
+import {
+  SequenceRegistryEntry,
+  SequenceRegistryService,
+} from '../../core/services/data/sequence-registry.service';
+import { SequenceManifest } from '../../core/models/sequence.models';
 
 @Component({
   selector: 'app-main-demo',
@@ -81,6 +76,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   private readonly paperData = inject(PaperDataService);
   private readonly sequenceData = inject(SequenceDataService);
   private readonly frameStream = inject(FrameStreamService);
+  private readonly sequenceRegistry = inject(SequenceRegistryService);
 
   private readonly destroy$ = new Subject<void>();
   private currentMetadata?: SceneMetadata;
@@ -90,6 +86,13 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   private isSequenceMode = false; // Track if we're in sequence playback mode
   private firstFrameLogged = false; // Track if we've logged first frame bounds
   private currentSequenceId: string = ''; // Track active sequence for scene switching
+  private readonly sequenceEntriesById = new Map<string, SequenceRegistryEntry>();
+  private readonly sequenceEntriesByScene = new Map<SceneId, SequenceRegistryEntry>();
+  private registryDefaults: {
+    sequenceId?: string;
+    baselineBranch?: string;
+    activeBranch?: string;
+  } = {};
 
   protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
@@ -117,12 +120,32 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       return;
     }
 
+    await this.initializeSequenceRegistry();
+
+    this.stateService.activeBranch$
+      .pipe(distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((branchId) => this.frameStream.setActiveBranch(branchId));
+
+    this.stateService.baselineBranch$
+      .pipe(distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((branchId) => this.frameStream.setBaselineBranch(branchId));
+
     // Sequence mode is now the default
-    // Use query param to select initial sequence, default to v_1784_1828
-    const seqId = this.debug.getQueryParam('sequence') || 'v_1784_1828';
-    console.log('[MainDemo] Sequence mode enabled:', seqId);
+    // Use query param to select initial sequence, otherwise runtime-config default
+    const querySequenceParam = this.debug.getQueryParam('sequence');
+    const initialEntry = await this.getInitialSequenceEntry(querySequenceParam ?? undefined);
+
+    if (!initialEntry) {
+      console.error('[MainDemo] No sequence entry available in runtime config');
+      this.loading.set(false);
+      this.cdr.markForCheck();
+      return;
+    }
+
+    console.log('[MainDemo] Sequence mode enabled:', initialEntry.sequenceId);
     this.isSequenceMode = true;
-    await this.loadSequence(seqId);
+    this.stateService.setScene(initialEntry.sceneId);
+    await this.loadSequence(initialEntry.sequenceId);
 
     // Subscribe to scene changes for dynamic sequence switching
     this.stateService.scene$
@@ -132,12 +155,62 @@ export class MainDemoComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe((sceneId) => {
-        const newSeqId = SCENE_TO_SEQUENCE[sceneId];
-        if (newSeqId && newSeqId !== this.currentSequenceId) {
-          console.log('[MainDemo] Scene changed:', sceneId, '→', newSeqId);
-          this.loadSequence(newSeqId);
-        }
+        this.loadSequenceByScene(sceneId);
       });
+  }
+
+  private async initializeSequenceRegistry(): Promise<void> {
+    const sequences = await this.sequenceRegistry.listSequences();
+    this.sequenceEntriesById.clear();
+    this.sequenceEntriesByScene.clear();
+    sequences.forEach((entry) => {
+      this.sequenceEntriesById.set(entry.sequenceId, entry);
+      this.sequenceEntriesByScene.set(entry.sceneId, entry);
+    });
+    this.registryDefaults = await this.sequenceRegistry.getDefaults();
+  }
+
+  private async getInitialSequenceEntry(candidateSeqId?: string): Promise<SequenceRegistryEntry | undefined> {
+    if (candidateSeqId) {
+      const entry = await this.resolveSequenceEntry(candidateSeqId);
+      if (entry) return entry;
+      console.warn('[MainDemo] Query sequence not found, falling back to defaults:', candidateSeqId);
+    }
+
+    if (this.registryDefaults.sequenceId) {
+      const entry = await this.resolveSequenceEntry(this.registryDefaults.sequenceId);
+      if (entry) return entry;
+    }
+
+    const fallback = this.sequenceEntriesById.values().next().value as SequenceRegistryEntry | undefined;
+    return fallback;
+  }
+
+  private async resolveSequenceEntry(sequenceId: string): Promise<SequenceRegistryEntry | undefined> {
+    const cached = this.sequenceEntriesById.get(sequenceId);
+    if (cached) return cached;
+
+    const fetched = await this.sequenceRegistry.findBySequenceId(sequenceId);
+    if (fetched) {
+      this.sequenceEntriesById.set(fetched.sequenceId, fetched);
+      this.sequenceEntriesByScene.set(fetched.sceneId, fetched);
+    }
+    return fetched ?? undefined;
+  }
+
+  private async loadSequenceByScene(sceneId: SceneId): Promise<void> {
+    const entry = this.sequenceEntriesByScene.get(sceneId) ?? (await this.sequenceRegistry.findBySceneId(sceneId));
+    if (!entry) {
+      console.warn('[MainDemo] No sequence mapped for scene, ignoring:', sceneId);
+      return;
+    }
+
+    if (entry.sequenceId === this.currentSequenceId) {
+      return;
+    }
+
+    console.log('[MainDemo] Scene changed:', sceneId, '→', entry.sequenceId);
+    await this.loadSequence(entry.sequenceId);
   }
 
   /**
@@ -460,26 +533,39 @@ export class MainDemoComponent implements OnInit, OnDestroy {
    * Stops current playback, loads new manifest, and restarts streaming.
    */
   private async loadSequence(seqId: string): Promise<void> {
+    const registryEntry = await this.resolveSequenceEntry(seqId);
+    if (!registryEntry) {
+      console.error('[MainDemo] Unable to resolve sequence entry for id:', seqId);
+      return;
+    }
+
     // Stop current playback if switching sequences
-    if (this.currentSequenceId && this.currentSequenceId !== seqId) {
+    if (this.currentSequenceId && this.currentSequenceId !== registryEntry.sequenceId) {
       console.log('[MainDemo] Stopping current sequence:', this.currentSequenceId);
       this.frameStream.stop();
       this.firstFrameLogged = false; // Reset for new sequence
     }
 
-    this.currentSequenceId = seqId;
+    this.currentSequenceId = registryEntry.sequenceId;
     this.loading.set(true);
     this.loadError.set(null);
     this.showError.set(false);
 
     try {
-      console.log('[MainDemo] Loading sequence manifest:', seqId);
-      const manifest = await this.sequenceData.loadManifest(seqId);
+      this.sequenceData.setBasePath(registryEntry.sequenceId, registryEntry.basePath);
+      console.log('[MainDemo] Loading sequence manifest:', registryEntry.manifestUrl);
+      const manifest = await this.sequenceData.loadManifest(registryEntry.sequenceId);
 
       console.log('[MainDemo] Manifest loaded', {
         sequenceId: manifest.sequenceId,
         frameCount: manifest.frames.length,
         fps: manifest.fps,
+      });
+
+      const branchList = this.extractBranchList(manifest);
+      this.stateService.setAvailableBranches(branchList, {
+        baseline: registryEntry.defaultBaselineBranch ?? this.registryDefaults.baselineBranch,
+        active: registryEntry.defaultActiveBranch ?? this.registryDefaults.activeBranch,
       });
 
       // Compute max point count from manifest
@@ -607,5 +693,11 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       this.loading.set(false);
       this.cdr.markForCheck();
     }
+  }
+
+  private extractBranchList(manifest: SequenceManifest): string[] {
+    const firstFrame = manifest?.frames?.[0];
+    const detMap = firstFrame?.urls?.det ?? {};
+    return Object.keys(detMap);
   }
 }

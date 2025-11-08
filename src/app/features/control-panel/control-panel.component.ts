@@ -16,6 +16,8 @@ import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 
 import { StateService } from '../../core/services/state/state.service';
 import { SceneId, VoxelSize } from '../../core/models/config-and-metrics';
@@ -26,6 +28,8 @@ interface PrimaryControls {
   voxelSize: VoxelSize;
   contention: number;
   sloMs: number;
+  baselineBranch: string;
+  activeBranch: string;
 }
 
 @Component({
@@ -37,6 +41,8 @@ interface PrimaryControls {
     MatButtonToggleModule,
     MatSliderModule,
     MatTooltipModule,
+    MatFormFieldModule,
+    MatSelectModule,
     AdvancedControlsComponent,
   ],
   template: `
@@ -144,6 +150,38 @@ interface PrimaryControls {
               <div class="value-label" aria-live="polite">{{ primaryForm.value.sloMs }} ms</div>
             </fieldset>
           </div>
+
+          <!-- Baseline branch selector -->
+          <div class="control-group baseline-branch-group">
+            <mat-form-field appearance="fill" class="full-width">
+              <mat-label>Baseline branch</mat-label>
+              <mat-select
+                formControlName="baselineBranch"
+                [disabled]="baselineOptions.length === 0"
+                aria-label="Select baseline detection branch"
+              >
+                <mat-option *ngFor="let branch of baselineOptions" [value]="branch">
+                  {{ branch }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <!-- AGILE3D branch selector -->
+          <div class="control-group agile-branch-group">
+            <mat-form-field appearance="fill" class="full-width">
+              <mat-label>AGILE3D branch</mat-label>
+              <mat-select
+                formControlName="activeBranch"
+                [disabled]="agileOptions.length === 0"
+                aria-label="Select AGILE3D detection branch"
+              >
+                <mat-option *ngFor="let branch of agileOptions" [value]="branch">
+                  {{ branch }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
         </form>
       </section>
 
@@ -249,6 +287,9 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   protected readonly primaryForm: FormGroup;
+  protected availableBranches: string[] = [];
+  protected baselineOptions: string[] = [];
+  protected agileOptions: string[] = [];
 
   protected readonly tooltips = {
     scene: 'Select traffic scenario type: vehicle-heavy, pedestrian-heavy, or mixed',
@@ -266,6 +307,8 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       voxelSize: [0.32, Validators.required],
       contention: [38, [Validators.required, Validators.min(0), Validators.max(100)]],
       sloMs: [350, [Validators.required, Validators.min(100), Validators.max(500)]],
+      baselineBranch: ['DSVT_Pillar_030', Validators.required],
+      activeBranch: ['CP_Pillar_032', Validators.required],
     });
   }
 
@@ -276,10 +319,17 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       this.stateService.voxelSize$,
       this.stateService.contention$,
       this.stateService.sloMs$,
+      this.stateService.baselineBranch$,
+      this.stateService.activeBranch$,
+      this.stateService.availableBranches$,
     ])
       .pipe(takeUntil(this.destroy$))
-      .subscribe(([scene, voxelSize, contention, sloMs]) => {
-        this.primaryForm.patchValue({ scene, voxelSize, contention, sloMs }, { emitEvent: false });
+      .subscribe(([scene, voxelSize, contention, sloMs, baselineBranch, activeBranch, branches]) => {
+        this.updateBranchOptions(branches);
+        this.primaryForm.patchValue(
+          { scene, voxelSize, contention, sloMs, baselineBranch, activeBranch },
+          { emitEvent: false }
+        );
       });
 
     // Push debounced changes to state
@@ -294,11 +344,21 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
         if (typeof v?.voxelSize === 'number') this.stateService.setVoxelSize(v.voxelSize);
         if (typeof v?.contention === 'number') this.stateService.setContention(v.contention);
         if (typeof v?.sloMs === 'number') this.stateService.setSlo(v.sloMs);
+        if (typeof v?.baselineBranch === 'string') this.stateService.setBaselineBranch(v.baselineBranch);
+        if (typeof v?.activeBranch === 'string') this.stateService.setActiveBranch(v.activeBranch);
       });
   }
 
   public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private updateBranchOptions(branches: string[]): void {
+    this.availableBranches = branches;
+    const baseline = branches.filter((branch) => branch.startsWith('DSVT'));
+    const agile = branches.filter((branch) => !branch.startsWith('DSVT'));
+    this.baselineOptions = baseline.length > 0 ? baseline : branches;
+    this.agileOptions = agile.length > 0 ? agile : branches;
   }
 }

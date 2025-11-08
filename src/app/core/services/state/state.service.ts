@@ -26,6 +26,8 @@ export class StateService implements OnDestroy {
   private readonly contentionSubject = new BehaviorSubject<number>(38);
   private readonly sloMsSubject = new BehaviorSubject<number>(350);
   private readonly activeBranchSubject = new BehaviorSubject<string>('CP_Pillar_032');
+  private readonly baselineBranchSubject = new BehaviorSubject<string>('DSVT_Pillar_030');
+  private readonly availableBranchesSubject = new BehaviorSubject<string[]>([]);
 
   // Camera synchronization (private subjects)
   // Bird's eye view: camera positioned behind (-Y) and above the scene center
@@ -56,6 +58,8 @@ export class StateService implements OnDestroy {
 
   // Public observables for other state
   public readonly activeBranch$: Observable<string> = this.activeBranchSubject.asObservable();
+  public readonly baselineBranch$: Observable<string> = this.baselineBranchSubject.asObservable();
+  public readonly availableBranches$: Observable<string[]> = this.availableBranchesSubject.asObservable();
   public readonly cameraPos$ = this.cameraPosSubject;
   public readonly cameraTarget$ = this.cameraTargetSubject;
   public readonly independentCamera$: Observable<boolean> =
@@ -158,6 +162,47 @@ export class StateService implements OnDestroy {
     if (this.activeBranchSubject.value !== value) this.activeBranchSubject.next(value);
   }
 
+  /** Update baseline branch selection. */
+  public setBaselineBranch(value: string): void {
+    if (this.baselineBranchSubject.value !== value) this.baselineBranchSubject.next(value);
+  }
+
+  /** Update available branches and reconcile current selections. */
+  public setAvailableBranches(
+    branches: string[],
+    defaults?: { baseline?: string; active?: string }
+  ): void {
+    const normalized = uniqueOrdered(branches);
+    const current = this.availableBranchesSubject.value;
+    if (!arraysEqual(current, normalized)) {
+      this.availableBranchesSubject.next(normalized);
+    }
+
+    if (normalized.length === 0) {
+      return;
+    }
+
+    const desiredActive = this.pickActiveBranch(normalized, defaults?.active);
+    if (desiredActive && this.activeBranchSubject.value !== desiredActive) {
+      this.activeBranchSubject.next(desiredActive);
+    } else if (!normalized.includes(this.activeBranchSubject.value)) {
+      const fallbackActive = normalized[0];
+      if (fallbackActive) {
+        this.activeBranchSubject.next(fallbackActive);
+      }
+    }
+
+    const desiredBaseline = this.pickBaselineBranch(normalized, defaults?.baseline);
+    if (desiredBaseline && this.baselineBranchSubject.value !== desiredBaseline) {
+      this.baselineBranchSubject.next(desiredBaseline);
+    } else if (!normalized.includes(this.baselineBranchSubject.value)) {
+      const fallbackBaseline = normalized[0];
+      if (fallbackBaseline) {
+        this.baselineBranchSubject.next(fallbackBaseline);
+      }
+    }
+  }
+
   /** Update camera position if changed. */
   public setCameraPos(value: Vec3): void {
     if (!vec3Equal(this.cameraPosSubject.value, value)) this.cameraPosSubject.next(value);
@@ -175,6 +220,22 @@ export class StateService implements OnDestroy {
    */
   public setIndependentCamera(value: boolean): void {
     if (this.independentCameraSubject.value !== value) this.independentCameraSubject.next(value);
+  }
+
+  private pickActiveBranch(branches: string[], preferred?: string): string | undefined {
+    if (preferred && branches.includes(preferred)) {
+      return preferred;
+    }
+    const agileCandidate = branches.find((branch) => branch.startsWith('CP_'));
+    return agileCandidate ?? branches[0];
+  }
+
+  private pickBaselineBranch(branches: string[], preferred?: string): string | undefined {
+    if (preferred && branches.includes(preferred)) {
+      return preferred;
+    }
+    const baselineCandidate = branches.find((branch) => branch.startsWith('DSVT'));
+    return baselineCandidate ?? branches[0];
   }
 
   /**
@@ -208,6 +269,8 @@ export class StateService implements OnDestroy {
     this.contentionSubject.complete();
     this.sloMsSubject.complete();
     this.activeBranchSubject.complete();
+    this.baselineBranchSubject.complete();
+    this.availableBranchesSubject.complete();
     this.cameraPosSubject.complete();
     this.cameraTargetSubject.complete();
     this.independentCameraSubject.complete();
@@ -221,4 +284,24 @@ function clamp(v: number, min: number, max: number): number {
 
 function vec3Equal(a: Vec3, b: Vec3): boolean {
   return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+}
+
+function uniqueOrdered(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  values.forEach((value) => {
+    if (!seen.has(value)) {
+      seen.add(value);
+      result.push(value);
+    }
+  });
+  return result;
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }
