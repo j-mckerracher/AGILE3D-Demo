@@ -20,7 +20,7 @@ import {
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, firstValueFrom } from 'rxjs';
+import { Subject, firstValueFrom, combineLatest } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DualViewerComponent } from '../dual-viewer/dual-viewer.component';
 import { ControlPanelComponent } from '../control-panel/control-panel.component';
@@ -43,6 +43,12 @@ import { SyntheticDetectionVariationService } from '../../core/services/simulati
 import { PaperDataService } from '../../core/services/data/paper-data.service';
 import { SequenceDataService } from '../../core/services/data/sequence-data.service';
 import { FrameStreamService } from '../../core/services/frame-stream/frame-stream.service';
+import {
+  SequenceRegistryEntry,
+  SequenceRegistryService,
+} from '../../core/services/data/sequence-registry.service';
+import { SequenceManifest } from '../../core/models/sequence.models';
+import { DiffMode } from '../../core/services/visualization/bbox-instancing';
 
 @Component({
   selector: 'app-main-demo',
@@ -71,6 +77,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   private readonly paperData = inject(PaperDataService);
   private readonly sequenceData = inject(SequenceDataService);
   private readonly frameStream = inject(FrameStreamService);
+  private readonly sequenceRegistry = inject(SequenceRegistryService);
 
   private readonly destroy$ = new Subject<void>();
   private currentMetadata?: SceneMetadata;
@@ -79,10 +86,24 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   private currentContentionPct: number = 38; // Track current contention for baseline updates
   private isSequenceMode = false; // Track if we're in sequence playback mode
   private firstFrameLogged = false; // Track if we've logged first frame bounds
+  private currentSequenceId: string = ''; // Track active sequence for scene switching
+  private readonly sequenceEntriesById = new Map<string, SequenceRegistryEntry>();
+  private readonly sequenceEntriesByScene = new Map<SceneId, SequenceRegistryEntry>();
+  private registryDefaults: {
+    sequenceId?: string;
+    baselineBranch?: string;
+    activeBranch?: string;
+  } = {};
+  private frameStreamSubscriptionsEstablished = false;
 
   protected sharedPoints?: THREE.Points;
   protected baselineDetections: Detection[] = [];
   protected agile3dDetections: Detection[] = [];
+  protected baselineDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>; // TP/FP map for baseline
+  protected agile3dDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
+  protected leftTitle: string = 'Baseline';
+  protected rightTitle: string = 'AGILE3D';
+  protected diffMode: DiffMode = 'all';
 
   protected readonly loading = signal<boolean>(true);
   protected readonly loadError = signal<string | null>(null);
@@ -102,12 +123,213 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       return;
     }
 
+    await this.initializeSequenceRegistry();
+    this.ensureFrameStreamSubscriptions();
+
+    combineLatest([this.stateService.activeBranch$, this.stateService.baselineBranch$])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([activeBranch, baselineBranch]) => {
+        this.frameStream.setBranches(activeBranch, baselineBranch);
+        this.leftTitle = `Baseline (${baselineBranch})`;
+        this.rightTitle = `AGILE3D (${activeBranch})`;
+        this.cdr.markForCheck();
+      });
+
+    this.stateService.detectionFilters$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((filters) => this.frameStream.setFilters(filters));
+
+    this.stateService.diffMode$
+      .pipe(distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((mode) => {
+        this.diffMode = mode;
+        this.frameStream.setDiffMode(mode);
+        this.cdr.markForCheck();
+      });
+
+    this.stateService.delaySimulation$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((config) => this.frameStream.setDelaySimulation(config));
+
     // Sequence mode is now the default
-    // Use query param to select which sequence, default to v_1784_1828
-    const seqId = this.debug.getQueryParam('sequence') || 'v_1784_1828';
-    console.log('[MainDemo] Sequence mode enabled:', seqId);
+    // Use query param to select initial sequence, otherwise runtime-config default
+    const querySequenceParam = this.debug.getQueryParam('sequence');
+    const initialEntry = await this.getInitialSequenceEntry(querySequenceParam ?? undefined);
+
+    if (!initialEntry) {
+      console.error('[MainDemo] No sequence entry available in runtime config');
+      this.loading.set(false);
+      this.cdr.markForCheck();
+      return;
+    }
+
+    console.log('[MainDemo] Sequence mode enabled:', initialEntry.sequenceId);
     this.isSequenceMode = true;
-    await this.initSequenceMode(seqId);
+    this.stateService.setScene(initialEntry.sceneId);
+    await this.loadSequence(initialEntry);
+
+    // Subscribe to scene changes for dynamic sequence switching
+    this.stateService.scene$
+      .pipe(
+        distinctUntilChanged(),
+        debounceTime(100), // Debounce rapid clicks
+        takeUntil(this.destroy$)
+      )
+      .subscribe((sceneId) => {
+        this.loadSequenceByScene(sceneId);
+      });
+  }
+
+  private ensureFrameStreamSubscriptions(): void {
+    if (this.frameStreamSubscriptionsEstablished) {
+      return;
+    }
+
+    this.frameStream.currentFrame$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((streamedFrame) => {
+        if (!streamedFrame) return;
+
+        try {
+          const positions = streamedFrame.points;
+
+          if (!this.firstFrameLogged) {
+            let minX = Infinity, minY = Infinity, minZ = Infinity;
+            let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+            for (let i = 0; i < positions.length; i += 3) {
+              const x = positions[i]!;
+              const y = positions[i + 1]!;
+              const z = positions[i + 2]!;
+              if (x < minX) minX = x; if (x > maxX) maxX = x;
+              if (y < minY) minY = y; if (y > maxY) maxY = y;
+              if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+            }
+
+            console.log('[MainDemo] First frame received', {
+              frameId: streamedFrame.frame.id,
+              pointCount: positions.length / 3,
+              gtDetections: streamedFrame.gt.length,
+              firstPoint: [positions[0], positions[1], positions[2]],
+              bounds: { minX, maxX, minY, maxY, minZ, maxZ }
+            });
+            this.firstFrameLogged = true;
+          }
+
+          if (this.sharedPoints) {
+            this.sceneData.updatePointsAttribute(this.sharedPoints, positions);
+          }
+
+          if (streamedFrame.baseline?.det) {
+            this.baselineDetections = streamedFrame.baseline.det;
+            const baselineFlags = streamedFrame.baseline.cls;
+            const baselineDets = streamedFrame.baseline.det;
+            const baselineMap = new Map<string, 'tp' | 'fp'>();
+            for (let i = 0; i < baselineDets.length; i++) {
+              const det = baselineDets[i];
+              if (!det) continue;
+              const isTP = baselineFlags?.[i] === true;
+              baselineMap.set(det.id, isTP ? 'tp' : 'fp');
+            }
+            this.baselineDiffClassification = baselineMap;
+          } else {
+            this.baselineDetections = streamedFrame.gt;
+            this.baselineDiffClassification = undefined;
+          }
+
+          if (streamedFrame.agile?.det) {
+            this.agile3dDetections = streamedFrame.agile.det;
+            const flags = streamedFrame.agile.cls;
+            const dets = streamedFrame.agile.det;
+            const map = new Map<string, 'tp' | 'fp'>();
+            for (let i = 0; i < dets.length; i++) {
+              const det = dets[i];
+              if (!det) continue;
+              const isTP = flags?.[i] === true;
+              map.set(det.id, isTP ? 'tp' : 'fp');
+            }
+            this.agile3dDiffClassification = map;
+          } else {
+            this.agile3dDetections = streamedFrame.det ?? streamedFrame.gt;
+            this.agile3dDiffClassification = undefined;
+          }
+
+          this.leftTitle = `Baseline (${this.frameStream.baselineBranch})`;
+          this.rightTitle = `AGILE3D (${this.frameStream.activeBranch})`;
+
+          this.cdr.markForCheck();
+        } catch (err) {
+          console.error('[MainDemo] Frame processing error:', err);
+        }
+      });
+
+    this.frameStream.errors$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((error) => {
+        if (error) {
+          this.loadError.set(error);
+          this.showError.set(true);
+          this.cdr.markForCheck();
+        }
+      });
+
+    this.frameStreamSubscriptionsEstablished = true;
+  }
+
+  private async initializeSequenceRegistry(): Promise<void> {
+    const sequences = await this.sequenceRegistry.listSequences();
+    this.sequenceEntriesById.clear();
+    this.sequenceEntriesByScene.clear();
+    sequences.forEach((entry) => {
+      this.sequenceEntriesById.set(entry.sequenceId, entry);
+      this.sequenceEntriesByScene.set(entry.sceneId, entry);
+    });
+    this.registryDefaults = await this.sequenceRegistry.getDefaults();
+  }
+
+  private async getInitialSequenceEntry(candidateSeqId?: string): Promise<SequenceRegistryEntry | undefined> {
+    if (candidateSeqId) {
+      const entry = await this.resolveSequenceEntry(candidateSeqId);
+      if (entry) return entry;
+      console.warn('[MainDemo] Query sequence not found, falling back to defaults:', candidateSeqId);
+    }
+
+    if (this.registryDefaults.sequenceId) {
+      const entry = await this.resolveSequenceEntry(this.registryDefaults.sequenceId);
+      if (entry) return entry;
+    }
+
+    const fallback = this.sequenceEntriesById.values().next().value as SequenceRegistryEntry | undefined;
+    return fallback;
+  }
+
+  private async resolveSequenceEntry(sequenceId: string): Promise<SequenceRegistryEntry | undefined> {
+    const cached = this.sequenceEntriesById.get(sequenceId);
+    if (cached) return cached;
+
+    const fetched = await this.sequenceRegistry.findBySequenceId(sequenceId);
+    if (fetched) {
+      this.sequenceEntriesById.set(fetched.sequenceId, fetched);
+      this.sequenceEntriesByScene.set(fetched.sceneId, fetched);
+    }
+    return fetched ?? undefined;
+  }
+
+  private async loadSequenceByScene(sceneId: SceneId): Promise<void> {
+    const entry = this.sequenceEntriesByScene.get(sceneId) ?? (await this.sequenceRegistry.findBySceneId(sceneId));
+    if (!entry) {
+      console.warn('[MainDemo] No sequence mapped for scene, ignoring:', sceneId);
+      return;
+    }
+
+     this.sequenceEntriesByScene.set(entry.sceneId, entry);
+     this.sequenceEntriesById.set(entry.sequenceId, entry);
+
+    if (entry.sequenceId === this.currentSequenceId) {
+      return;
+    }
+
+    console.log('[MainDemo] Scene changed:', sceneId, '→', entry.sequenceId);
+    await this.loadSequence(entry);
   }
 
   /**
@@ -425,108 +647,53 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Initialize sequence playback mode.
-   * Loads manifest, creates shared Points, and starts streaming frames.
+   * Load and start playback of a sequence.
+   * Handles both initial load and dynamic scene switching.
+   * Stops current playback, loads new manifest, and restarts streaming.
    */
-  private async initSequenceMode(seqId: string): Promise<void> {
+  private async loadSequence(entry: SequenceRegistryEntry): Promise<void> {
+    if (this.currentSequenceId && this.currentSequenceId !== entry.sequenceId) {
+      console.log('[MainDemo] Stopping current sequence:', this.currentSequenceId);
+      this.frameStream.stop();
+      this.firstFrameLogged = false;
+    }
+
+    this.currentSequenceId = entry.sequenceId;
     this.loading.set(true);
     this.loadError.set(null);
     this.showError.set(false);
 
     try {
-      console.log('[MainDemo] Loading sequence manifest:', seqId);
-      const manifest = await this.sequenceData.loadManifest(seqId);
-      
+      const manifest = await this.frameStream.loadSequence(entry, { loop: true });
+
       console.log('[MainDemo] Manifest loaded', {
         sequenceId: manifest.sequenceId,
         frameCount: manifest.frames.length,
         fps: manifest.fps,
       });
 
-      // Compute max point count from manifest
-      const maxPts = Math.max(...manifest.frames.map(f => f.pointCount || 0)) || 200000;
-      console.log('[MainDemo] Max points:', maxPts);
-
-      // Create shared Points instance for patch-in-place updates
-      this.sharedPoints = this.sceneData.ensureSharedPoints(maxPts, 3);
-      console.log('[MainDemo] Shared Points created for sequence playback');
-
-      // Subscribe to frame stream
-      this.frameStream.currentFrame$
-        .pipe(takeUntil(this.destroy$))
-        .subscribe((streamedFrame) => {
-          if (!streamedFrame) return;
-
-          try {
-            // Points are already parsed as Float32Array from frame stream
-            const positions = streamedFrame.points;
-            
-            if (!this.firstFrameLogged) {
-              // Compute bounds safely without spreading huge arrays
-              let minX = Infinity, minY = Infinity, minZ = Infinity;
-              let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-              for (let i = 0; i < positions.length; i += 3) {
-                const x = positions[i]!;
-                const y = positions[i + 1]!;
-                const z = positions[i + 2]!;
-                if (x < minX) minX = x; if (x > maxX) maxX = x;
-                if (y < minY) minY = y; if (y > maxY) maxY = y;
-                if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
-              }
-
-              // Log detailed bounds for first frame only
-              console.log('[MainDemo] First frame received', {
-                frameId: streamedFrame.frame.id,
-                pointCount: positions.length / 3,
-                gtDetections: streamedFrame.gt.length,
-                firstPoint: [positions[0], positions[1], positions[2]],
-                bounds: { minX, maxX, minY, maxY, minZ, maxZ }
-              });
-              this.firstFrameLogged = true;
-            }
-            
-            // Update shared Points geometry
-            if (this.sharedPoints) {
-              this.sceneData.updatePointsAttribute(this.sharedPoints, positions);
-            }
-
-            // Update detections - use GT for baseline, GT for AGILE3D until det files available
-            this.baselineDetections = streamedFrame.gt;
-            this.agile3dDetections = streamedFrame.det ?? streamedFrame.gt;
-
-            this.cdr.markForCheck();
-          } catch (err) {
-            console.error('[MainDemo] Frame processing error:', err);
-          }
-        });
-
-      // Subscribe to stream errors
-      this.frameStream.errors$
-        .pipe(takeUntil(this.destroy$))
-        .subscribe((error) => {
-          if (error) {
-            this.loadError.set(error);
-            this.showError.set(true);
-            this.cdr.markForCheck();
-          }
-        });
-
-      // Start streaming
-      this.frameStream.start(manifest, {
-        fps: manifest.fps || 10,
-        prefetch: 2,
-        loop: true,
+      const branchList = this.extractBranchList(manifest);
+      this.stateService.setAvailableBranches(branchList, {
+        baseline: entry.defaultBaselineBranch ?? this.registryDefaults.baselineBranch,
+        active: entry.defaultActiveBranch ?? this.registryDefaults.activeBranch,
       });
 
-      console.log('[MainDemo] Frame stream started');
+      this.sharedPoints = this.frameStream.getSharedPoints() ?? undefined;
+      console.log('[MainDemo] Shared Points ready for sequence playback');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error loading sequence';
-      console.error('[MainDemo] initSequenceMode error:', msg);
+      console.error('[MainDemo] loadSequence error:', msg);
       this.loadError.set(msg);
       this.showError.set(true);
     } finally {
       this.loading.set(false);
       this.cdr.markForCheck();
     }
+  }
+
+  private extractBranchList(manifest: SequenceManifest): string[] {
+    const firstFrame = manifest?.frames?.[0];
+    const detMap = firstFrame?.urls?.det ?? {};
+    return Object.keys(detMap);
   }
 }

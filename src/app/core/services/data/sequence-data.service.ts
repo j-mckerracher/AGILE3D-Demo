@@ -40,27 +40,38 @@ interface DetFile {
   providedIn: 'root'
 })
 export class SequenceDataService {
+  private readonly basePathOverrides = new Map<string, string>();
+
   constructor(private http: HttpClient) {}
 
+  setBasePath(sequenceId: string, basePath: string): void {
+    const normalized = basePath.replace(/\/$/, '');
+    this.basePathOverrides.set(sequenceId, normalized);
+  }
+
   async loadManifest(seqId: string): Promise<SequenceManifest> {
-    const url = `assets/data/sequences/${seqId}/manifest.json`;
+    const basePath = this.resolveBasePath(seqId);
+    return this.loadManifestFromUrl(`${basePath}/manifest.json`);
+  }
+
+  async loadManifestFromUrl(url: string): Promise<SequenceManifest> {
     return firstValueFrom(this.http.get<SequenceManifest>(url));
   }
 
   async fetchPoints(seqId: string, url: string): Promise<ArrayBuffer> {
-    const fullUrl = `assets/data/sequences/${seqId}/${url}`;
+    const fullUrl = `${this.resolveBasePath(seqId)}/${url}`;
     return firstValueFrom(
       this.http.get(fullUrl, { responseType: 'arraybuffer' })
     );
   }
 
   async fetchGT(seqId: string, url: string): Promise<GTFile> {
-    const fullUrl = `assets/data/sequences/${seqId}/${url}`;
+    const fullUrl = `${this.resolveBasePath(seqId)}/${url}`;
     return firstValueFrom(this.http.get<GTFile>(fullUrl));
   }
 
   async fetchDet(seqId: string, url: string): Promise<DetFile> {
-    const fullUrl = `assets/data/sequences/${seqId}/${url}`;
+    const fullUrl = `${this.resolveBasePath(seqId)}/${url}`;
     return firstValueFrom(this.http.get<DetFile>(fullUrl));
   }
 
@@ -69,12 +80,12 @@ export class SequenceDataService {
       // If label is present, use it; otherwise default to 'vehicle'
       // Many Waymo sequences don't include labels in the GT boxes
       const detectionClass = box.label !== undefined ? LABEL_MAP[box.label] : 'vehicle';
-      
+
       if (!detectionClass) {
         console.warn(`[SequenceDataService] Unknown label ${box.label} in frame ${frameId}, skipping`);
         return null;
       }
-      
+
       return {
         id: `${i}-${frameId}`,
         class: detectionClass,
@@ -98,12 +109,12 @@ export class SequenceDataService {
       .filter(box => (box.score ?? 1.0) >= scoreThresh)
       .map((box, i) => {
         const detectionClass = box.label !== undefined ? LABEL_MAP[box.label] : 'vehicle';
-        
+
         if (!detectionClass) {
           console.warn(`[SequenceDataService] Unknown label ${box.label} in branch ${branchId}, skipping`);
           return null;
         }
-        
+
         return {
           id: `${i}-${branchId}`,
           class: detectionClass,
@@ -118,5 +129,9 @@ export class SequenceDataService {
           confidence: box.score ?? 1.0
         };
       }).filter((d): d is Detection => d !== null);
+  }
+
+  private resolveBasePath(sequenceId: string): string {
+    return this.basePathOverrides.get(sequenceId) ?? `assets/data/sequences/${sequenceId}`;
   }
 }

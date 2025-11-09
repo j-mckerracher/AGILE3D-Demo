@@ -1,0 +1,37 @@
+{
+  "manifestBaseUrl": "https://d1u4x8lsi8lzmi.cloudfront.net/sequences/",
+  "defaults": {
+    "sequenceId": "v_1784_1828",
+    "baselineBranch": "DSVT_Pillar_030",
+    "activeBranch": "CP_Pillar_032"
+  },
+  "sequences": [
+    {
+      "sceneId": "vehicle-heavy",
+      "sequenceId": "v_1784_1828",
+      "title": "Vehicle-Heavy",
+      "basePath": "assets/data/sequences/v_1784_1828",
+      "manifestUrl": "assets/data/sequences/v_1784_1828/manifest.json",
+      "defaultBaselineBranch": "DSVT_Pillar_030",
+      "defaultActiveBranch": "CP_Pillar_032"
+    },
+    {
+      "sceneId": "pedestrian-heavy",
+      "sequenceId": "p_7513_7557",
+      "title": "Pedestrian-Heavy",
+      "basePath": "assets/data/sequences/p_7513_7557",
+      "manifestUrl": "assets/data/sequences/p_7513_7557/manifest.json",
+      "defaultBaselineBranch": "DSVT_Pillar_030",
+      "defaultActiveBranch": "CP_Pillar_032"
+    },
+    {
+      "sceneId": "mixed",
+      "sequenceId": "c_7910_7954",
+      "title": "Mixed",
+      "basePath": "assets/data/sequences/c_7910_7954",
+      "manifestUrl": "assets/data/sequences/c_7910_7954/manifest.json",
+      "defaultBaselineBranch": "DSVT_Pillar_030",
+      "defaultActiveBranch": "CP_Pillar_032"
+    }
+  ]
+}

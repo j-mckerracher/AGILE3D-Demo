@@ -2,7 +2,9 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
 import { AdvancedKnobs, SceneId, SystemParams, VoxelSize } from '../../models/config-and-metrics';
-import { Vec3 } from '../../models/scene.models';
+import { Vec3, DetectionClass } from '../../models/scene.models';
+import { DiffMode } from '../visualization/bbox-instancing';
+import { DET_SCORE_THRESH } from '../data/sequence-data.service';
 
 /**
  * Aggregated comparison input values derived from primary state knobs.
@@ -26,9 +28,26 @@ export class StateService implements OnDestroy {
   private readonly contentionSubject = new BehaviorSubject<number>(38);
   private readonly sloMsSubject = new BehaviorSubject<number>(350);
   private readonly activeBranchSubject = new BehaviorSubject<string>('CP_Pillar_032');
+  private readonly baselineBranchSubject = new BehaviorSubject<string>('DSVT_Pillar_030');
+  private readonly availableBranchesSubject = new BehaviorSubject<string[]>([]);
+  private readonly scoreThresholdSubject = new BehaviorSubject<number>(DET_SCORE_THRESH);
+  private readonly labelMaskSubject = new BehaviorSubject<DetectionClass[] | null>(null);
+  private readonly diffModeSubject = new BehaviorSubject<DiffMode>('all');
+  private readonly delaySimulationSubject = new BehaviorSubject<{
+    enabled: boolean;
+    initial: number;
+    growth: number;
+    max: number;
+  }>({
+    enabled: false,
+    initial: 2,
+    growth: 0.2,
+    max: 10,
+  });
 
   // Camera synchronization (private subjects)
-  private readonly cameraPosSubject = new BehaviorSubject<Vec3>([0, 0, 10]);
+  // Bird's eye view: camera positioned behind (-Y) and above the scene center
+  private readonly cameraPosSubject = new BehaviorSubject<Vec3>([-111.62, -3.48, 37.96]);
   private readonly cameraTargetSubject = new BehaviorSubject<Vec3>([0, 0, 0]);
   private readonly independentCameraSubject = new BehaviorSubject<boolean>(false);
 
@@ -55,6 +74,29 @@ export class StateService implements OnDestroy {
 
   // Public observables for other state
   public readonly activeBranch$: Observable<string> = this.activeBranchSubject.asObservable();
+  public readonly baselineBranch$: Observable<string> = this.baselineBranchSubject.asObservable();
+  public readonly availableBranches$: Observable<string[]> = this.availableBranchesSubject.asObservable();
+  public readonly scoreThreshold$: Observable<number> = this.scoreThresholdSubject.asObservable();
+  public readonly labelMask$: Observable<DetectionClass[] | null> = this.labelMaskSubject.asObservable();
+  public readonly diffMode$: Observable<DiffMode> = this.diffModeSubject.asObservable();
+  public readonly delaySimulation$: Observable<{
+    enabled: boolean;
+    initial: number;
+    growth: number;
+    max: number;
+  }> = this.delaySimulationSubject.asObservable();
+  public readonly detectionFilters$: Observable<{
+    scoreThreshold: number;
+    labelMask: DetectionClass[] | null;
+  }> = combineLatest([this.scoreThresholdSubject, this.labelMaskSubject]).pipe(
+    map(([scoreThreshold, labelMask]) => ({ scoreThreshold, labelMask })),
+    distinctUntilChanged(
+      (a, b) =>
+        a.scoreThreshold === b.scoreThreshold &&
+        arraysEqual(a.labelMask ?? [], b.labelMask ?? [])
+    ),
+    shareReplay(1)
+  );
   public readonly cameraPos$ = this.cameraPosSubject;
   public readonly cameraTarget$ = this.cameraTargetSubject;
   public readonly independentCamera$: Observable<boolean> =
@@ -157,6 +199,47 @@ export class StateService implements OnDestroy {
     if (this.activeBranchSubject.value !== value) this.activeBranchSubject.next(value);
   }
 
+  /** Update baseline branch selection. */
+  public setBaselineBranch(value: string): void {
+    if (this.baselineBranchSubject.value !== value) this.baselineBranchSubject.next(value);
+  }
+
+  /** Update available branches and reconcile current selections. */
+  public setAvailableBranches(
+    branches: string[],
+    defaults?: { baseline?: string; active?: string }
+  ): void {
+    const normalized = uniqueOrdered(branches);
+    const current = this.availableBranchesSubject.value;
+    if (!arraysEqual(current, normalized)) {
+      this.availableBranchesSubject.next(normalized);
+    }
+
+    if (normalized.length === 0) {
+      return;
+    }
+
+    const desiredActive = this.pickActiveBranch(normalized, defaults?.active);
+    if (desiredActive && this.activeBranchSubject.value !== desiredActive) {
+      this.activeBranchSubject.next(desiredActive);
+    } else if (!normalized.includes(this.activeBranchSubject.value)) {
+      const fallbackActive = normalized[0];
+      if (fallbackActive) {
+        this.activeBranchSubject.next(fallbackActive);
+      }
+    }
+
+    const desiredBaseline = this.pickBaselineBranch(normalized, defaults?.baseline);
+    if (desiredBaseline && this.baselineBranchSubject.value !== desiredBaseline) {
+      this.baselineBranchSubject.next(desiredBaseline);
+    } else if (!normalized.includes(this.baselineBranchSubject.value)) {
+      const fallbackBaseline = normalized[0];
+      if (fallbackBaseline) {
+        this.baselineBranchSubject.next(fallbackBaseline);
+      }
+    }
+  }
+
   /** Update camera position if changed. */
   public setCameraPos(value: Vec3): void {
     if (!vec3Equal(this.cameraPosSubject.value, value)) this.cameraPosSubject.next(value);
@@ -174,6 +257,82 @@ export class StateService implements OnDestroy {
    */
   public setIndependentCamera(value: boolean): void {
     if (this.independentCameraSubject.value !== value) this.independentCameraSubject.next(value);
+  }
+
+  public setScoreThreshold(value: number): void {
+    if (this.scoreThresholdSubject.value !== value) {
+      this.scoreThresholdSubject.next(value);
+    }
+  }
+
+  public setLabelMask(mask: DetectionClass[] | null): void {
+    if (mask === null) {
+      if (this.labelMaskSubject.value !== null) {
+        this.labelMaskSubject.next(null);
+      }
+      return;
+    }
+    const normalized = uniqueOrdered(mask) as DetectionClass[];
+    if (!arraysEqual(this.labelMaskSubject.value ?? [], normalized)) {
+      this.labelMaskSubject.next(normalized);
+    }
+  }
+
+  public setDetectionFilters(config: {
+    scoreThreshold?: number;
+    labelMask?: DetectionClass[] | null;
+  }): void {
+    if (typeof config.scoreThreshold === 'number') {
+      this.setScoreThreshold(config.scoreThreshold);
+    }
+    if (config.labelMask !== undefined) {
+      this.setLabelMask(config.labelMask);
+    }
+  }
+
+  public setDiffMode(mode: DiffMode): void {
+    if (this.diffModeSubject.value !== mode) {
+      this.diffModeSubject.next(mode);
+    }
+  }
+
+  public setDelaySimulation(config: {
+    enabled: boolean;
+    initial?: number;
+    growth?: number;
+    max?: number;
+  }): void {
+    const current = this.delaySimulationSubject.value;
+    const next = {
+      enabled: config.enabled,
+      initial: config.initial ?? current.initial,
+      growth: config.growth ?? current.growth,
+      max: config.max ?? current.max,
+    };
+    if (
+      current.enabled !== next.enabled ||
+      current.initial !== next.initial ||
+      current.growth !== next.growth ||
+      current.max !== next.max
+    ) {
+      this.delaySimulationSubject.next(next);
+    }
+  }
+
+  private pickActiveBranch(branches: string[], preferred?: string): string | undefined {
+    if (preferred && branches.includes(preferred)) {
+      return preferred;
+    }
+    const agileCandidate = branches.find((branch) => branch.startsWith('CP_'));
+    return agileCandidate ?? branches[0];
+  }
+
+  private pickBaselineBranch(branches: string[], preferred?: string): string | undefined {
+    if (preferred && branches.includes(preferred)) {
+      return preferred;
+    }
+    const baselineCandidate = branches.find((branch) => branch.startsWith('DSVT'));
+    return baselineCandidate ?? branches[0];
   }
 
   /**
@@ -207,10 +366,16 @@ export class StateService implements OnDestroy {
     this.contentionSubject.complete();
     this.sloMsSubject.complete();
     this.activeBranchSubject.complete();
+    this.baselineBranchSubject.complete();
+    this.availableBranchesSubject.complete();
     this.cameraPosSubject.complete();
     this.cameraTargetSubject.complete();
     this.independentCameraSubject.complete();
     this.advancedKnobsSubject.complete();
+    this.scoreThresholdSubject.complete();
+    this.labelMaskSubject.complete();
+    this.diffModeSubject.complete();
+    this.delaySimulationSubject.complete();
   }
 }
 
@@ -220,4 +385,24 @@ function clamp(v: number, min: number, max: number): number {
 
 function vec3Equal(a: Vec3, b: Vec3): boolean {
   return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+}
+
+function uniqueOrdered(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  values.forEach((value) => {
+    if (!seen.has(value)) {
+      seen.add(value);
+      result.push(value);
+    }
+  });
+  return result;
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }

@@ -33,8 +33,9 @@ export class CameraControlService implements OnDestroy {
     }
   >();
 
-  private independentMode = false;
-  private modeSubscription?: Subscription;
+  // COMMENTED OUT: Independent camera feature disabled
+  // private independentMode = false;
+  // private modeSubscription?: Subscription;
 
   /**
    * Attach OrbitControls for bidirectional sync with StateService.
@@ -69,12 +70,13 @@ export class CameraControlService implements OnDestroy {
 
     this.attachments.set(id, attachment);
 
-    // Subscribe to independent camera mode on first attachment
-    if (!this.modeSubscription) {
-      this.modeSubscription = this.state.independentCamera$.subscribe((independent) => {
-        this.onModeChange(independent);
-      });
-    }
+    // COMMENTED OUT: Independent camera feature disabled
+    // // Subscribe to independent camera mode on first attachment
+    // if (!this.modeSubscription) {
+    //   this.modeSubscription = this.state.independentCamera$.subscribe((independent) => {
+    //     this.onModeChange(independent);
+    //   });
+    // }
   }
 
   /**
@@ -92,10 +94,11 @@ export class CameraControlService implements OnDestroy {
   }
 
   public ngOnDestroy(): void {
-    // Unsubscribe from mode changes
-    if (this.modeSubscription) {
-      this.modeSubscription.unsubscribe();
-    }
+    // COMMENTED OUT: Independent camera feature disabled
+    // // Unsubscribe from mode changes
+    // if (this.modeSubscription) {
+    //   this.modeSubscription.unsubscribe();
+    // }
 
     // Detach all on service destruction (defensive, as service is providedIn: 'root')
     const ids = Array.from(this.attachments.keys());
@@ -111,8 +114,9 @@ export class CameraControlService implements OnDestroy {
     const attachment = this.attachments.get(id);
     if (!attachment || attachment.updating) return;
 
-    // In independent mode, don't push to global state
-    if (this.independentMode) return;
+    // COMMENTED OUT: Independent camera feature disabled
+    // // In independent mode, don't push to global state
+    // if (this.independentMode) return;
 
     attachment.updating = true;
     try {
@@ -140,8 +144,9 @@ export class CameraControlService implements OnDestroy {
     const attachment = this.attachments.get(id);
     if (!attachment || attachment.updating) return;
 
-    // In independent mode, don't update from global state
-    if (this.independentMode) return;
+    // COMMENTED OUT: Independent camera feature disabled
+    // // In independent mode, don't update from global state
+    // if (this.independentMode) return;
 
     attachment.updating = true;
     try {
@@ -162,8 +167,9 @@ export class CameraControlService implements OnDestroy {
     const attachment = this.attachments.get(id);
     if (!attachment || attachment.updating) return;
 
-    // In independent mode, don't update from global state
-    if (this.independentMode) return;
+    // COMMENTED OUT: Independent camera feature disabled
+    // // In independent mode, don't update from global state
+    // if (this.independentMode) return;
 
     attachment.updating = true;
     try {
@@ -175,48 +181,50 @@ export class CameraControlService implements OnDestroy {
     }
   }
 
-  /**
-   * Called when independent camera mode changes.
-   * When switching from independent → sync, re-syncs all cameras to a canonical pose.
-   */
-  private onModeChange(independent: boolean): void {
-    const wasIndependent = this.independentMode;
-    this.independentMode = independent;
+  // COMMENTED OUT: Independent camera feature disabled
+  // /**
+  //  * Called when independent camera mode changes.
+  //  * When switching from independent → sync, re-syncs all cameras to a canonical pose.
+  //  */
+  // private onModeChange(independent: boolean): void {
+  //   const wasIndependent = this.independentMode;
+  //   this.independentMode = independent;
+  //
+  //   // When switching from independent back to sync, re-sync cameras
+  //   if (wasIndependent && !independent) {
+  //     this.resyncCameras();
+  //   }
+  // }
 
-    // When switching from independent back to sync, re-sync cameras
-    if (wasIndependent && !independent) {
-      this.resyncCameras();
-    }
-  }
-
-  /**
-   * Re-sync all cameras to a canonical pose.
-   * Uses the first attached viewer's camera as the canonical source.
-   */
-  private resyncCameras(): void {
-    const ids = Array.from(this.attachments.keys());
-    if (ids.length === 0) return;
-
-    // Use first viewer as canonical source
-    const canonicalId = ids[0];
-    if (!canonicalId) return;
-
-    const canonical = this.attachments.get(canonicalId);
-    if (!canonical) return;
-
-    const cam = canonical.controls.object;
-    const pos: Vec3 = [cam.position.x, cam.position.y, cam.position.z];
-    const target: Vec3 = [
-      canonical.controls.target.x,
-      canonical.controls.target.y,
-      canonical.controls.target.z,
-    ];
-
-    // Push canonical pose to global state once
-    // This will trigger onStatePositionChange/onStateTargetChange for all viewers
-    this.state.setCameraPos(pos);
-    this.state.setCameraTarget(target);
-  }
+  // COMMENTED OUT: Independent camera feature disabled
+  // /**
+  //  * Re-sync all cameras to a canonical pose.
+  //  * Uses the first attached viewer's camera as the canonical source.
+  //  */
+  // private resyncCameras(): void {
+  //   const ids = Array.from(this.attachments.keys());
+  //   if (ids.length === 0) return;
+  //
+  //   // Use first viewer as canonical source
+  //   const canonicalId = ids[0];
+  //   if (!canonicalId) return;
+  //
+  //   const canonical = this.attachments.get(canonicalId);
+  //   if (!canonical) return;
+  //
+  //   const cam = canonical.controls.object;
+  //   const pos: Vec3 = [cam.position.x, cam.position.y, cam.position.z];
+  //   const target: Vec3 = [
+  //     canonical.controls.target.x,
+  //     canonical.controls.target.y,
+  //     canonical.controls.target.z,
+  //   ];
+  //
+  //   // Push canonical pose to global state once
+  //   // This will trigger onStatePositionChange/onStateTargetChange for all viewers
+  //   this.state.setCameraPos(pos);
+  //   this.state.setCameraTarget(target);
+  // }
 }
 
 // Support both real THREE.Vector3-like objects (with set) and plain objects used in tests

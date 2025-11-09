@@ -61,3 +61,4 @@ Produce video demos for research work by Pengcheng, Preeti, and Atul to showcase
 - Focus on visual impact and clear narrative
 - Consider accessibility requirements
 - Coordinate with individual demo projects for detailed planning
+- checkpoint
