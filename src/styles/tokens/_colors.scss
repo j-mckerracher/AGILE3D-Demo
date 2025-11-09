@@ -53,15 +53,15 @@
   --ag3d-color-class-vehicle-light: hsl(217 91% 70%);
   --ag3d-color-class-vehicle-dark: hsl(217 91% 50%);
 
-  // Pedestrians - Red family (PRD §8.2.1)
-  --ag3d-color-class-pedestrian: hsl(0 84% 60%); // #ef4444
-  --ag3d-color-class-pedestrian-light: hsl(0 84% 70%);
-  --ag3d-color-class-pedestrian-dark: hsl(0 84% 50%);
+  // Pedestrians - Green family (PRD §8.2.1)
+  --ag3d-color-class-pedestrian: hsl(142 71% 45%); // #22c55e
+  --ag3d-color-class-pedestrian-light: hsl(142 71% 55%);
+  --ag3d-color-class-pedestrian-dark: hsl(142 71% 35%);
 
-  // Cyclists - Orange family (PRD §8.2.1)
-  --ag3d-color-class-cyclist: hsl(25 95% 53%); // #f97316
-  --ag3d-color-class-cyclist-light: hsl(25 95% 63%);
-  --ag3d-color-class-cyclist-dark: hsl(25 95% 43%);
+  // Cyclists - Green family (PRD §8.2.1)
+  --ag3d-color-class-cyclist: hsl(142 71% 45%); // #22c55e
+  --ag3d-color-class-cyclist-light: hsl(142 71% 55%);
+  --ag3d-color-class-cyclist-dark: hsl(142 71% 35%);
 
   // ---------------------------------------------------------------------------
   // Neutral Scale (9-step grayscale)
