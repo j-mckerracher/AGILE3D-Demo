@@ -190,6 +190,65 @@ interface PrimaryControls {
         </form>
       </section>
 
+      <!-- Playback Controls Section -->
+      <section class="playback-controls-section" aria-label="Playback controls">
+        <div class="control-section playback-controls">
+          <h3>Playback</h3>
+
+          <!-- Play/Pause and Step Controls -->
+          <div class="playback-buttons">
+            <!-- Step Backward -->
+            <button
+              mat-icon-button
+              (click)="onStepBackward()"
+              [disabled]="isPlaying || currentFrameIndex === 0"
+              matTooltip="Previous Frame"
+              aria-label="Previous frame">
+              <mat-icon>skip_previous</mat-icon>
+            </button>
+
+            <!-- Play/Pause Toggle -->
+            <button
+              mat-icon-button
+              (click)="onPlayPause()"
+              [class.playing]="isPlaying"
+              [matTooltip]="isPlaying ? 'Pause' : 'Play'"
+              [attr.aria-label]="isPlaying ? 'Pause playback' : 'Play playback'">
+              <mat-icon>{{ isPlaying ? 'pause' : 'play_arrow' }}</mat-icon>
+            </button>
+
+            <!-- Step Forward -->
+            <button
+              mat-icon-button
+              (click)="onStepForward()"
+              [disabled]="isPlaying || currentFrameIndex === totalFrames - 1"
+              matTooltip="Next Frame"
+              aria-label="Next frame">
+              <mat-icon>skip_next</mat-icon>
+            </button>
+          </div>
+
+          <!-- Frame Counter -->
+          <div class="frame-counter">
+            <span aria-live="polite">Frame {{ currentFrameIndex + 1 }} / {{ totalFrames }}</span>
+          </div>
+
+          <!-- Seek Slider -->
+          <div class="seek-slider">
+            <mat-slider
+              [min]="0"
+              [max]="totalFrames - 1"
+              [step]="1"
+              [value]="currentFrameIndex"
+              (input)="onSeek($event.value)"
+              [discrete]="true"
+              aria-label="Seek through frames">
+              <input matSliderThumb />
+            </mat-slider>
+          </div>
+        </div>
+      </section>
+
       <!-- Advanced Controls Section (WP-2.2.2) -->
       <section class="advanced-controls-section" aria-label="Advanced controls">
         <app-advanced-controls />
@@ -283,6 +342,57 @@ interface PrimaryControls {
       .tick {
         display: inline-block;
         width: auto;
+      }
+
+      .playback-controls-section {
+        padding: 16px;
+        border-radius: 6px;
+      }
+
+      .playback-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 8px;
+      }
+
+      .playback-controls h3 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+      }
+
+      .playback-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 0;
+      }
+
+      .playback-buttons button {
+        &:disabled {
+          opacity: 0.4;
+        }
+
+        &.playing {
+          color: var(--md-sys-color-primary);
+        }
+      }
+
+      .frame-counter {
+        text-align: center;
+        font-size: 0.875rem;
+        opacity: 0.8;
+        font-family: monospace;
+        padding: 4px 0;
+      }
+
+      .seek-slider {
+        padding: 8px 0;
+
+        mat-slider {
+          width: 100%;
+        }
       }
     `,
   ],
