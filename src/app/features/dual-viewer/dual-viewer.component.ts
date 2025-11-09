@@ -1,7 +1,6 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SceneViewerComponent } from '../scene-viewer/scene-viewer.component';
-import { CameraSyncControlsComponent } from '../camera-controls/camera-sync-controls.component';
 import { Detection } from '../../core/models/scene.models';
 import { DiffMode } from '../../core/services/visualization/bbox-instancing';
 import * as THREE from 'three';
@@ -31,29 +30,31 @@ import * as THREE from 'three';
 @Component({
   selector: 'app-dual-viewer',
   standalone: true,
-  imports: [CommonModule, SceneViewerComponent, CameraSyncControlsComponent],
+  imports: [CommonModule, SceneViewerComponent],
   template: `
     <div class="dual-viewer-container">
       <!-- Small Legend Overlay -->
-      <div class="legend-overlay" aria-hidden="false">
-        <div class="legend-title">Legend</div>
-        <div class="legend-row">
-          <span class="legend-swatch swatch-vehicle" aria-hidden="true"></span>
-          <span class="legend-text">Vehicle (TP)</span>
-        </div>
-        <div class="legend-row">
-          <span class="legend-swatch swatch-pedestrian" aria-hidden="true"></span>
-          <span class="legend-text">Pedestrian (TP)</span>
-        </div>
-        <div class="legend-row">
-          <span class="legend-swatch swatch-cyclist" aria-hidden="true"></span>
-          <span class="legend-text">Cyclist (TP)</span>
-        </div>
-        <div class="legend-row">
-          <span class="legend-swatch swatch-fp" aria-hidden="true"></span>
-          <span class="legend-text">FP (red)</span>
-        </div>
-      </div>
+      <aside class="legend-overlay" aria-label="Detection legend">
+        <header class="legend-title">Legend</header>
+        <ul class="legend-list">
+          <li class="legend-row">
+            <span class="legend-swatch swatch-vehicle" aria-hidden="true"></span>
+            <span class="legend-text">Vehicle</span>
+          </li>
+          <li class="legend-row">
+            <span class="legend-swatch swatch-pedestrian" aria-hidden="true"></span>
+            <span class="legend-text">Pedestrian</span>
+          </li>
+          <li class="legend-row">
+            <span class="legend-swatch swatch-cyclist" aria-hidden="true"></span>
+            <span class="legend-text">Cyclist</span>
+          </li>
+          <li class="legend-row">
+            <span class="legend-swatch swatch-fp" aria-hidden="true"></span>
+            <span class="legend-text">False Positive</span>
+          </li>
+        </ul>
+      </aside>
 
       <!-- Baseline Viewer Region (NFR-3.3, NFR-3.4) -->
       <section
@@ -64,14 +65,22 @@ import * as THREE from 'three';
         aria-labelledby="baseline-viewer-label"
         [attr.aria-hidden]="activeViewer !== 'baseline'"
       >
-        <h2 id="baseline-viewer-label" class="viewer-label">{{ leftTitle }}</h2>
+        <header class="viewer-header" id="baseline-viewer-label">
+          <div class="viewer-title">
+            <h2 class="viewer-heading">{{ leftTitle }}</h2>
+            <span class="viewer-subtitle">Baseline detections</span>
+          </div>
+          <div class="viewer-meta" aria-label="Baseline detection count">
+            {{ baselineDetections.length || 0 }} boxes
+          </div>
+        </header>
         <app-scene-viewer
           viewerId="baseline"
           [sharedPointGeometry]="sharedGeometry"
           [detections]="baselineDetections"
           [diffMode]="effectiveDiffMode"
           [diffClassification]="baselineDiffClassification"
-          [paneLabel]="'GT'"
+          [paneLabel]="'Baseline'"
           [showFps]="showFps"
         />
       </section>
@@ -135,7 +144,15 @@ import * as THREE from 'three';
         aria-labelledby="agile3d-viewer-label"
         [attr.aria-hidden]="activeViewer !== 'agile3d'"
       >
-        <h2 id="agile3d-viewer-label" class="viewer-label">{{ rightTitle }}</h2>
+        <header class="viewer-header" id="agile3d-viewer-label">
+          <div class="viewer-title">
+            <h2 class="viewer-heading">{{ rightTitle }}</h2>
+            <span class="viewer-subtitle">AGILE3D detections</span>
+          </div>
+          <div class="viewer-meta" aria-label="AGILE3D detection count">
+            {{ agile3dDetections.length || 0 }} boxes
+          </div>
+        </header>
         <app-scene-viewer
           viewerId="agile3d"
           [sharedPointGeometry]="sharedGeometry"
@@ -146,7 +163,7 @@ import * as THREE from 'three';
           [showFps]="showFps"
         />
         <div class="no-dets-overlay" *ngIf="!agile3dDetections || agile3dDetections.length === 0">
-          No detections for branch
+          No detections for {{ rightTitle }}
         </div>
       </section>
     </div>
@@ -247,24 +264,87 @@ import * as THREE from 'three';
         letter-spacing: 0.5px;
       }
 
-      /* Camera Sync Controls (WP-2.1.3) */
+      .viewer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px 8px 16px;
+        color: #f4f7fa;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .viewer-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .viewer-heading {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.35px;
+      }
+
+      .viewer-subtitle {
+        font-size: 12px;
+        font-weight: 500;
+        opacity: 0.75;
+      }
+
+      .viewer-meta {
+        font-size: 12px;
+        font-weight: 600;
+        opacity: 0.85;
+      }
+
       /* Legend overlay */
       .legend-overlay {
         position: absolute;
-        top: 12px;
-        right: 12px;
-        background: rgba(0,0,0,0.8);
-        color: #fff;
-        padding: 8px 10px;
-        border-radius: 6px;
-        font-size: 11px;
+        top: 16px;
+        right: 16px;
+        background: rgba(10, 12, 18, 0.85);
+        color: #f6f8fb;
+        padding: 16px 18px;
+        border-radius: 10px;
+        font-size: 12px;
         z-index: 1003;
-        min-width: 160px;
-        border: 1px solid rgba(255,255,255,0.1);
+        min-width: 180px;
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.45);
       }
-      .legend-title { font-weight: 700; margin-bottom: 4px; }
-      .legend-row { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
-      .legend-swatch { width: 14px; height: 10px; border: 2px solid currentColor; background: transparent; }
+      .legend-title {
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        opacity: 0.85;
+      }
+      .legend-list {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .legend-text {
+        font-size: 12px;
+        font-weight: 500;
+        opacity: 0.9;
+      }
+      .legend-swatch {
+        width: 18px;
+        height: 12px;
+        border: 2px solid currentColor;
+        border-radius: 2px;
+        background: currentColor;
+        opacity: 0.85;
+      }
       .swatch-vehicle { color: var(--ag3d-color-class-vehicle); }
       .swatch-pedestrian { color: var(--ag3d-color-class-pedestrian); }
       .swatch-cyclist { color: var(--ag3d-color-class-cyclist); }
@@ -281,17 +361,23 @@ import * as THREE from 'three';
       /* FP Only Toggle */
       .fp-toggle {
         position: absolute;
-        top: 12px;
-        left: 72%;
+        top: 16px;
+        right: 214px;
         z-index: 1003;
-        padding: 6px 10px;
-        background: rgba(0,0,0,0.8);
-        color: #fff;
-        border: 1px solid #555;
-        border-radius: 6px;
+        padding: 6px 12px;
+        background: rgba(10,12,18,0.85);
+        color: #f6f8fb;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
         font-size: 11px;
         font-weight: 600;
         cursor: pointer;
+        letter-spacing: 0.05em;
+        transition: background 120ms ease;
+      }
+
+      .fp-toggle:hover {
+        background: rgba(74, 158, 255, 0.2);
       }
 
       /* Ground Truth Toggle (Placeholder) */
@@ -329,22 +415,6 @@ import * as THREE from 'three';
         letter-spacing: 0.5px;
       }
       */
-
-      .viewer-label {
-        position: absolute;
-        top: 40px;
-        left: 10px;
-        background: rgba(0, 0, 0, 0.8);
-        color: #fff;
-        padding: 6px 12px;
-        margin: 0; /* Reset h2 default margin */
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-size: 14px;
-        font-weight: 600;
-        z-index: 1001;
-        border-radius: 3px;
-        border-left: 3px solid #4a9eff;
-      }
 
       .no-dets-overlay {
         position: absolute;
@@ -396,6 +466,17 @@ import * as THREE from 'three';
           left: 50%;
         }
 
+        .legend-overlay {
+          top: 16px;
+          right: 16px;
+        }
+
+        .fp-toggle {
+          top: 16px;
+          right: 16px;
+          transform: translateY(48px);
+        }
+
         .camera-controls-container {
           top: 12px;
         }
@@ -426,6 +507,19 @@ import * as THREE from 'three';
 
         .toggle-text {
           font-size: 10px;
+        }
+
+        .legend-overlay {
+          position: static;
+          width: auto;
+          margin: 0 auto 12px;
+          order: -1;
+        }
+
+        .fp-toggle {
+          top: 12px;
+          right: 16px;
+          transform: translateY(44px);
         }
 
         .camera-controls-container {
@@ -461,7 +555,7 @@ export class DualViewerComponent implements OnInit, OnChanges {
   @Input() public agile3dDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
 
   /** Panel titles */
-  @Input() public leftTitle: string = 'Ground Truth';
+  @Input() public leftTitle: string = 'Baseline';
   @Input() public rightTitle: string = 'AGILE3D';
 
   /** Show ground truth overlay (placeholder for future WP) */

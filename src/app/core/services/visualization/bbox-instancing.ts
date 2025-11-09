@@ -58,7 +58,7 @@ export interface ClassColors {
  * Result of buildClassBatches containing per-class InstancedMesh objects.
  */
 export interface ClassBatches {
-  vehicle: THREE.Object3D | null; // Group or InstancedMesh
+  vehicle: THREE.Object3D | null;
   pedestrian: THREE.Object3D | null;
   cyclist: THREE.Object3D | null;
 }

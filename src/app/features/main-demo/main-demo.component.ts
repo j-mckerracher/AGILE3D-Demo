@@ -20,7 +20,7 @@ import {
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, firstValueFrom } from 'rxjs';
+import { Subject, firstValueFrom, combineLatest } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DualViewerComponent } from '../dual-viewer/dual-viewer.component';
 import { ControlPanelComponent } from '../control-panel/control-panel.component';
@@ -126,13 +126,14 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     await this.initializeSequenceRegistry();
     this.ensureFrameStreamSubscriptions();
 
-    this.stateService.activeBranch$
-      .pipe(distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe((branchId) => this.frameStream.setActiveBranch(branchId));
-
-    this.stateService.baselineBranch$
-      .pipe(distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe((branchId) => this.frameStream.setBaselineBranch(branchId));
+    combineLatest([this.stateService.activeBranch$, this.stateService.baselineBranch$])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([activeBranch, baselineBranch]) => {
+        this.frameStream.setBranches(activeBranch, baselineBranch);
+        this.leftTitle = `Baseline (${baselineBranch})`;
+        this.rightTitle = `AGILE3D (${activeBranch})`;
+        this.cdr.markForCheck();
+      });
 
     this.stateService.detectionFilters$
       .pipe(takeUntil(this.destroy$))
