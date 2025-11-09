@@ -1,4 +1,5 @@
 {
+  "manifestBaseUrl": "https://d1u4x8lsi8lzmi.cloudfront.net/sequences/",
   "defaults": {
     "sequenceId": "v_1784_1828",
     "baselineBranch": "DSVT_Pillar_030",
