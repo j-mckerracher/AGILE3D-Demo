@@ -1,9 +1,15 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SceneViewerComponent } from '../scene-viewer/scene-viewer.component';
 import { Detection } from '../../core/models/scene.models';
 import { DiffMode } from '../../core/services/visualization/bbox-instancing';
 import * as THREE from 'three';
+import { Subscription } from 'rxjs';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSliderModule } from '@angular/material/slider';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { FrameStreamService } from '../../core/services/frame-stream/frame-stream.service';
 
 /**
  * DualViewer displays two synchronized SceneViewer instances side-by-side.
@@ -30,7 +36,14 @@ import * as THREE from 'three';
 @Component({
   selector: 'app-dual-viewer',
   standalone: true,
-  imports: [CommonModule, SceneViewerComponent],
+  imports: [
+    CommonModule,
+    SceneViewerComponent,
+    MatButtonModule,
+    MatIconModule,
+    MatSliderModule,
+    MatTooltipModule,
+  ],
   template: `
     <div class="dual-viewer-container">
       <!-- Small Legend Overlay -->
@@ -120,6 +133,59 @@ import * as THREE from 'three';
       >
         FP Only: {{ effectiveDiffMode === 'fp' ? 'On' : 'Off' }}
       </button>
+
+      <!-- Playback Controls Overlay -->
+      <div class="playback-overlay" aria-label="Playback controls">
+        <div class="playback-buttons">
+          <!-- Step Backward -->
+          <button
+            mat-icon-button
+            (click)="onStepBackward()"
+            [disabled]="isStopped || isPlaying || currentFrameIndex === 0"
+            matTooltip="Previous Frame"
+            aria-label="Previous frame">
+            <mat-icon>skip_previous</mat-icon>
+          </button>
+
+          <!-- Play/Pause Toggle -->
+          <button
+            mat-icon-button
+            (click)="onPlayPause()"
+            [disabled]="isStopped"
+            [class.playing]="isPlaying"
+            [matTooltip]="isStopped ? 'Load a scene to play' : (isPlaying ? 'Pause' : 'Play')"
+            [attr.aria-label]="isStopped ? 'Playback unavailable' : (isPlaying ? 'Pause playback' : 'Play playback')">
+            <mat-icon>{{ isPlaying ? 'pause' : 'play_arrow' }}</mat-icon>
+          </button>
+
+          <!-- Step Forward -->
+          <button
+            mat-icon-button
+            (click)="onStepForward()"
+            [disabled]="isStopped || isPlaying || currentFrameIndex === totalFrames - 1"
+            matTooltip="Next Frame"
+            aria-label="Next frame">
+            <mat-icon>skip_next</mat-icon>
+          </button>
+        </div>
+
+        <!-- Frame Counter -->
+        <div class="frame-counter">
+          <span aria-live="polite">Frame {{ currentFrameIndex + 1 }} / {{ totalFrames }}</span>
+        </div>
+
+        <!-- Seek Slider -->
+        <div class="seek-slider">
+          <mat-slider
+            [min]="0"
+            [max]="totalFrames - 1"
+            [step]="1"
+            [discrete]="true"
+            aria-label="Seek through frames">
+            <input matSliderThumb [value]="currentFrameIndex" (input)="onSeek(+$event.target.value)" />
+          </mat-slider>
+        </div>
+      </div>
 
       <!-- Ground Truth Toggle (Placeholder for future WP) -->
       <!-- COMMENTED OUT: GT button removed
@@ -428,6 +494,56 @@ import * as THREE from 'three';
         z-index: 1001;
       }
 
+      /* Playback Controls Overlay */
+      .playback-overlay {
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1002;
+        background: rgba(10, 12, 18, 0.85);
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      }
+
+      .playback-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .playback-buttons button {
+        &:disabled {
+          opacity: 0.4;
+        }
+
+        &.playing {
+          color: var(--md-sys-color-primary, #4a9eff);
+        }
+      }
+
+      .frame-counter {
+        text-align: center;
+        font-size: 0.875rem;
+        color: #f6f8fb;
+        opacity: 0.8;
+        font-family: monospace;
+      }
+
+      .seek-slider {
+        width: 100%;
+
+        mat-slider {
+          width: 100%;
+        }
+      }
+
       app-scene-viewer {
         flex: 1;
         display: block;
@@ -535,7 +651,7 @@ import * as THREE from 'three';
     `,
   ],
 })
-export class DualViewerComponent implements OnInit, OnChanges {
+export class DualViewerComponent implements OnInit, OnChanges, OnDestroy {
   /** Detections to display in the baseline viewer */
   @Input() public baselineDetections: Detection[] = [];
 
@@ -547,6 +663,16 @@ export class DualViewerComponent implements OnInit, OnChanges {
 
   /** Effective diff mode used internally and toggleable */
   protected effectiveDiffMode: DiffMode = 'all';
+
+  // Playback controls state
+  protected isPlaying = false;
+  protected isPaused = false;
+  protected isStopped = false;
+  protected currentFrameIndex = 0;
+  protected totalFrames = 0;
+  private statusSubscription?: Subscription;
+  private frameSubscription?: Subscription;
+  private readonly frameStream = inject(FrameStreamService);
 
   /** Optional: diff classification map (detection ID -> 'tp'|'fp'|'fn') */
   @Input() public baselineDiffClassification?: Map<string, 'tp' | 'fp' | 'fn'>;
@@ -599,6 +725,26 @@ export class DualViewerComponent implements OnInit, OnChanges {
       console.log('[DualViewer] creating synthetic geometry');
       this.sharedGeometry = this.createSharedPointCloud(this.pointCount);
     }
+
+    // Subscribe to playback status
+    this.statusSubscription = this.frameStream.status$.subscribe(status => {
+      this.isPlaying = status === 'playing';
+      this.isPaused = status === 'paused';
+      this.isStopped = status === 'stopped';
+    });
+
+    // Subscribe to current frame for counter and slider
+    // Also update totalFrames reactively when manifest becomes available
+    this.frameSubscription = this.frameStream.currentFrame$.subscribe(frame => {
+      if (frame) {
+        this.currentFrameIndex = frame.index;
+        // Update totalFrames from service when frame available
+        const total = this.frameStream.getTotalFrames();
+        if (total > 0 && this.totalFrames !== total) {
+          this.totalFrames = total;
+        }
+      }
+    });
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
@@ -613,6 +759,11 @@ export class DualViewerComponent implements OnInit, OnChanges {
       });
       this.sharedGeometry = this.inputPoints.geometry as THREE.BufferGeometry;
     }
+  }
+
+  public ngOnDestroy(): void {
+    this.statusSubscription?.unsubscribe();
+    this.frameSubscription?.unsubscribe();
   }
 
   /**
@@ -674,5 +825,33 @@ export class DualViewerComponent implements OnInit, OnChanges {
   /** Toggle diff mode between 'all' and 'fp' for quick debugging */
   protected toggleFPOnly(): void {
     this.effectiveDiffMode = this.effectiveDiffMode === 'fp' ? 'all' : 'fp';
+  }
+
+  // Playback control methods
+  protected onPlayPause(): void {
+    if (this.isPlaying) {
+      this.frameStream.pause();
+    } else if (this.isPaused) {
+      this.frameStream.resume();
+    }
+    // If stopped, manifest hasn't been loaded yet - button should be disabled
+  }
+
+  protected onSeek(frameIndex: number): void {
+    // Pause during manual seeking
+    if (this.isPlaying) {
+      this.frameStream.pause();
+    }
+    this.frameStream.seek(frameIndex);
+  }
+
+  protected onStepForward(): void {
+    const nextIndex = Math.min(this.currentFrameIndex + 1, this.totalFrames - 1);
+    this.frameStream.seek(nextIndex);
+  }
+
+  protected onStepBackward(): void {
+    const prevIndex = Math.max(this.currentFrameIndex - 1, 0);
+    this.frameStream.seek(prevIndex);
   }
 }

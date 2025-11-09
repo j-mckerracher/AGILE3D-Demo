@@ -1,0 +1,124 @@
+================================================================================
+AGILE3D-DEMO: RESPONSIVE DESIGN QUICK REFERENCE
+================================================================================
+
+1. FRAMEWORK & UI LIBRARY
+   Angular 20.3.4 (Standalone Components)
+   Angular Material 20.2.8
+   Three.js 0.179.0 (3D Graphics)
+
+2. STYLING APPROACH
+   SCSS with CSS Variables (Custom Properties)
+   Design System: AGILE3D Design Tokens
+   Theming: Light/Dark mode with ag3d-theme-dark class
+   8px baseline grid system
+   Material Design 3 inspired typography scale
+
+3. APP LAYOUT HIERARCHY
+   ┌─────────────────────────────────────────────┐
+   │        <app-header> [sticky]                │
+   ├─────────────────────────────────────────────┤
+   │        <app-hero>                           │
+   ├─────────────────────────────────────────────┤
+   │  <main class="main-content">                │
+   │   ├─ <app-dual-viewer> [60vh height]        │
+   │   └─ <.controls-and-metrics-row>            │
+   │      ├─ <app-control-panel> [1fr]           │
+   │      └─ <app-metrics-dashboard> [1fr]       │
+   ├─────────────────────────────────────────────┤
+   │        <app-footer>                         │
+   └─────────────────────────────────────────────┘
+
+4. KEY BREAKPOINTS
+   0px-768px        Mobile (base styles)
+   768px            Tablet/Small Desktop
+   920px            Desktop (control panel 2-column)
+   1024px           Large Desktop (metrics 1-column)
+   1920px           Ultra-wide
+
+5. DESIGN TOKENS SUMMARY
+   Colors:
+   - Primary/Secondary (brand colors)
+   - Semantic (success, warning, error, info)
+   - Object classes (vehicle, pedestrian, cyclist)
+   
+   Spacing: 8px scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128px)
+   
+   Typography: Roboto family, weights 300-700, Material Design 3 scale
+   
+   Shadows: Elevation system (elevation-1 to elevation-4)
+   
+   Radius: sm(4px), md(8px), lg(12px), full(9999px)
+
+6. RESPONSIVE PATTERNS IN USE
+   ✓ CSS Media Queries (mobile-first)
+   ✓ Flexbox layouts
+   ✓ CSS Grid (main layout, metrics dashboard)
+   ✓ Viewport height units (60vh viewer)
+   ✓ Min-height constraints
+   ✓ Accessibility queries (prefers-reduced-motion, prefers-contrast)
+   ✗ No viewport service / No manual breakpoint detection
+   ✗ No touch gesture handling
+   ✗ No landscape/portrait orientation detection
+
+7. COMPONENTS RESPONSIVE STATUS
+
+   Component              | Priority | Breakpoints | Issues
+   ─────────────────────────────────────────────────────────────
+   Header                | Medium   | 768px       | ✓ Has responsive styles
+   Hero                  | Medium   | 768px       | ✓ Has responsive styles
+   Dual Viewer           | HIGH     | None        | Side-by-side only
+   Control Panel         | HIGH     | 920px,768px | Sliders not touch-optimized
+   Metrics Dashboard     | HIGH     | 1024px      | Cards cramped on mobile
+   Advanced Controls     | Low      | 768px       | ✓ Has responsive styles
+   Error Banner          | Low      | 768px       | ✓ Has responsive styles
+   Legend                | Low      | 640px       | ✓ Has compact layout
+
+8. ACCESSIBILITY FEATURES
+   ✓ WCAG 2.2 AA compliant
+   ✓ Focus management (focus-visible)
+   ✓ Keyboard navigation (appKeyboardNav directive)
+   ✓ Screen reader support (.ag3d-sr-only)
+   ✓ Reduced motion respect (@media prefers-reduced-motion)
+   ✓ High contrast mode support
+   ✓ Color blind friendly patterns
+   ✓ Touch target sizing (44x44px minimum)
+   ✓ ARIA labels and live regions
+
+9. STYLING ENTRY POINTS
+   Global:     /src/styles.scss → /src/styles/_index.scss
+   Component:  Inline styles or component.scss files
+   Layout:     CSS Grid and Flexbox
+   Theme:      /src/styles/theme/_light.scss and _dark.scss
+
+10. CRITICAL RESPONSIVE FILES
+    /src/app/app.scss
+    /src/app/features/main-demo/main-demo.component.scss
+    /src/app/features/control-panel/control-panel.component.ts (inline styles)
+    /src/app/features/metrics-dashboard/metrics-dashboard.component.scss
+    /src/styles/tokens/ (design system foundation)
+    /src/styles/theme/ (light/dark theme variants)
+
+11. RECOMMENDED IMPROVEMENTS
+    1. Add viewport state service (desktop/tablet/mobile detection)
+    2. Implement drawer pattern for controls on mobile
+    3. Add touch-optimized slider implementation
+    4. Implement mobile-optimized dual viewer (tabs/toggle)
+    5. Add fluid typography using clamp()
+    6. Implement landscape orientation detection
+    7. Add container queries for component-level responsiveness
+    8. Optimize canvas sizing for smaller viewports
+    9. Add touch gesture support (swipe between viewers)
+    10. Implement lazy loading for heavy 3D components
+
+12. NO EXISTING PATTERNS TO AVOID
+    ✗ No window.matchMedia() in TypeScript
+    ✗ No ResizeObserver usage
+    ✗ No Signal-based viewport state
+    ✗ No manual breakpoint service
+    ✗ No explicit viewport listeners
+    → Everything is CSS-based media queries
+
+================================================================================
+For detailed information, see: ARCHITECTURE_RESPONSIVE_DESIGN.md
+================================================================================

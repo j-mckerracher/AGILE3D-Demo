@@ -10,19 +10,16 @@
 import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Subject, combineLatest, Subscription } from 'rxjs';
+import { Subject, combineLatest } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 
 import { StateService } from '../../core/services/state/state.service';
-import { FrameStreamService } from '../../core/services/frame-stream/frame-stream.service';
 import { SceneId, VoxelSize } from '../../core/models/config-and-metrics';
 import { AdvancedControlsComponent } from './advanced-controls/advanced-controls.component';
 
@@ -42,8 +39,6 @@ interface PrimaryControls {
     CommonModule,
     ReactiveFormsModule,
     MatButtonToggleModule,
-    MatButtonModule,
-    MatIconModule,
     MatSliderModule,
     MatTooltipModule,
     MatFormFieldModule,
@@ -190,64 +185,6 @@ interface PrimaryControls {
         </form>
       </section>
 
-      <!-- Playback Controls Section -->
-      <section class="playback-controls-section" aria-label="Playback controls">
-        <div class="control-section playback-controls">
-          <h3>Playback</h3>
-
-          <!-- Play/Pause and Step Controls -->
-          <div class="playback-buttons">
-            <!-- Step Backward -->
-            <button
-              mat-icon-button
-              (click)="onStepBackward()"
-              [disabled]="isStopped || isPlaying || currentFrameIndex === 0"
-              matTooltip="Previous Frame"
-              aria-label="Previous frame">
-              <mat-icon>skip_previous</mat-icon>
-            </button>
-
-            <!-- Play/Pause Toggle -->
-            <button
-              mat-icon-button
-              (click)="onPlayPause()"
-              [disabled]="isStopped"
-              [class.playing]="isPlaying"
-              [matTooltip]="isStopped ? 'Load a scene to play' : (isPlaying ? 'Pause' : 'Play')"
-              [attr.aria-label]="isStopped ? 'Playback unavailable' : (isPlaying ? 'Pause playback' : 'Play playback')">
-              <mat-icon>{{ isPlaying ? 'pause' : 'play_arrow' }}</mat-icon>
-            </button>
-
-            <!-- Step Forward -->
-            <button
-              mat-icon-button
-              (click)="onStepForward()"
-              [disabled]="isStopped || isPlaying || currentFrameIndex === totalFrames - 1"
-              matTooltip="Next Frame"
-              aria-label="Next frame">
-              <mat-icon>skip_next</mat-icon>
-            </button>
-          </div>
-
-          <!-- Frame Counter -->
-          <div class="frame-counter">
-            <span aria-live="polite">Frame {{ currentFrameIndex + 1 }} / {{ totalFrames }}</span>
-          </div>
-
-          <!-- Seek Slider -->
-          <div class="seek-slider">
-            <mat-slider
-              [min]="0"
-              [max]="totalFrames - 1"
-              [step]="1"
-              [discrete]="true"
-              aria-label="Seek through frames">
-              <input matSliderThumb [value]="currentFrameIndex" (input)="onSeek(+$event.target.value)" />
-            </mat-slider>
-          </div>
-        </div>
-      </section>
-
       <!-- Advanced Controls Section (WP-2.2.2) -->
       <section class="advanced-controls-section" aria-label="Advanced controls">
         <app-advanced-controls />
@@ -342,57 +279,6 @@ interface PrimaryControls {
         display: inline-block;
         width: auto;
       }
-
-      .playback-controls-section {
-        padding: 16px;
-        border-radius: 6px;
-      }
-
-      .playback-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding: 8px;
-      }
-
-      .playback-controls h3 {
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin: 0 0 4px 0;
-      }
-
-      .playback-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 8px;
-        padding: 8px 0;
-      }
-
-      .playback-buttons button {
-        &:disabled {
-          opacity: 0.4;
-        }
-
-        &.playing {
-          color: var(--md-sys-color-primary);
-        }
-      }
-
-      .frame-counter {
-        text-align: center;
-        font-size: 0.875rem;
-        opacity: 0.8;
-        font-family: monospace;
-        padding: 4px 0;
-      }
-
-      .seek-slider {
-        padding: 8px 0;
-
-        mat-slider {
-          width: 100%;
-        }
-      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -405,15 +291,6 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   protected baselineOptions: string[] = [];
   protected agileOptions: string[] = [];
 
-  // Playback controls state
-  protected isPlaying = false;
-  protected isPaused = false;
-  protected isStopped = false;
-  protected currentFrameIndex = 0;
-  protected totalFrames = 0;
-  private statusSubscription?: Subscription;
-  private frameSubscription?: Subscription;
-
   protected readonly tooltips = {
     scene: 'Select traffic scenario type: vehicle-heavy, pedestrian-heavy, or mixed',
     voxelSize: 'Point cloud spatial resolution (0.16m=fine, 0.64m=coarse)',
@@ -422,7 +299,6 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   } as const;
 
   private readonly stateService = inject(StateService);
-  private readonly frameStream = inject(FrameStreamService);
 
   public constructor() {
     const fb = inject(FormBuilder);
@@ -471,28 +347,9 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
         if (typeof v?.baselineBranch === 'string') this.stateService.setBaselineBranch(v.baselineBranch);
         if (typeof v?.activeBranch === 'string') this.stateService.setActiveBranch(v.activeBranch);
       });
-
-    // Subscribe to playback status
-    this.statusSubscription = this.frameStream.status$.subscribe(status => {
-      this.isPlaying = status === 'playing';
-      this.isPaused = status === 'paused';
-      this.isStopped = status === 'stopped';
-    });
-
-    // Subscribe to current frame for counter and slider
-    this.frameSubscription = this.frameStream.currentFrame$.subscribe(frame => {
-      if (frame) {
-        this.currentFrameIndex = frame.index;
-      }
-    });
-
-    // Get total frames from manifest
-    this.totalFrames = this.frameStream.getTotalFrames();
   }
 
   public ngOnDestroy(): void {
-    this.statusSubscription?.unsubscribe();
-    this.frameSubscription?.unsubscribe();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -503,33 +360,5 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     const agile = branches.filter((branch) => !branch.startsWith('DSVT'));
     this.baselineOptions = baseline.length > 0 ? baseline : branches;
     this.agileOptions = agile.length > 0 ? agile : branches;
-  }
-
-  // Playback control methods
-  protected onPlayPause(): void {
-    if (this.isPlaying) {
-      this.frameStream.pause();
-    } else if (this.isPaused) {
-      this.frameStream.resume();
-    }
-    // If stopped, manifest hasn't been loaded yet - button should be disabled or non-functional
-  }
-
-  protected onSeek(frameIndex: number): void {
-    // Pause during manual seeking
-    if (this.isPlaying) {
-      this.frameStream.pause();
-    }
-    this.frameStream.seek(frameIndex);
-  }
-
-  protected onStepForward(): void {
-    const nextIndex = Math.min(this.currentFrameIndex + 1, this.totalFrames - 1);
-    this.frameStream.seek(nextIndex);
-  }
-
-  protected onStepBackward(): void {
-    const prevIndex = Math.max(this.currentFrameIndex - 1, 0);
-    this.frameStream.seek(prevIndex);
   }
 }
