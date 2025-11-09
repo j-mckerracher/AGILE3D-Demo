@@ -201,7 +201,7 @@ interface PrimaryControls {
             <button
               mat-icon-button
               (click)="onStepBackward()"
-              [disabled]="isPlaying || currentFrameIndex === 0"
+              [disabled]="isStopped || isPlaying || currentFrameIndex === 0"
               matTooltip="Previous Frame"
               aria-label="Previous frame">
               <mat-icon>skip_previous</mat-icon>
@@ -211,9 +211,10 @@ interface PrimaryControls {
             <button
               mat-icon-button
               (click)="onPlayPause()"
+              [disabled]="isStopped"
               [class.playing]="isPlaying"
-              [matTooltip]="isPlaying ? 'Pause' : 'Play'"
-              [attr.aria-label]="isPlaying ? 'Pause playback' : 'Play playback'">
+              [matTooltip]="isStopped ? 'Load a scene to play' : (isPlaying ? 'Pause' : 'Play')"
+              [attr.aria-label]="isStopped ? 'Playback unavailable' : (isPlaying ? 'Pause playback' : 'Play playback')">
               <mat-icon>{{ isPlaying ? 'pause' : 'play_arrow' }}</mat-icon>
             </button>
 
@@ -221,7 +222,7 @@ interface PrimaryControls {
             <button
               mat-icon-button
               (click)="onStepForward()"
-              [disabled]="isPlaying || currentFrameIndex === totalFrames - 1"
+              [disabled]="isStopped || isPlaying || currentFrameIndex === totalFrames - 1"
               matTooltip="Next Frame"
               aria-label="Next frame">
               <mat-icon>skip_next</mat-icon>
@@ -239,11 +240,9 @@ interface PrimaryControls {
               [min]="0"
               [max]="totalFrames - 1"
               [step]="1"
-              [value]="currentFrameIndex"
-              (input)="onSeek($event.value)"
               [discrete]="true"
               aria-label="Seek through frames">
-              <input matSliderThumb />
+              <input matSliderThumb [value]="currentFrameIndex" (input)="onSeek(+$event.target.value)" />
             </mat-slider>
           </div>
         </div>
@@ -409,6 +408,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   // Playback controls state
   protected isPlaying = false;
   protected isPaused = false;
+  protected isStopped = false;
   protected currentFrameIndex = 0;
   protected totalFrames = 0;
   private statusSubscription?: Subscription;
@@ -476,6 +476,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     this.statusSubscription = this.frameStream.status$.subscribe(status => {
       this.isPlaying = status === 'playing';
       this.isPaused = status === 'paused';
+      this.isStopped = status === 'stopped';
     });
 
     // Subscribe to current frame for counter and slider
@@ -510,10 +511,8 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       this.frameStream.pause();
     } else if (this.isPaused) {
       this.frameStream.resume();
-    } else {
-      // If stopped, start from beginning
-      this.frameStream.start();
     }
+    // If stopped, manifest hasn't been loaded yet - button should be disabled or non-functional
   }
 
   protected onSeek(frameIndex: number): void {
