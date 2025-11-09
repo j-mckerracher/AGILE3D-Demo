@@ -123,6 +123,10 @@ export class FrameStreamService {
     return this.sharedPoints;
   }
 
+  getTotalFrames(): number {
+    return this.manifest?.frames?.length ?? 0;
+  }
+
   start(manifest: SequenceManifest, opts?: { fps?: number; prefetch?: number; loop?: boolean }): void {
     this.stop();
     this.manifest = manifest;
