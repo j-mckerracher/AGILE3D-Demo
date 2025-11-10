@@ -26,6 +26,9 @@ import { DualViewerComponent } from '../dual-viewer/dual-viewer.component';
 import { ControlPanelComponent } from '../control-panel/control-panel.component';
 import { MetricsDashboardComponent } from '../metrics-dashboard/metrics-dashboard.component';
 import { ErrorBannerComponent } from '../../shared/components/error-banner/error-banner.component';
+import { LegendComponent } from '../../shared/components/legend/legend.component';
+import { DemoHeaderComponent, PlaybackControlEvent } from '../demo-header/demo-header.component';
+import { TimelineScrubberComponent } from '../timeline-scrubber/timeline-scrubber.component';
 import * as THREE from 'three';
 import { SceneDataService } from '../../core/services/data/scene-data.service';
 import { SceneTierManagerService } from '../../core/services/data/scene-tier-manager.service';
@@ -42,7 +45,7 @@ import { SceneId } from '../../core/models/config-and-metrics';
 import { SyntheticDetectionVariationService } from '../../core/services/simulation/synthetic-detection-variation.service';
 import { PaperDataService } from '../../core/services/data/paper-data.service';
 import { SequenceDataService } from '../../core/services/data/sequence-data.service';
-import { FrameStreamService } from '../../core/services/frame-stream/frame-stream.service';
+import { FrameStreamService, StreamStatus } from '../../core/services/frame-stream/frame-stream.service';
 import {
   SequenceRegistryEntry,
   SequenceRegistryService,
@@ -59,6 +62,9 @@ import { DiffMode } from '../../core/services/visualization/bbox-instancing';
     ControlPanelComponent,
     MetricsDashboardComponent,
     ErrorBannerComponent,
+    LegendComponent,
+    DemoHeaderComponent,
+    TimelineScrubberComponent,
   ],
   templateUrl: './main-demo.component.html',
   styleUrls: ['./main-demo.component.scss'],
@@ -109,6 +115,10 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   protected readonly loadError = signal<string | null>(null);
   protected readonly showError = signal<boolean>(false);
   protected showFps = false;
+
+  // Track current frame index for playback controls
+  private currentFrameIndex = 0;
+  private currentPlaybackStatus: StreamStatus = 'stopped';
 
   public async ngOnInit(): Promise<void> {
     // Check debug mode for FPS overlay (WP-2.3.2)
@@ -190,6 +200,9 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       .subscribe((streamedFrame) => {
         if (!streamedFrame) return;
 
+        // Track current frame index for playback controls
+        this.currentFrameIndex = streamedFrame.index;
+
         try {
           const positions = streamedFrame.points;
 
@@ -270,6 +283,13 @@ export class MainDemoComponent implements OnInit, OnDestroy {
           this.showError.set(true);
           this.cdr.markForCheck();
         }
+      });
+
+    // Track playback status for playback controls
+    this.frameStream.status$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((status) => {
+        this.currentPlaybackStatus = status;
       });
 
     this.frameStreamSubscriptionsEstablished = true;
@@ -695,5 +715,42 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     const firstFrame = manifest?.frames?.[0];
     const detMap = firstFrame?.urls?.det ?? {};
     return Object.keys(detMap);
+  }
+
+  /**
+   * Handle playback control events from DemoHeaderComponent
+   */
+  protected onPlaybackControl(event: PlaybackControlEvent): void {
+    switch (event.action) {
+      case 'play':
+        // Handle both initial play (from stopped) and resume (from paused)
+        if (this.currentPlaybackStatus === 'paused') {
+          this.frameStream.resume();
+        } else if (this.currentPlaybackStatus === 'stopped') {
+          // For initial play, need to start playback
+          // The frameStream should already be loaded from loadSequence
+          this.frameStream.resume(); // This will start from the current frame
+        }
+        break;
+      case 'pause':
+        this.frameStream.pause();
+        break;
+      case 'prev':
+        const prevIndex = Math.max(this.currentFrameIndex - 1, 0);
+        this.frameStream.seek(prevIndex);
+        break;
+      case 'next':
+        const totalFrames = this.frameStream.getTotalFrames();
+        const nextIndex = Math.min(this.currentFrameIndex + 1, totalFrames - 1);
+        this.frameStream.seek(nextIndex);
+        break;
+    }
+  }
+
+  /**
+   * Handle seek events from TimelineScrubberComponent
+   */
+  protected onSeekTo(frameIndex: number): void {
+    this.frameStream.seek(frameIndex);
   }
 }

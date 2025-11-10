@@ -56,6 +56,11 @@ export class LegendComponent {
   @Input() public title = 'Object Classes';
 
   /**
+   * Theme variant ('light' | 'dark')
+   */
+  @Input() public theme: 'light' | 'dark' = 'light';
+
+  /**
    * Legend items observable
    */
   public readonly legendItems$: Observable<LegendItem[]>;
@@ -74,13 +79,24 @@ export class LegendComponent {
   private createLegendItems(): LegendItem[] {
     const colors = this.viewerStyleAdapter.getAllObjectClassColors();
 
-    return colors.map((colorInfo) => ({
+    const items: LegendItem[] = colors.map((colorInfo) => ({
       class: colorInfo.class,
       label: this.getLabel(colorInfo.class),
       color: colorInfo.hex,
       description: this.getDescription(colorInfo.class),
       icon: this.getIcon(colorInfo.class),
     }));
+
+    // Add False Positive (FP) item
+    items.push({
+      class: 'false-positive',
+      label: 'False Positive (FP)',
+      color: '#ff3b30', // Red color for FP
+      description: 'Incorrect detections',
+      icon: 'error_outline',
+    });
+
+    return items;
   }
 
   /**
@@ -120,9 +136,13 @@ export class LegendComponent {
   }
 
   /**
-   * Get CSS class for layout.
+   * Get CSS class for layout and theme.
    */
   public getLayoutClass(): string {
-    return `legend-${this.layout}`;
+    const classes = [`legend-${this.layout}`];
+    if (this.theme === 'dark') {
+      classes.push('legend-dark');
+    }
+    return classes.join(' ');
   }
 }

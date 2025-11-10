@@ -1,0 +1,259 @@
+/**
+ * Control Panel Component Styles
+ *
+ * Dark theme styling for sidebar (280px width)
+ * Vertical/compact layout with dark backgrounds
+ */
+
+@import '../../../styles/themes/dark-theme';
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.control-panel-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--agile3d-space-24);
+  padding: 0; // No padding, parent sidebar handles it
+}
+
+// Header
+.panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--agile3d-space-8);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: var(--agile3d-font-size-sm);
+  font-weight: var(--agile3d-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--agile3d-dark-text-primary);
+}
+
+.panel-subtitle {
+  margin: 0;
+  font-size: var(--agile3d-font-size-xs);
+  color: var(--agile3d-dark-text-secondary);
+}
+
+// Primary Controls
+.primary-controls {
+  padding: 0;
+}
+
+.primary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--agile3d-space-24);
+}
+
+// Control Groups
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--agile3d-space-8);
+}
+
+.control-label {
+  font-size: var(--agile3d-font-size-sm);
+  font-weight: var(--agile3d-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--agile3d-dark-text-secondary);
+  margin-bottom: var(--agile3d-space-8);
+}
+
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+legend.control-label {
+  margin-bottom: var(--agile3d-space-8);
+}
+
+// Scene Toggle Group - Vertical for sidebar
+.scene-toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--agile3d-space-8);
+  margin-bottom: 4px;
+
+  ::ng-deep {
+    .mat-button-toggle {
+      background-color: rgba(22, 27, 34, 0.6);
+      color: var(--agile3d-dark-text-primary);
+      border: 1px solid var(--agile3d-dark-border-secondary);
+      font-size: var(--agile3d-font-size-sm);
+      padding: var(--agile3d-space-8) var(--agile3d-space-12);
+      transition: all var(--agile3d-transition-fast);
+
+      &:hover {
+        background-color: rgba(88, 166, 255, 0.1);
+      }
+
+      &.mat-button-toggle-checked {
+        background-color: rgba(88, 166, 255, 0.2);
+        border-color: var(--agile3d-dark-accent);
+        color: var(--agile3d-dark-accent);
+      }
+
+      .mat-button-toggle-label-content {
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+// Full Width
+.full-width {
+  width: 100%;
+}
+
+// Value Labels
+.value-label {
+  font-size: var(--agile3d-font-size-xs);
+  font-weight: var(--agile3d-font-weight-medium);
+  color: var(--agile3d-dark-text-secondary);
+  text-align: right;
+}
+
+// Tick Labels for Contention Slider
+.tick-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--agile3d-dark-text-muted);
+  margin-top: 4px;
+  padding: 0 2px;
+}
+
+.tick {
+  display: inline-block;
+  width: auto;
+}
+
+// Material Slider Dark Theme
+::ng-deep {
+  .control-panel-container {
+    // Slider track
+    .mdc-slider__track {
+      background: var(--agile3d-dark-border-primary);
+      height: 3px;
+    }
+
+    .mdc-slider__track--active {
+      background: var(--agile3d-dark-accent);
+    }
+
+    .mdc-slider__track--inactive {
+      background: var(--agile3d-dark-border-primary);
+      opacity: 1;
+    }
+
+    // Slider thumb
+    .mdc-slider__thumb {
+      width: 16px;
+      height: 16px;
+    }
+
+    .mdc-slider__thumb-knob {
+      width: 16px;
+      height: 16px;
+      background-color: var(--agile3d-dark-accent);
+      border: 2px solid var(--agile3d-dark-bg-base);
+    }
+
+    // Tick marks
+    .mdc-slider__tick-mark--active,
+    .mdc-slider__tick-mark--inactive {
+      background-color: var(--agile3d-dark-border-elevated);
+      width: 2px;
+      height: 2px;
+    }
+
+    // Value indicator
+    .mdc-slider__value-indicator {
+      background-color: var(--agile3d-dark-bg-elevated);
+      color: var(--agile3d-dark-text-primary);
+      font-size: var(--agile3d-font-size-xs);
+    }
+  }
+
+  // Dark Select Fields
+  .dark-select {
+    .mat-mdc-form-field {
+      font-size: var(--agile3d-font-size-sm);
+    }
+
+    .mat-mdc-text-field-wrapper {
+      background-color: rgba(22, 27, 34, 0.6);
+      border-radius: 4px;
+    }
+
+    .mdc-text-field--filled {
+      background-color: transparent;
+
+      &:hover {
+        background-color: rgba(88, 166, 255, 0.05);
+      }
+    }
+
+    .mat-mdc-form-field-focus-overlay {
+      background-color: transparent;
+    }
+
+    .mdc-text-field--filled:not(.mdc-text-field--disabled) {
+      background-color: transparent;
+    }
+
+    .mat-mdc-select-value,
+    .mat-mdc-select-arrow,
+    label {
+      color: var(--agile3d-dark-text-primary);
+      font-size: var(--agile3d-font-size-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .mdc-line-ripple {
+      &::before,
+      &::after {
+        border-bottom-color: var(--agile3d-dark-border-primary);
+      }
+    }
+
+    .mat-mdc-form-field-focus-overlay {
+      background-color: rgba(88, 166, 255, 0.05);
+    }
+
+    .mat-mdc-select-disabled {
+      .mat-mdc-select-value {
+        color: var(--agile3d-dark-text-muted);
+      }
+    }
+  }
+}
+
+// Advanced Controls Section
+.advanced-controls-section {
+  margin-top: var(--agile3d-space-8);
+}
+
+// Responsive - Maintain sidebar layout
+@media (max-width: 768px) {
+  .control-panel-container {
+    gap: var(--agile3d-space-16);
+  }
+
+  .primary-grid {
+    gap: var(--agile3d-space-16);
+  }
+}

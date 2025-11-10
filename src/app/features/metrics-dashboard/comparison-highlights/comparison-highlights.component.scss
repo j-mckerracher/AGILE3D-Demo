@@ -9,14 +9,14 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--surface-color, #ffffff);
-  border: 1px solid var(--border-color, #e2e8f0);
+  background-color: var(--agile3d-dark-bg-card, rgba(48, 54, 61, 0.3));
+  border: 1px solid var(--agile3d-dark-border-primary, #30363d);
   border-top: 3px solid var(--comparison-color, #8b5cf6);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--agile3d-dark-shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.4));
   transition: box-shadow 0.2s ease;
 
   &:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--agile3d-dark-shadow-md, 0 4px 8px rgba(0, 0, 0, 0.5));
   }
 }
 
@@ -32,13 +32,13 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--text-secondary, #64748b);
+  color: var(--agile3d-dark-text-secondary, #8b949e);
 }
 
 .comparison-subtitle {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--agile3d-dark-text-primary, #e0e0e0);
 }
 
 .comparison-list {
@@ -54,37 +54,37 @@
   align-items: center;
   padding: var(--spacing-sm, 16px);
   border-radius: 8px;
-  background-color: var(--surface-secondary, #f8fafc);
+  background-color: var(--agile3d-dark-bg-elevated, rgba(22, 27, 34, 0.8));
   border: 2px solid transparent;
   transition: all 0.2s ease;
 
   &.threshold-green {
-    background-color: rgba(16, 185, 129, 0.1);
-    border-color: var(--success-color, #10b981);
+    background-color: var(--agile3d-dark-success-bg, rgba(63, 185, 80, 0.15));
+    border-color: var(--agile3d-dark-success, #3fb950);
 
     .comparison-value,
     .trend-icon {
-      color: var(--success-color, #10b981);
+      color: var(--agile3d-dark-success, #3fb950);
     }
   }
 
   &.threshold-amber {
-    background-color: rgba(245, 158, 11, 0.1);
-    border-color: var(--warning-color, #f59e0b);
+    background-color: var(--agile3d-dark-warning-bg, rgba(240, 136, 62, 0.15));
+    border-color: var(--agile3d-dark-warning, #f0883e);
 
     .comparison-value,
     .trend-icon {
-      color: var(--warning-color, #f59e0b);
+      color: var(--agile3d-dark-warning, #f0883e);
     }
   }
 
   &.threshold-red {
-    background-color: rgba(239, 68, 68, 0.1);
-    border-color: var(--error-color, #ef4444);
+    background-color: var(--agile3d-dark-error-bg, rgba(255, 107, 107, 0.15));
+    border-color: var(--agile3d-dark-error, #ff6b6b);
 
     .comparison-value,
     .trend-icon {
-      color: var(--error-color, #ef4444);
+      color: var(--agile3d-dark-error, #ff6b6b);
     }
   }
 
@@ -120,13 +120,13 @@
 .comparison-metric-label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--agile3d-dark-text-primary, #e0e0e0);
 }
 
 .comparison-metric-description {
   font-size: 0.75rem;
   font-weight: 400;
-  color: var(--text-secondary, #64748b);
+  color: var(--agile3d-dark-text-secondary, #8b949e);
 }
 
 .comparison-value-container {
@@ -155,7 +155,7 @@
   gap: var(--spacing-md, 24px);
   margin-top: var(--spacing-md, 24px);
   padding-top: var(--spacing-md, 24px);
-  border-top: 1px solid var(--border-light, #f1f5f9);
+  border-top: 1px solid var(--agile3d-dark-border-secondary, #21262d);
 }
 
 .legend-item {
@@ -171,25 +171,25 @@
   border: 2px solid currentColor;
 
   &.threshold-green {
-    background-color: rgba(16, 185, 129, 0.2);
-    border-color: var(--success-color, #10b981);
+    background-color: var(--agile3d-dark-success-bg, rgba(63, 185, 80, 0.15));
+    border-color: var(--agile3d-dark-success, #3fb950);
   }
 
   &.threshold-amber {
-    background-color: rgba(245, 158, 11, 0.2);
-    border-color: var(--warning-color, #f59e0b);
+    background-color: var(--agile3d-dark-warning-bg, rgba(240, 136, 62, 0.15));
+    border-color: var(--agile3d-dark-warning, #f0883e);
   }
 
   &.threshold-red {
-    background-color: rgba(239, 68, 68, 0.2);
-    border-color: var(--error-color, #ef4444);
+    background-color: var(--agile3d-dark-error-bg, rgba(255, 107, 107, 0.15));
+    border-color: var(--agile3d-dark-error, #ff6b6b);
   }
 }
 
 .legend-label {
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--text-secondary, #64748b);
+  color: var(--agile3d-dark-text-secondary, #8b949e);
 }
 
 .loading-state {
@@ -197,7 +197,7 @@
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  color: var(--text-secondary, #64748b);
+  color: var(--agile3d-dark-text-secondary, #8b949e);
   font-style: italic;
 }
 

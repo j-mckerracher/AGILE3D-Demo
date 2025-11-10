@@ -1,0 +1,58 @@
+<div class="demo-header">
+  <!-- Left: Dataset Information -->
+  <div class="dataset-info">
+    <div class="dataset-item baseline">
+      <span class="dataset-label">BASELINE</span>
+      <span class="dataset-name">{{ baselineBranch }}</span>
+    </div>
+    <div class="dataset-separator">vs</div>
+    <div class="dataset-item comparison">
+      <span class="dataset-label">COMPARISON</span>
+      <span class="dataset-name">{{ activeBranch }}</span>
+    </div>
+  </div>
+
+  <!-- Center: Playback Controls -->
+  <div class="playback-controls">
+    <button
+      mat-icon-button
+      (click)="onPrevious()"
+      [disabled]="isStopped || isPlaying || currentFrameIndex === 0"
+      matTooltip="Previous Frame"
+      aria-label="Previous frame"
+      class="playback-btn">
+      <mat-icon>skip_previous</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      (click)="onPlayPause()"
+      [disabled]="isStopped"
+      [class.playing]="isPlaying"
+      [matTooltip]="isStopped ? 'Load a scene to play' : (isPlaying ? 'Pause' : 'Play')"
+      [attr.aria-label]="isStopped ? 'Playback unavailable' : (isPlaying ? 'Pause playback' : 'Play playback')"
+      class="playback-btn play-pause">
+      <mat-icon>{{ isPlaying ? 'pause' : 'play_arrow' }}</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      (click)="onNext()"
+      [disabled]="isStopped || isPlaying || currentFrameIndex === totalFrames - 1"
+      matTooltip="Next Frame"
+      aria-label="Next frame"
+      class="playback-btn">
+      <mat-icon>skip_next</mat-icon>
+    </button>
+
+    <div class="frame-info">
+      <span class="frame-counter">Frame {{ currentFrameIndex + 1 }} / {{ totalFrames }}</span>
+    </div>
+  </div>
+
+  <!-- Right: Elapsed Time -->
+  <div class="elapsed-info">
+    <span class="elapsed-label">ELAPSED</span>
+    <span class="elapsed-time">{{ elapsedTime }}</span>
+  </div>
+</div>
