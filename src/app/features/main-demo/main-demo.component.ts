@@ -45,7 +45,7 @@ import { SceneId } from '../../core/models/config-and-metrics';
 import { SyntheticDetectionVariationService } from '../../core/services/simulation/synthetic-detection-variation.service';
 import { PaperDataService } from '../../core/services/data/paper-data.service';
 import { SequenceDataService } from '../../core/services/data/sequence-data.service';
-import { FrameStreamService } from '../../core/services/frame-stream/frame-stream.service';
+import { FrameStreamService, StreamStatus } from '../../core/services/frame-stream/frame-stream.service';
 import {
   SequenceRegistryEntry,
   SequenceRegistryService,
@@ -118,7 +118,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
 
   // Track current frame index for playback controls
   private currentFrameIndex = 0;
-  private currentPlaybackStatus: 'playing' | 'paused' | 'stopped' = 'stopped';
+  private currentPlaybackStatus: StreamStatus = 'stopped';
 
   public async ngOnInit(): Promise<void> {
     // Check debug mode for FPS overlay (WP-2.3.2)
