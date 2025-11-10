@@ -13,38 +13,70 @@
     (dismissed)="showError.set(false)"
   />
 
-  <!-- Dual Viewer Section -->
-  <div
-    *ngIf="!showError()"
-    class="dual-viewer-section"
-    role="region"
-    aria-labelledby="viewer-title"
-  >
-    <h3 id="viewer-title" class="ag3d-sr-only">3D Scene Viewers</h3>
-    <app-dual-viewer
-      [baselineDetections]="baselineDetections"
-      [agile3dDetections]="agile3dDetections"
-      [baselineDiffClassification]="baselineDiffClassification"
-      [agile3dDiffClassification]="agile3dDiffClassification"
-        [diffMode]="diffMode"
-      [leftTitle]="leftTitle"
-      [rightTitle]="rightTitle"
-      [inputPoints]="sharedPoints"
-      [showFps]="showFps"
-    />
-  </div>
+  <!-- Sidebar: Legend + Control Panel -->
+  <aside class="sidebar" role="complementary" aria-label="Controls and legend">
+    <!-- Legend Section -->
+    <section class="legend-section" aria-labelledby="legend-title">
+      <app-legend
+        [layout]="'vertical'"
+        [theme]="'dark'"
+        [title]="'Legend'"
+        [showIcons]="false"
+        [showDescriptions]="false"
+      />
+    </section>
 
-  <!-- Controls and Metrics Row -->
-  <div class="controls-and-metrics-row">
     <!-- Control Panel Section (WP-2.2.2) -->
-    <div class="control-panel-section" role="region" aria-labelledby="controls-title">
-      <h3 id="controls-title" class="section-title ag3d-sr-only">Scene Controls</h3>
+    <section class="control-panel-section" aria-labelledby="controls-title">
+      <h3 id="controls-title" class="ag3d-sr-only">Scene Controls</h3>
       <app-control-panel />
-    </div>
+    </section>
+  </aside>
+
+  <!-- Main Content: Header → Viewers → Timeline → Metrics -->
+  <div class="main-content" *ngIf="!showError()">
+    <!-- Header with Dataset Info + Playback Controls -->
+    <section class="header-section" role="region" aria-labelledby="header-title">
+      <h3 id="header-title" class="ag3d-sr-only">Playback Controls</h3>
+      <app-demo-header
+        [baselineBranch]="leftTitle"
+        [activeBranch]="rightTitle"
+        (playbackControl)="onPlaybackControl($event)"
+      />
+    </section>
+
+    <!-- Dual Viewer Section -->
+    <section
+      class="dual-viewer-section"
+      role="region"
+      aria-labelledby="viewer-title"
+    >
+      <h3 id="viewer-title" class="ag3d-sr-only">3D Scene Viewers</h3>
+      <app-dual-viewer
+        [baselineDetections]="baselineDetections"
+        [agile3dDetections]="agile3dDetections"
+        [baselineDiffClassification]="baselineDiffClassification"
+        [agile3dDiffClassification]="agile3dDiffClassification"
+        [diffMode]="diffMode"
+        [leftTitle]="leftTitle"
+        [rightTitle]="rightTitle"
+        [inputPoints]="sharedPoints"
+        [showFps]="showFps"
+      />
+    </section>
+
+    <!-- Timeline Scrubber Section -->
+    <section class="timeline-section" role="region" aria-labelledby="timeline-title">
+      <h3 id="timeline-title" class="ag3d-sr-only">Frame Navigation</h3>
+      <app-timeline-scrubber
+        (seekTo)="onSeekTo($event)"
+      />
+    </section>
 
     <!-- Metrics Dashboard Section (WP-2.3.1) -->
-    <div class="metrics-section">
+    <section class="metrics-section" aria-labelledby="metrics-title">
+      <h3 id="metrics-title" class="ag3d-sr-only">Performance Metrics</h3>
       <app-metrics-dashboard />
-    </div>
+    </section>
   </div>
 </section>

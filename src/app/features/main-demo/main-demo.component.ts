@@ -26,6 +26,9 @@ import { DualViewerComponent } from '../dual-viewer/dual-viewer.component';
 import { ControlPanelComponent } from '../control-panel/control-panel.component';
 import { MetricsDashboardComponent } from '../metrics-dashboard/metrics-dashboard.component';
 import { ErrorBannerComponent } from '../../shared/components/error-banner/error-banner.component';
+import { LegendComponent } from '../../shared/components/legend/legend.component';
+import { DemoHeaderComponent, PlaybackControlEvent } from '../demo-header/demo-header.component';
+import { TimelineScrubberComponent } from '../timeline-scrubber/timeline-scrubber.component';
 import * as THREE from 'three';
 import { SceneDataService } from '../../core/services/data/scene-data.service';
 import { SceneTierManagerService } from '../../core/services/data/scene-tier-manager.service';
@@ -59,6 +62,9 @@ import { DiffMode } from '../../core/services/visualization/bbox-instancing';
     ControlPanelComponent,
     MetricsDashboardComponent,
     ErrorBannerComponent,
+    LegendComponent,
+    DemoHeaderComponent,
+    TimelineScrubberComponent,
   ],
   templateUrl: './main-demo.component.html',
   styleUrls: ['./main-demo.component.scss'],
@@ -695,5 +701,38 @@ export class MainDemoComponent implements OnInit, OnDestroy {
     const firstFrame = manifest?.frames?.[0];
     const detMap = firstFrame?.urls?.det ?? {};
     return Object.keys(detMap);
+  }
+
+  /**
+   * Handle playback control events from DemoHeaderComponent
+   */
+  protected onPlaybackControl(event: PlaybackControlEvent): void {
+    switch (event.action) {
+      case 'play':
+        if (this.frameStream.status$.value === 'paused') {
+          this.frameStream.resume();
+        }
+        break;
+      case 'pause':
+        this.frameStream.pause();
+        break;
+      case 'prev':
+        const prevIndex = Math.max(this.frameStream.currentFrame$.value?.index ?? 0 - 1, 0);
+        this.frameStream.seek(prevIndex);
+        break;
+      case 'next':
+        const currentIndex = this.frameStream.currentFrame$.value?.index ?? 0;
+        const totalFrames = this.frameStream.getTotalFrames();
+        const nextIndex = Math.min(currentIndex + 1, totalFrames - 1);
+        this.frameStream.seek(nextIndex);
+        break;
+    }
+  }
+
+  /**
+   * Handle seek events from TimelineScrubberComponent
+   */
+  protected onSeekTo(frameIndex: number): void {
+    this.frameStream.seek(frameIndex);
   }
 }
