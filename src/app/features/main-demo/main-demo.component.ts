@@ -116,6 +116,10 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   protected readonly showError = signal<boolean>(false);
   protected showFps = false;
 
+  // Track current frame index for playback controls
+  private currentFrameIndex = 0;
+  private currentPlaybackStatus: 'playing' | 'paused' | 'stopped' = 'stopped';
+
   public async ngOnInit(): Promise<void> {
     // Check debug mode for FPS overlay (WP-2.3.2)
     this.showFps = this.debug.isDebugEnabled();
@@ -195,6 +199,9 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((streamedFrame) => {
         if (!streamedFrame) return;
+
+        // Track current frame index for playback controls
+        this.currentFrameIndex = streamedFrame.index;
 
         try {
           const positions = streamedFrame.points;
@@ -276,6 +283,13 @@ export class MainDemoComponent implements OnInit, OnDestroy {
           this.showError.set(true);
           this.cdr.markForCheck();
         }
+      });
+
+    // Track playback status for playback controls
+    this.frameStream.status$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((status) => {
+        this.currentPlaybackStatus = status;
       });
 
     this.frameStreamSubscriptionsEstablished = true;
@@ -709,7 +723,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   protected onPlaybackControl(event: PlaybackControlEvent): void {
     switch (event.action) {
       case 'play':
-        if (this.frameStream.status$.value === 'paused') {
+        if (this.currentPlaybackStatus === 'paused') {
           this.frameStream.resume();
         }
         break;
@@ -717,13 +731,12 @@ export class MainDemoComponent implements OnInit, OnDestroy {
         this.frameStream.pause();
         break;
       case 'prev':
-        const prevIndex = Math.max(this.frameStream.currentFrame$.value?.index ?? 0 - 1, 0);
+        const prevIndex = Math.max(this.currentFrameIndex - 1, 0);
         this.frameStream.seek(prevIndex);
         break;
       case 'next':
-        const currentIndex = this.frameStream.currentFrame$.value?.index ?? 0;
         const totalFrames = this.frameStream.getTotalFrames();
-        const nextIndex = Math.min(currentIndex + 1, totalFrames - 1);
+        const nextIndex = Math.min(this.currentFrameIndex + 1, totalFrames - 1);
         this.frameStream.seek(nextIndex);
         break;
     }

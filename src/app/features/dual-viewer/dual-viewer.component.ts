@@ -34,8 +34,8 @@ import * as THREE from 'three';
   selector: 'app-dual-viewer',
   standalone: true,
   imports: [CommonModule, SceneViewerComponent],
-  templateUrl: './dual-viewer.component-new.html',
-  styleUrls: ['./dual-viewer.component-new.scss'],
+  templateUrl: './dual-viewer.component.html',
+  styleUrls: ['./dual-viewer.component.scss'],
 })
 export class DualViewerComponent implements OnInit, OnChanges {
   /** Detections to display in the baseline viewer */
