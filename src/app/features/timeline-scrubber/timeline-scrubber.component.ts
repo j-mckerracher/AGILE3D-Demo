@@ -14,6 +14,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Input,
   Output,
   EventEmitter,
@@ -42,6 +43,7 @@ export class TimelineScrubberComponent implements OnInit, OnDestroy {
 
   protected isPlaying = false;
   private readonly frameStream = inject(FrameStreamService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private frameSubscription?: Subscription;
   private statusSubscription?: Subscription;
 
@@ -54,12 +56,14 @@ export class TimelineScrubberComponent implements OnInit, OnDestroy {
         if (total > 0) {
           this.totalFrames = total;
         }
+        this.cdr.markForCheck(); // Trigger change detection
       }
     });
 
     // Subscribe to playback status
     this.statusSubscription = this.frameStream.status$.subscribe((status) => {
       this.isPlaying = status === 'playing';
+      this.cdr.markForCheck(); // Trigger change detection
     });
   }
 

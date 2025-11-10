@@ -14,6 +14,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Input,
   Output,
   EventEmitter,
@@ -54,6 +55,7 @@ export class DemoHeaderComponent implements OnInit, OnDestroy {
   protected elapsedTime = '0:00';
 
   private readonly frameStream = inject(FrameStreamService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private statusSubscription?: Subscription;
   private frameSubscription?: Subscription;
   private startTime?: number;
@@ -70,6 +72,8 @@ export class DemoHeaderComponent implements OnInit, OnDestroy {
       } else if (!this.isPlaying) {
         this.startTime = undefined;
       }
+
+      this.cdr.markForCheck(); // Trigger change detection
     });
 
     // Subscribe to current frame for counter
@@ -89,6 +93,8 @@ export class DemoHeaderComponent implements OnInit, OnDestroy {
           const secs = seconds % 60;
           this.elapsedTime = `${minutes}:${secs.toString().padStart(2, '0')}`;
         }
+
+        this.cdr.markForCheck(); // Trigger change detection
       }
     });
   }

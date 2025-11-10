@@ -723,8 +723,13 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   protected onPlaybackControl(event: PlaybackControlEvent): void {
     switch (event.action) {
       case 'play':
+        // Handle both initial play (from stopped) and resume (from paused)
         if (this.currentPlaybackStatus === 'paused') {
           this.frameStream.resume();
+        } else if (this.currentPlaybackStatus === 'stopped') {
+          // For initial play, need to start playback
+          // The frameStream should already be loaded from loadSequence
+          this.frameStream.resume(); // This will start from the current frame
         }
         break;
       case 'pause':
