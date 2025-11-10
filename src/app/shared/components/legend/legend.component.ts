@@ -79,7 +79,7 @@ export class LegendComponent {
   private createLegendItems(): LegendItem[] {
     const colors = this.viewerStyleAdapter.getAllObjectClassColors();
 
-    const items = colors.map((colorInfo) => ({
+    const items: LegendItem[] = colors.map((colorInfo) => ({
       class: colorInfo.class,
       label: this.getLabel(colorInfo.class),
       color: colorInfo.hex,
