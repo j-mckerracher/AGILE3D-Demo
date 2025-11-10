@@ -194,17 +194,48 @@ export class FrameStreamService {
 
   seek(index: number): void {
     if (!this.manifest) return;
-    
+
     // Cancel stale fetches
     this.prefetchQueue.forEach(entry => entry.controller.abort());
     this.prefetchQueue = [];
-    
+
     this.currentIndex = Math.max(0, Math.min(index, this.manifest.frames.length - 1));
     this.consecutiveMisses = 0;
     this.errorsSubject.next(null);
-    
+
+    // Immediately fetch and emit the frame at the target index
+    this.fetchAndEmitFrame(this.currentIndex);
+
     // Restart prefetch
     this.schedulePrefetch(this.prefetchCount);
+  }
+
+  /**
+   * Fetch and emit a frame at the specified index
+   * Used by seek() to immediately display the frame when navigating
+   */
+  private async fetchAndEmitFrame(index: number): Promise<void> {
+    if (!this.manifest) return;
+
+    // Check if frame is already prefetched
+    const prefetched = this.prefetchQueue.find(e => e.index === index);
+
+    try {
+      const frame = prefetched
+        ? await prefetched.promise
+        : await this.fetchFrameWithRetry(index);
+
+      this.currentFrameSubject.next(frame);
+      this.consecutiveMisses = 0;
+      this.errorsSubject.next(null);
+
+      // Remove from queue if it was prefetched
+      if (prefetched) {
+        this.prefetchQueue = this.prefetchQueue.filter(e => e.index !== index);
+      }
+    } catch (error) {
+      this.handleFrameMiss(error);
+    }
   }
 
   setBranches(activeBranch: string, baselineBranch: string): void {
