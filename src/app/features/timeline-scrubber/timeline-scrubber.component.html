@@ -1,0 +1,25 @@
+<div class="timeline-scrubber">
+  <!-- Frame Counter -->
+  <div class="frame-counter">
+    <span class="current-frame">{{ currentFrame + 1 }}</span>
+    <span class="separator">/</span>
+    <span class="total-frames">{{ totalFrames }}</span>
+  </div>
+
+  <!-- Progress Bar + Slider -->
+  <div class="timeline-track">
+    <div class="progress-bar" [style.width.%]="getProgress()"></div>
+    <mat-slider
+      class="timeline-slider"
+      [min]="0"
+      [max]="totalFrames - 1"
+      [step]="1"
+      [discrete]="true"
+      aria-label="Seek through frames">
+      <input
+        matSliderThumb
+        [value]="currentFrame"
+        (input)="onSeek(+$any($event.target).value)" />
+    </mat-slider>
+  </div>
+</div>

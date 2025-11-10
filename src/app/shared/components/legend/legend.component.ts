@@ -56,6 +56,11 @@ export class LegendComponent {
   @Input() public title = 'Object Classes';
 
   /**
+   * Theme variant ('light' | 'dark')
+   */
+  @Input() public theme: 'light' | 'dark' = 'light';
+
+  /**
    * Legend items observable
    */
   public readonly legendItems$: Observable<LegendItem[]>;
@@ -120,9 +125,13 @@ export class LegendComponent {
   }
 
   /**
-   * Get CSS class for layout.
+   * Get CSS class for layout and theme.
    */
   public getLayoutClass(): string {
-    return `legend-${this.layout}`;
+    const classes = [`legend-${this.layout}`];
+    if (this.theme === 'dark') {
+      classes.push('legend-dark');
+    }
+    return classes.join(' ');
   }
 }

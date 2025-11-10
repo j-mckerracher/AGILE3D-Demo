@@ -9,6 +9,41 @@
   box-shadow: var(--ag3d-shadow-card);
 }
 
+// Dark theme variant for sidebar
+.legend-dark {
+  background: rgba(48, 54, 61, 0.3);
+  border: 1px solid var(--agile3d-dark-border-primary, #30363d);
+  box-shadow: none;
+  padding: var(--agile3d-space-16, 16px);
+
+  .legend-title {
+    color: var(--agile3d-dark-text-primary, #e0e0e0);
+    font-size: var(--agile3d-font-size-sm, 11px);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: var(--agile3d-font-weight-semibold, 600);
+  }
+
+  .legend-item-chip {
+    background-color: rgba(22, 27, 34, 0.6);
+    border-color: var(--agile3d-dark-border-secondary, #21262d);
+
+    &:hover {
+      background-color: rgba(88, 166, 255, 0.1);
+      transform: translateY(-1px);
+    }
+  }
+
+  .legend-label {
+    color: var(--agile3d-dark-text-primary, #e0e0e0);
+    font-size: var(--agile3d-font-size-sm, 11px);
+  }
+
+  .legend-color-indicator {
+    border-color: var(--agile3d-dark-border-elevated, #484f58);
+  }
+}
+
 .legend-title {
   margin: 0 0 var(--ag3d-space-sm) 0;
   font-size: var(--ag3d-font-size-title-medium);

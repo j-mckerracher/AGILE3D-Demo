@@ -1,0 +1,192 @@
+/**
+ * Demo Header Component Styles
+ *
+ * Dark theme styling for dataset info + playback controls
+ */
+
+@import '../../../styles/themes/dark-theme';
+
+.demo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--agile3d-space-16) var(--agile3d-space-24);
+  gap: var(--agile3d-space-24);
+  background: var(--agile3d-dark-bg-section);
+  border-bottom: 1px solid var(--agile3d-dark-border-primary);
+  min-height: 80px;
+}
+
+// Dataset Information Section
+.dataset-info {
+  display: flex;
+  align-items: center;
+  gap: var(--agile3d-space-16);
+  flex: 1;
+}
+
+.dataset-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dataset-label {
+  font-size: var(--agile3d-font-size-xs);
+  font-weight: var(--agile3d-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--agile3d-dark-text-muted);
+}
+
+.dataset-name {
+  font-size: var(--agile3d-font-size-md);
+  font-weight: var(--agile3d-font-weight-medium);
+  color: var(--agile3d-dark-text-primary);
+}
+
+.dataset-separator {
+  font-size: var(--agile3d-font-size-sm);
+  font-weight: var(--agile3d-font-weight-medium);
+  color: var(--agile3d-dark-text-muted);
+  padding: 0 var(--agile3d-space-8);
+}
+
+// Playback Controls Section
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--agile3d-space-8);
+  flex: 1;
+  justify-content: center;
+}
+
+.playback-btn {
+  color: var(--agile3d-dark-text-primary);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color var(--agile3d-transition-fast);
+
+  &:hover:not(:disabled) {
+    background-color: rgba(88, 166, 255, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.play-pause {
+  width: 48px;
+  height: 48px;
+  background-color: rgba(88, 166, 255, 0.15);
+  border: 1px solid var(--agile3d-dark-accent);
+
+  &.playing {
+    background-color: rgba(88, 166, 255, 0.25);
+    border-color: var(--agile3d-dark-accent-hover);
+  }
+
+  &:hover:not(:disabled) {
+    background-color: rgba(88, 166, 255, 0.3);
+  }
+
+  mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: var(--agile3d-dark-accent);
+  }
+}
+
+.frame-info {
+  margin-left: var(--agile3d-space-16);
+  padding-left: var(--agile3d-space-16);
+  border-left: 1px solid var(--agile3d-dark-border-secondary);
+}
+
+.frame-counter {
+  font-size: var(--agile3d-font-size-sm);
+  font-weight: var(--agile3d-font-weight-medium);
+  font-family: monospace;
+  color: var(--agile3d-dark-text-secondary);
+}
+
+// Elapsed Time Section
+.elapsed-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 1;
+}
+
+.elapsed-label {
+  font-size: var(--agile3d-font-size-xs);
+  font-weight: var(--agile3d-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--agile3d-dark-text-muted);
+}
+
+.elapsed-time {
+  font-size: var(--agile3d-font-size-lg);
+  font-weight: var(--agile3d-font-weight-semibold);
+  font-family: monospace;
+  color: var(--agile3d-dark-text-primary);
+}
+
+// Responsive adjustments
+@media (max-width: 1024px) {
+  .demo-header {
+    flex-wrap: wrap;
+    gap: var(--agile3d-space-12);
+  }
+
+  .dataset-info,
+  .elapsed-info {
+    flex: 0 1 auto;
+  }
+
+  .playback-controls {
+    flex: 1 1 100%;
+    order: 3;
+  }
+}
+
+@media (max-width: 768px) {
+  .demo-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--agile3d-space-12);
+  }
+
+  .dataset-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--agile3d-space-8);
+  }
+
+  .dataset-separator {
+    display: none;
+  }
+
+  .elapsed-info {
+    align-items: flex-start;
+  }
+
+  .playback-controls {
+    justify-content: flex-start;
+  }
+}

@@ -1,0 +1,136 @@
+/**
+ * Dark Theme Styling System
+ *
+ * Mockup color palette for the AGILE3D demo UI restructuring.
+ * Implements dark theme based on the provided mockup design.
+ *
+ * Color Palette:
+ * - Background: #0a0e14
+ * - Sidebar gradient: linear-gradient(180deg, #161b22 0%, #0d1117 100%)
+ * - Header/sections: rgba(22, 27, 34, 0.95)
+ * - Cards: rgba(48, 54, 61, 0.3)
+ * - Borders: #30363d
+ * - Text primary: #e0e0e0
+ * - Text secondary: #8b949e
+ * - Text muted: #6e7681
+ * - Accent: #58a6ff
+ * - Success: #3fb950
+ * - Error: #ff6b6b
+ * - Warning: #f0883e
+ */
+
+:root {
+  // Background colors
+  --agile3d-dark-bg-base: #0a0e14;
+  --agile3d-dark-bg-sidebar-start: #161b22;
+  --agile3d-dark-bg-sidebar-end: #0d1117;
+  --agile3d-dark-bg-section: rgba(22, 27, 34, 0.95);
+  --agile3d-dark-bg-card: rgba(48, 54, 61, 0.3);
+  --agile3d-dark-bg-elevated: rgba(22, 27, 34, 0.8);
+
+  // Border colors
+  --agile3d-dark-border-primary: #30363d;
+  --agile3d-dark-border-secondary: #21262d;
+  --agile3d-dark-border-elevated: #484f58;
+
+  // Text colors
+  --agile3d-dark-text-primary: #e0e0e0;
+  --agile3d-dark-text-secondary: #8b949e;
+  --agile3d-dark-text-muted: #6e7681;
+  --agile3d-dark-text-white: #ffffff;
+
+  // Accent and status colors
+  --agile3d-dark-accent: #58a6ff;
+  --agile3d-dark-accent-hover: #79b8ff;
+  --agile3d-dark-success: #3fb950;
+  --agile3d-dark-success-bg: rgba(63, 185, 80, 0.15);
+  --agile3d-dark-error: #ff6b6b;
+  --agile3d-dark-error-bg: rgba(255, 107, 107, 0.15);
+  --agile3d-dark-warning: #f0883e;
+  --agile3d-dark-warning-bg: rgba(240, 136, 62, 0.15);
+
+  // Shadows
+  --agile3d-dark-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --agile3d-dark-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
+  --agile3d-dark-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.6);
+
+  // Spacing
+  --agile3d-space-4: 4px;
+  --agile3d-space-8: 8px;
+  --agile3d-space-12: 12px;
+  --agile3d-space-16: 16px;
+  --agile3d-space-24: 24px;
+  --agile3d-space-32: 32px;
+  --agile3d-space-48: 48px;
+
+  // Typography
+  --agile3d-font-size-xs: 10px;
+  --agile3d-font-size-sm: 11px;
+  --agile3d-font-size-base: 13px;
+  --agile3d-font-size-md: 14px;
+  --agile3d-font-size-lg: 16px;
+  --agile3d-font-size-xl: 18px;
+  --agile3d-font-weight-normal: 400;
+  --agile3d-font-weight-medium: 500;
+  --agile3d-font-weight-semibold: 600;
+  --agile3d-font-weight-bold: 700;
+
+  // Layout dimensions
+  --agile3d-sidebar-width: 280px;
+  --agile3d-header-height: 80px;
+
+  // Transitions
+  --agile3d-transition-fast: 120ms ease;
+  --agile3d-transition-normal: 200ms ease;
+  --agile3d-transition-slow: 300ms ease;
+}
+
+// Dark theme mixin for easy application
+@mixin dark-theme {
+  background-color: var(--agile3d-dark-bg-base);
+  color: var(--agile3d-dark-text-primary);
+}
+
+// Card styling mixin
+@mixin dark-card {
+  background: var(--agile3d-dark-bg-card);
+  border: 1px solid var(--agile3d-dark-border-primary);
+  border-radius: 8px;
+  transition: transform var(--agile3d-transition-fast),
+              box-shadow var(--agile3d-transition-fast);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--agile3d-dark-shadow-md);
+  }
+}
+
+// Sidebar gradient mixin
+@mixin dark-sidebar {
+  background: linear-gradient(180deg,
+    var(--agile3d-dark-bg-sidebar-start) 0%,
+    var(--agile3d-dark-bg-sidebar-end) 100%);
+  border-right: 1px solid var(--agile3d-dark-border-primary);
+}
+
+// Section header mixin
+@mixin dark-section-header {
+  background: var(--agile3d-dark-bg-section);
+  border-bottom: 1px solid var(--agile3d-dark-border-primary);
+  padding: var(--agile3d-space-16) var(--agile3d-space-24);
+}
+
+// Status badge mixin
+@mixin status-badge($color, $bg-color) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: var(--agile3d-font-size-xs);
+  font-weight: var(--agile3d-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $color;
+  background: $bg-color;
+}

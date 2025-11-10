@@ -1,0 +1,147 @@
+/**
+ * Timeline Scrubber Component Styles
+ *
+ * Dark theme styling for horizontal progress bar with draggable handle
+ */
+
+@import '../../../styles/themes/dark-theme';
+
+.timeline-scrubber {
+  display: flex;
+  align-items: center;
+  gap: var(--agile3d-space-24);
+  padding: var(--agile3d-space-16) var(--agile3d-space-24);
+}
+
+// Frame Counter Display
+.frame-counter {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: monospace;
+  min-width: 100px;
+}
+
+.current-frame {
+  font-size: var(--agile3d-font-size-lg);
+  font-weight: var(--agile3d-font-weight-bold);
+  color: var(--agile3d-dark-text-primary);
+}
+
+.separator {
+  font-size: var(--agile3d-font-size-md);
+  color: var(--agile3d-dark-text-muted);
+}
+
+.total-frames {
+  font-size: var(--agile3d-font-size-base);
+  font-weight: var(--agile3d-font-weight-normal);
+  color: var(--agile3d-dark-text-secondary);
+}
+
+// Timeline Track Container
+.timeline-track {
+  flex: 1;
+  position: relative;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+// Progress Bar Background
+.progress-bar {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  background: linear-gradient(90deg, var(--agile3d-dark-accent) 0%, var(--agile3d-dark-accent-hover) 100%);
+  border-radius: 2px;
+  pointer-events: none;
+  transition: width 100ms ease-out;
+}
+
+// Material Slider Customization
+.timeline-slider {
+  width: 100%;
+  position: relative;
+  z-index: 1;
+
+  // Override Material slider track color
+  ::ng-deep {
+    .mdc-slider__track {
+      height: 4px;
+      background: var(--agile3d-dark-border-primary);
+    }
+
+    .mdc-slider__track--active {
+      opacity: 0; // Hide active track, use our progress bar
+    }
+
+    .mdc-slider__track--inactive {
+      background: var(--agile3d-dark-border-primary);
+      opacity: 1;
+    }
+
+    // Thumb styling
+    .mdc-slider__thumb {
+      width: 18px;
+      height: 18px;
+
+      &:hover {
+        .mdc-slider__thumb-knob {
+          width: 22px;
+          height: 22px;
+          border-width: 3px;
+        }
+      }
+    }
+
+    .mdc-slider__thumb-knob {
+      width: 18px;
+      height: 18px;
+      background-color: var(--agile3d-dark-accent);
+      border: 2px solid var(--agile3d-dark-bg-base);
+      transition: all var(--agile3d-transition-fast);
+    }
+
+    // Tick marks
+    .mdc-slider__tick-marks {
+      .mdc-slider__tick-mark--active,
+      .mdc-slider__tick-mark--inactive {
+        background-color: var(--agile3d-dark-border-elevated);
+        width: 2px;
+        height: 2px;
+        border-radius: 50%;
+      }
+    }
+
+    // Value label (discrete slider tooltip)
+    .mdc-slider__value-indicator {
+      background-color: var(--agile3d-dark-bg-elevated);
+      color: var(--agile3d-dark-text-primary);
+      font-family: monospace;
+      font-size: var(--agile3d-font-size-xs);
+
+      &::before {
+        border-top-color: var(--agile3d-dark-bg-elevated);
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .timeline-scrubber {
+    padding: var(--agile3d-space-12) var(--agile3d-space-16);
+    gap: var(--agile3d-space-16);
+  }
+
+  .frame-counter {
+    min-width: 80px;
+  }
+
+  .current-frame {
+    font-size: var(--agile3d-font-size-md);
+  }
+}
