@@ -7,14 +7,14 @@
 
 .metrics-dashboard {
   width: 100%;
-  padding: var(--spacing-lg, 32px);
-  background-color: var(--surface-color, #ffffff);
+  padding: 0; // Remove padding, parent .metrics-section already has padding
+  background-color: transparent; // Use parent's dark background
 }
 
 .dashboard-title {
   font-size: 1.75rem;
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--agile3d-dark-text-primary, #e0e0e0);
   margin: 0 0 var(--spacing-md, 24px) 0;
   text-align: center;
 }

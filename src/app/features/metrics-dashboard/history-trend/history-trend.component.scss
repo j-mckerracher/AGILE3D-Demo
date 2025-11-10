@@ -7,8 +7,8 @@
   margin-top: spacing.$ag3d-space-8;
   padding: spacing.$ag3d-space-12;
   border-radius: 8px;
-  background: var(--ag3d-surface, colors.$ag3d-color-neutral-50);
-  border: 1px solid var(--ag3d-border, colors.$ag3d-color-neutral-200);
+  background: var(--agile3d-dark-bg-card, rgba(48, 54, 61, 0.3));
+  border: 1px solid var(--agile3d-dark-border-primary, #30363d);
 
   // Smooth appearance when showing/hiding (unless reduced motion)
   opacity: 1;
@@ -23,7 +23,7 @@
   margin: 0 0 spacing.$ag3d-space-12 0;
   font-size: typography.$ag3d-font-size-title-small;
   font-weight: typography.$ag3d-font-weight-medium;
-  color: var(--ag3d-text-secondary, colors.$ag3d-color-neutral-600);
+  color: var(--agile3d-dark-text-secondary, #8b949e);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -55,12 +55,12 @@
 .sparkline-label {
   font-size: typography.$ag3d-font-size-body-small;
   font-weight: typography.$ag3d-font-weight-medium;
-  color: var(--ag3d-text-primary, colors.$ag3d-color-neutral-900);
+  color: var(--agile3d-dark-text-primary, #e0e0e0);
 }
 
 .sparkline-unit {
   font-size: typography.$ag3d-font-size-body-small;
-  color: var(--ag3d-text-tertiary, colors.$ag3d-color-neutral-500);
+  color: var(--agile3d-dark-text-secondary, #8b949e);
   font-family: monospace;
 }
 
@@ -70,14 +70,14 @@
   display: block;
 
   // Subtle background for chart area
-  background: var(--ag3d-surface-elevated, colors.$ag3d-color-neutral-0);
-  border: 1px solid var(--ag3d-border-subtle, colors.$ag3d-color-neutral-100);
+  background: var(--agile3d-dark-bg-elevated, rgba(22, 27, 34, 0.8));
+  border: 1px solid var(--agile3d-dark-border-secondary, #21262d);
   border-radius: 4px;
   padding: 2px;
 
   // Keyboard focus indicator
   &:focus-visible {
-    outline: 2px solid var(--ag3d-primary, colors.$ag3d-color-primary-500);
+    outline: 2px solid var(--agile3d-dark-accent, #58a6ff);
     outline-offset: 2px;
   }
 }
@@ -121,7 +121,7 @@
   flex-wrap: wrap;
   gap: spacing.$ag3d-space-12;
   padding-top: spacing.$ag3d-space-4;
-  border-top: 1px solid var(--ag3d-border-subtle, colors.$ag3d-color-neutral-100);
+  border-top: 1px solid var(--agile3d-dark-border-secondary, #21262d);
 }
 
 .legend-item {
@@ -154,7 +154,7 @@
 
 .legend-label {
   font-size: typography.$ag3d-font-size-body-small;
-  color: var(--ag3d-text-secondary, colors.$ag3d-color-neutral-600);
+  color: var(--agile3d-dark-text-secondary, #8b949e);
 }
 
 // Screen-reader only class for data table
@@ -182,18 +182,5 @@
 
   .legend-marker {
     border: 2px solid currentColor;
-  }
-}
-
-// Dark mode support (if theme service provides dark mode)
-@media (prefers-color-scheme: dark) {
-  .history-trend {
-    background: var(--ag3d-surface-dark, colors.$ag3d-color-neutral-800);
-    border-color: var(--ag3d-border-dark, colors.$ag3d-color-neutral-700);
-  }
-
-  .sparkline {
-    background: var(--ag3d-surface-elevated-dark, colors.$ag3d-color-neutral-900);
-    border-color: var(--ag3d-border-subtle-dark, colors.$ag3d-color-neutral-700);
   }
 }
