@@ -1,10 +1,9 @@
 /**
- * Control Panel Component (Primary + Advanced Controls)
+ * Control Panel Component
  *
- * Implements WP-2.2.1 Primary controls (scene selector, voxel size, contention, latency SLO)
- * and embeds WP-2.2.2 Advanced controls (hidden by default inside child component).
+ * Implements WP-2.2.1 Primary controls (scene selector, voxel size, contention, latency SLO).
  *
- * PRD: FR-2.1–2.6 (primary), FR-2.7–2.9 (advanced); NFR-1.3 (<=100ms control updates), NFR-3.x (a11y)
+ * PRD: FR-2.1–2.6 (primary); NFR-1.3 (<=100ms control updates), NFR-3.x (a11y)
  */
 
 import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, inject } from '@angular/core';
@@ -21,7 +20,6 @@ import { MatSelectModule } from '@angular/material/select';
 
 import { StateService } from '../../core/services/state/state.service';
 import { SceneId, VoxelSize } from '../../core/models/config-and-metrics';
-import { AdvancedControlsComponent } from './advanced-controls/advanced-controls.component';
 
 interface PrimaryControls {
   scene: SceneId;
@@ -43,7 +41,6 @@ interface PrimaryControls {
     MatTooltipModule,
     MatFormFieldModule,
     MatSelectModule,
-    AdvancedControlsComponent,
   ],
   templateUrl: './control-panel.component.html',
   styleUrls: ['./control-panel.component.scss'],
