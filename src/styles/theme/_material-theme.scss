@@ -246,6 +246,51 @@ $ag3d-error-palette: (
   box-shadow: var(--ag3d-shadow-dropdown);
 }
 
+// Dark theme select panel styling for better visibility
+// Applied when dark theme class is on html or overlay container
+.ag3d-theme-dark .mat-mdc-select-panel,
+.cdk-overlay-container.ag3d-theme-dark .mat-mdc-select-panel {
+  background-color: var(--agile3d-dark-bg-elevated) !important;
+  border: 1px solid var(--agile3d-dark-border-primary) !important;
+  box-shadow: var(--agile3d-dark-shadow-lg) !important;
+  z-index: 1000 !important;
+  padding: 4px 0 !important;
+  min-width: 200px !important;
+
+  .mat-mdc-option {
+    color: var(--agile3d-dark-text-primary) !important;
+    font-size: 9px !important;
+    padding: 8px 12px !important;
+    min-height: 32px !important;
+    line-height: 1.4 !important;
+
+    &:hover:not(.mdc-list-item--disabled) {
+      background-color: rgba(88, 166, 255, 0.1) !important;
+    }
+
+    &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+      background-color: rgba(88, 166, 255, 0.15) !important;
+      color: var(--agile3d-dark-accent) !important;
+    }
+
+    &.mdc-list-item--disabled {
+      color: var(--agile3d-dark-text-muted) !important;
+      opacity: 0.5;
+    }
+  }
+}
+
+// Ensure CDK overlay has proper z-index in dark theme
+.ag3d-theme-dark .cdk-overlay-pane,
+.cdk-overlay-container.ag3d-theme-dark .cdk-overlay-pane {
+  z-index: 1000 !important;
+}
+
+.ag3d-theme-dark .cdk-overlay-backdrop,
+.cdk-overlay-container.ag3d-theme-dark .cdk-overlay-backdrop {
+  z-index: 999 !important;
+}
+
 // ============================================================================
 // Typography Integration
 // ============================================================================

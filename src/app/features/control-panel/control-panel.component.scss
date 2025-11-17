@@ -204,6 +204,7 @@ legend.control-label {
       background-color: rgba(22, 27, 34, 0.6);
       border-radius: 4px;
       padding-top: 2px;
+      min-height: 48px;
     }
 
     .mdc-text-field--filled {
@@ -224,22 +225,58 @@ legend.control-label {
     }
 
     .mat-mdc-select-value,
-    .mat-mdc-select-arrow,
-    label {
+    .mat-mdc-select-arrow {
       color: var(--agile3d-dark-text-primary);
       font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
-    .mat-mdc-form-field-infix {
-      padding-top: 8px;
-      padding-bottom: 4px;
-      min-height: 28px;
-    }
-
+    // Label styling - ensure it floats properly and doesn't overlap
     .mat-mdc-floating-label {
       font-size: 9px;
+      color: var(--agile3d-dark-text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 1.2;
+    }
+
+    // When label is floating (value selected), ensure it's positioned above
+    .mat-mdc-form-field.mat-form-field-has-label .mat-mdc-floating-label.mdc-floating-label--float-above {
+      font-size: 8px;
+      color: var(--agile3d-dark-text-secondary);
+      top: -2px;
+    }
+
+    .mat-mdc-form-field-infix {
+      padding-top: 16px;
+      padding-bottom: 8px;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    // Select value container - ensure proper spacing and no overlap
+    .mat-mdc-select-value {
+      display: flex;
+      align-items: center;
+      min-height: 20px;
+      padding-top: 0;
+    }
+
+    .mat-mdc-select-value-text {
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    // Ensure select trigger has proper spacing
+    .mat-mdc-select-trigger {
+      min-height: 20px;
+      display: flex;
+      align-items: center;
     }
 
     .mdc-line-ripple {
