@@ -27,7 +27,7 @@
   @include dark-sidebar;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   padding: 8px 12px;
   overflow-y: auto;
   height: 100vh;
@@ -40,7 +40,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--agile3d-space-24);
+  gap: 0;
   padding: var(--agile3d-space-24);
   overflow-x: hidden;
 }
@@ -110,7 +110,7 @@
 
   .main-content {
     padding: var(--agile3d-space-16);
-    gap: var(--agile3d-space-16);
+    gap: 0;
   }
 }
 
@@ -131,7 +131,7 @@
 
   .main-content {
     padding: var(--agile3d-space-16);
-    gap: var(--agile3d-space-12);
+    gap: 0;
   }
 
   .dual-viewer-section {
