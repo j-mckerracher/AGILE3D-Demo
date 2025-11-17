@@ -27,8 +27,8 @@
   @include dark-sidebar;
   display: flex;
   flex-direction: column;
-  gap: var(--agile3d-space-24);
-  padding: var(--agile3d-space-24) var(--agile3d-space-16);
+  gap: 8px;
+  padding: 8px 12px;
   overflow-y: auto;
   height: 100vh;
   position: sticky;
