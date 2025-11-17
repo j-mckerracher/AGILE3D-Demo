@@ -15,7 +15,7 @@
 .control-panel-container {
   display: flex;
   flex-direction: column;
-  gap: var(--agile3d-space-24);
+  gap: 8px;
   padding: 0; // No padding, parent sidebar handles it
 }
 
@@ -23,13 +23,13 @@
 .panel-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: var(--agile3d-space-8);
+  gap: 2px;
+  margin-bottom: 4px;
 }
 
 .panel-title {
   margin: 0;
-  font-size: var(--agile3d-font-size-sm);
+  font-size: 10px;
   font-weight: var(--agile3d-font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -38,7 +38,7 @@
 
 .panel-subtitle {
   margin: 0;
-  font-size: var(--agile3d-font-size-xs);
+  font-size: 9px;
   color: var(--agile3d-dark-text-secondary);
 }
 
@@ -50,23 +50,23 @@
 .primary-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--agile3d-space-24);
+  gap: 6px;
 }
 
 // Control Groups
 .control-group {
   display: flex;
   flex-direction: column;
-  gap: var(--agile3d-space-8);
+  gap: 4px;
 }
 
 .control-label {
-  font-size: var(--agile3d-font-size-sm);
+  font-size: 9px;
   font-weight: var(--agile3d-font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--agile3d-dark-text-secondary);
-  margin-bottom: var(--agile3d-space-8);
+  margin-bottom: 2px;
 }
 
 fieldset {
@@ -76,24 +76,25 @@ fieldset {
 }
 
 legend.control-label {
-  margin-bottom: var(--agile3d-space-8);
+  margin-bottom: 2px;
 }
 
 // Scene Toggle Group - Vertical for sidebar
 .scene-toggle-group {
   display: flex;
   flex-direction: column;
-  gap: var(--agile3d-space-8);
-  margin-bottom: 4px;
+  gap: 4px;
+  margin-bottom: 0;
 
   ::ng-deep {
     .mat-button-toggle {
       background-color: rgba(22, 27, 34, 0.6);
       color: var(--agile3d-dark-text-primary);
       border: 1px solid var(--agile3d-dark-border-secondary);
-      font-size: var(--agile3d-font-size-sm);
-      padding: var(--agile3d-space-8) var(--agile3d-space-12);
+      font-size: 9px;
+      padding: 4px 8px;
       transition: all var(--agile3d-transition-fast);
+      min-height: 24px;
 
       &:hover {
         background-color: rgba(88, 166, 255, 0.1);
@@ -106,7 +107,7 @@ legend.control-label {
       }
 
       .mat-button-toggle-label-content {
-        line-height: 1.4;
+        line-height: 1.2;
       }
     }
   }
@@ -119,19 +120,20 @@ legend.control-label {
 
 // Value Labels
 .value-label {
-  font-size: var(--agile3d-font-size-xs);
+  font-size: 9px;
   font-weight: var(--agile3d-font-weight-medium);
   color: var(--agile3d-dark-text-secondary);
   text-align: right;
+  margin-top: 2px;
 }
 
 // Tick Labels for Contention Slider
 .tick-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 9px;
+  font-size: 8px;
   color: var(--agile3d-dark-text-muted);
-  margin-top: 4px;
+  margin-top: 2px;
   padding: 0 2px;
 }
 
@@ -146,7 +148,7 @@ legend.control-label {
     // Slider track
     .mdc-slider__track {
       background: var(--agile3d-dark-border-primary);
-      height: 3px;
+      height: 2px;
     }
 
     .mdc-slider__track--active {
@@ -160,13 +162,13 @@ legend.control-label {
 
     // Slider thumb
     .mdc-slider__thumb {
-      width: 16px;
-      height: 16px;
+      width: 12px;
+      height: 12px;
     }
 
     .mdc-slider__thumb-knob {
-      width: 16px;
-      height: 16px;
+      width: 12px;
+      height: 12px;
       background-color: var(--agile3d-dark-accent);
       border: 2px solid var(--agile3d-dark-bg-base);
     }
@@ -175,31 +177,38 @@ legend.control-label {
     .mdc-slider__tick-mark--active,
     .mdc-slider__tick-mark--inactive {
       background-color: var(--agile3d-dark-border-elevated);
-      width: 2px;
-      height: 2px;
+      width: 1px;
+      height: 1px;
     }
 
     // Value indicator
     .mdc-slider__value-indicator {
       background-color: var(--agile3d-dark-bg-elevated);
       color: var(--agile3d-dark-text-primary);
-      font-size: var(--agile3d-font-size-xs);
+      font-size: 9px;
+    }
+
+    // Reduce slider padding
+    mat-slider {
+      padding: 4px 0;
     }
   }
 
   // Dark Select Fields
   .dark-select {
     .mat-mdc-form-field {
-      font-size: var(--agile3d-font-size-sm);
+      font-size: 9px;
     }
 
     .mat-mdc-text-field-wrapper {
       background-color: rgba(22, 27, 34, 0.6);
       border-radius: 4px;
+      padding-top: 2px;
     }
 
     .mdc-text-field--filled {
       background-color: transparent;
+      padding: 4px 8px 2px;
 
       &:hover {
         background-color: rgba(88, 166, 255, 0.05);
@@ -218,9 +227,19 @@ legend.control-label {
     .mat-mdc-select-arrow,
     label {
       color: var(--agile3d-dark-text-primary);
-      font-size: var(--agile3d-font-size-xs);
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+    }
+
+    .mat-mdc-form-field-infix {
+      padding-top: 8px;
+      padding-bottom: 4px;
+      min-height: 28px;
+    }
+
+    .mat-mdc-floating-label {
+      font-size: 9px;
     }
 
     .mdc-line-ripple {
@@ -244,16 +263,16 @@ legend.control-label {
 
 // Advanced Controls Section
 .advanced-controls-section {
-  margin-top: var(--agile3d-space-8);
+  margin-top: 0;
 }
 
 // Responsive - Maintain sidebar layout
 @media (max-width: 768px) {
   .control-panel-container {
-    gap: var(--agile3d-space-16);
+    gap: 6px;
   }
 
   .primary-grid {
-    gap: var(--agile3d-space-16);
+    gap: 6px;
   }
 }
