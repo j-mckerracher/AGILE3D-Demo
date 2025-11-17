@@ -140,35 +140,6 @@
   letter-spacing: 0.5px;
 }
 
-/* FP Only Toggle - Position on left side to avoid covering box counts */
-.fp-toggle {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 1003;
-  padding: 6px 12px;
-  background: rgba(10, 12, 18, 0.85);
-  color: var(--agile3d-dark-text-primary);
-  border: 1px solid var(--agile3d-dark-border-primary);
-  border-radius: 8px;
-  font-size: var(--agile3d-font-size-xs);
-  font-weight: var(--agile3d-font-weight-semibold);
-  cursor: pointer;
-  letter-spacing: 0.05em;
-  transition: background var(--agile3d-transition-fast);
-
-  &:hover {
-    background: rgba(88, 166, 255, 0.2);
-    border-color: var(--agile3d-dark-accent);
-  }
-
-  &[aria-pressed='true'] {
-    background: rgba(88, 166, 255, 0.3);
-    border-color: var(--agile3d-dark-accent);
-    color: var(--agile3d-dark-accent);
-  }
-}
-
 .no-dets-overlay {
   position: absolute;
   top: 80px;
@@ -219,11 +190,6 @@ app-scene-viewer {
     top: 50%;
     left: 50%;
   }
-
-  .fp-toggle {
-    top: 16px;
-    right: 16px;
-  }
 }
 
 /* Mobile optimization */
@@ -247,10 +213,5 @@ app-scene-viewer {
 
   .toggle-text {
     font-size: 10px;
-  }
-
-  .fp-toggle {
-    top: 12px;
-    right: 12px;
   }
 }
