@@ -172,9 +172,4 @@ export class DualViewerComponent implements OnInit, OnChanges {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return geometry;
   }
-
-  /** Toggle diff mode between 'all' and 'fp' for quick debugging */
-  protected toggleFPOnly(): void {
-    this.effectiveDiffMode = this.effectiveDiffMode === 'fp' ? 'all' : 'fp';
-  }
 }

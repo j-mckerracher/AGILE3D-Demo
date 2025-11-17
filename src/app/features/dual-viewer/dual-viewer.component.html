@@ -42,17 +42,6 @@
     </span>
   </button>
 
-  <!-- FP Only Toggle -->
-  <button
-    class="fp-toggle"
-    type="button"
-    (click)="toggleFPOnly()"
-    [attr.aria-pressed]="effectiveDiffMode === 'fp'"
-    aria-label="Toggle show only false positives"
-    title="Show only false positives">
-    FP Only: {{ effectiveDiffMode === 'fp' ? 'On' : 'Off' }}
-  </button>
-
   <!-- AGILE3D Viewer Region (NFR-3.3, NFR-3.4) -->
   <section
     class="viewer-panel"
