@@ -15,10 +15,9 @@
  */
 export type ContentionLevel =
   | 'noContention' // 0% contention
-  | 'lightContention' // ~38% contention
-  | 'moderateContention' // ~45% contention
-  | 'intenseContention' // ~64% contention
-  | 'peakContention'; // ~67% contention
+  | 'lightContention' // 20% contention
+  | 'moderateContention' // 50% contention
+  | 'intenseContention'; // 90% contention
 
 /**
  * Latency statistics for a given contention level.

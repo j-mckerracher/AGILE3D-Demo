@@ -14,7 +14,8 @@
     "validate:data": "node tools/validate-data.mjs",
     "gen:scenes": "node tools/generate-scene-data.mjs",
     "gen:scene": "node tools/generate-scene.mjs",
-    "add:scene:parking": "node tools/add-parking-lot-scene.mjs"
+    "add:scene:parking": "node tools/add-parking-lot-scene.mjs",
+    "gen:real-data": "node tools/generate-real-data.mjs"
   },
   "prettier": {
     "singleQuote": true,
@@ -42,9 +43,8 @@
     "@angular/material": "^20.2.8",
     "@angular/platform-browser": "^20.3.0",
     "@angular/router": "^20.3.0",
-    "@esbuild/linux-x64": "^0.25.12",
+    "@esbuild/linux-x64": "^0.27.0",
     "@playwright/mcp": "^0.0.42",
-    "@rollup/rollup-linux-x64-gnu": "^4.53.1",
     "angular-three": "^4.0.0-next.115",
     "ngxtension": "^6.0.0",
     "rxjs": "~7.8.0",
@@ -73,6 +73,7 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "prettier": "^3.6.2",
     "typescript": "~5.9.2",
-    "typescript-eslint": "8.46.0"
+    "typescript-eslint": "8.46.0",
+    "xlsx": "^0.18.5"
   }
 }

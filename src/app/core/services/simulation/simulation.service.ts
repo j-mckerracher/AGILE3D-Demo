@@ -10,7 +10,7 @@ import {
   SystemParams,
 } from '../../models/config-and-metrics';
 import type { SceneId, VoxelSize } from '../../models/config-and-metrics';
-import { BranchConfig, LatencyStats } from '../../models/branch.models';
+import { BranchConfig, ContentionLevel, LatencyStats } from '../../models/branch.models';
 
 /**
  * SimulationService implements branch selection logic and metrics calculation
@@ -413,21 +413,13 @@ export class SimulationService {
    * @param contentionPct - Contention percentage (0-100)
    * @returns Discrete contention level
    */
-  private mapContentionToLevel(
-    contentionPct: number
-  ):
-    | 'noContention'
-    | 'lightContention'
-    | 'moderateContention'
-    | 'intenseContention'
-    | 'peakContention' {
+  private mapContentionToLevel(contentionPct: number): ContentionLevel {
     const clamped = Math.max(0, Math.min(100, contentionPct));
 
-    if (clamped < 20) return 'noContention';
-    if (clamped < 42) return 'lightContention';
-    if (clamped < 55) return 'moderateContention';
-    if (clamped < 66) return 'intenseContention';
-    return 'peakContention';
+    if (clamped < 10) return 'noContention';
+    if (clamped < 35) return 'lightContention';
+    if (clamped < 70) return 'moderateContention';
+    return 'intenseContention';
   }
 
   /**

@@ -70,7 +70,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       voxelSize: [0.32, Validators.required],
       contention: [38, [Validators.required, Validators.min(0), Validators.max(100)]],
       sloMs: [350, [Validators.required, Validators.min(100), Validators.max(500)]],
-      baselineBranch: ['DSVT_Pillar_030', Validators.required],
+      baselineBranch: ['DSVT_Voxel_020', Validators.required],
       activeBranch: ['CP_Pillar_032', Validators.required],
     });
   }

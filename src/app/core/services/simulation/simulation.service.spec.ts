@@ -29,7 +29,6 @@ describe('SimulationService', () => {
             lightContention: { mean: 168, std: 7.8 },
             moderateContention: { mean: 195, std: 12.3 },
             intenseContention: { mean: 245, std: 18.9 },
-            peakContention: { mean: 298, std: 25.1 },
           },
           accuracy: {
             'vehicle-heavy': 64.2,
@@ -56,7 +55,6 @@ describe('SimulationService', () => {
             lightContention: { mean: 112, std: 5.2 },
             moderateContention: { mean: 131, std: 8.7 },
             intenseContention: { mean: 167, std: 13.4 },
-            peakContention: { mean: 205, std: 18.6 },
           },
           accuracy: {
             'vehicle-heavy': 61.8,
@@ -83,7 +81,6 @@ describe('SimulationService', () => {
             lightContention: { mean: 248, std: 11.3 },
             moderateContention: { mean: 289, std: 17.2 },
             intenseContention: { mean: 372, std: 26.8 },
-            peakContention: { mean: 451, std: 34.5 },
           },
           accuracy: {
             'vehicle-heavy': 65.9,
@@ -113,7 +110,6 @@ describe('SimulationService', () => {
         lightContention: { mean: 425, std: 22.8 },
         moderateContention: { mean: 498, std: 35.7 },
         intenseContention: { mean: 645, std: 58.2 },
-        peakContention: { mean: 782, std: 72.4 },
       },
       accuracy: {
         'vehicle-heavy': 67.1,
@@ -444,8 +440,8 @@ describe('SimulationService', () => {
       stateService.setSlo(500);
 
       service.agileMetrics$.subscribe((metrics) => {
-        // Should not crash, should use peakContention level
-        expect(metrics.latencyMs).toBe(298); // peakContention latency
+        // Should not crash, should use intenseContention level
+        expect(metrics.latencyMs).toBe(245); // intenseContention latency
         done();
       });
     });

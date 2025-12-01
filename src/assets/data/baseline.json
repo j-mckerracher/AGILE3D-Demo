@@ -1,26 +1,37 @@
 {
-  "branch_id": "DSVT_Voxel",
-  "name": "DSVT Voxel (Baseline)",
+  "branch_id": "DSVT_Voxel_020",
+  "name": "DSVT Voxel 0.20m (Baseline)",
   "controlKnobs": {
     "encodingFormat": "voxel",
-    "spatialResolution": 0.16,
+    "spatialResolution": 0.2,
     "spatialEncoding": "DV",
     "featureExtractor": "transformer",
     "detectionHead": "center"
   },
   "performance": {
-    "memoryFootprint": 6.8,
+    "memoryFootprint": 8.5,
     "latency": {
-      "noContention": { "mean": 371, "std": 15.2 },
-      "lightContention": { "mean": 425, "std": 22.8 },
-      "moderateContention": { "mean": 498, "std": 35.7 },
-      "intenseContention": { "mean": 645, "std": 58.2 },
-      "peakContention": { "mean": 782, "std": 72.4 }
+      "noContention": {
+        "mean": 817.74,
+        "std": 32.71
+      },
+      "lightContention": {
+        "mean": 1224.99,
+        "std": 49
+      },
+      "moderateContention": {
+        "mean": 1316.29,
+        "std": 52.65
+      },
+      "intenseContention": {
+        "mean": 1634.22,
+        "std": 65.37
+      }
     },
     "accuracy": {
-      "vehicle-heavy": 67.1,
-      "pedestrian-heavy": 62.3,
-      "mixed": 64.8
+      "vehicle-heavy": 70.33,
+      "pedestrian-heavy": 70.33,
+      "mixed": 70.33
     }
   },
   "modelFamily": "DSVT"
