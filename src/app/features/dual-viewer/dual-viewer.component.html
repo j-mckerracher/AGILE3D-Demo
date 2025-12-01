@@ -1,12 +1,6 @@
 <div class="dual-viewer-container">
   <!-- Baseline Viewer Region (NFR-3.3, NFR-3.4) -->
-  <section
-    class="viewer-panel"
-    [class.active]="activeViewer === 'baseline'"
-    [class.inactive]="activeViewer !== 'baseline'"
-    role="region"
-    aria-labelledby="baseline-viewer-label"
-    [attr.aria-hidden]="activeViewer !== 'baseline'">
+  <section class="viewer-panel" role="region" aria-labelledby="baseline-viewer-label">
     <header class="viewer-header" id="baseline-viewer-label">
       <div class="viewer-title">
         <h2 class="viewer-heading">{{ leftTitle }}</h2>
@@ -16,40 +10,13 @@
         {{ baselineDetections.length || 0 }} boxes
       </div>
     </header>
-    <app-scene-viewer
-      viewerId="baseline"
-      [sharedPointGeometry]="sharedGeometry"
-      [detections]="baselineDetections"
-      [diffMode]="effectiveDiffMode"
-      [diffClassification]="baselineDiffClassification"
-      [paneLabel]="'Baseline'"
+    <app-scene-viewer viewerId="baseline" [sharedPointGeometry]="sharedGeometry" [detections]="baselineDetections"
+      [diffMode]="effectiveDiffMode" [diffClassification]="baselineDiffClassification" [paneLabel]="'Baseline'"
       [showFps]="showFps" />
   </section>
 
-  <!-- Crossfade Toggle Button (WP-2.1.1) -->
-  <button
-    class="crossfade-toggle"
-    type="button"
-    (click)="toggleActiveViewer()"
-    [disabled]="isTransitioning"
-    [attr.aria-label]="
-      'Switch to ' + (activeViewer === 'baseline' ? 'AGILE3D' : 'Baseline') + ' viewer'
-    "
-    [attr.aria-pressed]="activeViewer === 'agile3d'">
-    <span class="toggle-icon" aria-hidden="true">⇄</span>
-    <span class="toggle-text">
-      {{ activeViewer === 'baseline' ? 'Show AGILE3D' : 'Show Baseline' }}
-    </span>
-  </button>
-
   <!-- AGILE3D Viewer Region (NFR-3.3, NFR-3.4) -->
-  <section
-    class="viewer-panel"
-    [class.active]="activeViewer === 'agile3d'"
-    [class.inactive]="activeViewer !== 'agile3d'"
-    role="region"
-    aria-labelledby="agile3d-viewer-label"
-    [attr.aria-hidden]="activeViewer !== 'agile3d'">
+  <section class="viewer-panel" role="region" aria-labelledby="agile3d-viewer-label">
     <header class="viewer-header" id="agile3d-viewer-label">
       <div class="viewer-title">
         <h2 class="viewer-heading">{{ rightTitle }}</h2>
@@ -59,13 +26,8 @@
         {{ agile3dDetections.length || 0 }} boxes
       </div>
     </header>
-    <app-scene-viewer
-      viewerId="agile3d"
-      [sharedPointGeometry]="sharedGeometry"
-      [detections]="agile3dDetections"
-      [diffMode]="effectiveDiffMode"
-      [diffClassification]="agile3dDiffClassification"
-      [paneLabel]="'AGILE3D'"
+    <app-scene-viewer viewerId="agile3d" [sharedPointGeometry]="sharedGeometry" [detections]="agile3dDetections"
+      [diffMode]="effectiveDiffMode" [diffClassification]="agile3dDiffClassification" [paneLabel]="'AGILE3D'"
       [showFps]="showFps" />
     <div class="no-dets-overlay" *ngIf="!agile3dDetections || agile3dDetections.length === 0">
       No detections for {{ rightTitle }}
