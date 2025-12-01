@@ -10,30 +10,15 @@
       <div class="control-group scene-group">
         <fieldset>
           <legend id="scene-legend" class="control-label">SCENE</legend>
-          <mat-button-toggle-group
-            aria-labelledby="scene-legend"
-            formControlName="scene"
-            class="scene-toggle-group scene-vertical"
-          >
-            <mat-button-toggle
-              value="vehicle-heavy"
-              matTooltip="Vehicle-heavy traffic scenario"
-              aria-label="Select vehicle-heavy scene"
-            >
+          <mat-button-toggle-group aria-labelledby="scene-legend" formControlName="scene"
+            class="scene-toggle-group scene-vertical">
+            <mat-button-toggle value="vehicle-heavy" aria-label="Select vehicle-heavy scene">
               Vehicle-Heavy
             </mat-button-toggle>
-            <mat-button-toggle
-              value="pedestrian-heavy"
-              matTooltip="Pedestrian-heavy traffic scenario"
-              aria-label="Select pedestrian-heavy scene"
-            >
+            <mat-button-toggle value="pedestrian-heavy" aria-label="Select pedestrian-heavy scene">
               Pedestrian-Heavy
             </mat-button-toggle>
-            <mat-button-toggle
-              value="mixed"
-              matTooltip="Mixed traffic scenario"
-              aria-label="Select mixed scene"
-            >
+            <mat-button-toggle value="mixed" aria-label="Select mixed scene">
               Mixed
             </mat-button-toggle>
           </mat-button-toggle-group>
@@ -44,15 +29,9 @@
       <div class="control-group voxel-group">
         <fieldset>
           <legend id="voxel-legend" class="control-label">VOXEL SIZE</legend>
-          <mat-slider
-            class="full-width"
-            [min]="0.16"
-            [max]="0.64"
-            [step]="0.08"
-            [discrete]="true"
+          <mat-slider class="full-width" [min]="0.16" [max]="0.64" [step]="0.08" [discrete]="true"
             aria-labelledby="voxel-legend"
-            matTooltip="Spatial resolution (smaller is finer, higher accuracy but slower)"
-          >
+            matTooltip="Spatial resolution (smaller is finer, higher accuracy but slower)">
             <input matSliderThumb formControlName="voxelSize" />
           </mat-slider>
           <div class="value-label" aria-hidden="true">{{ primaryForm.value.voxelSize }} m</div>
@@ -63,14 +42,8 @@
       <div class="control-group contention-group">
         <fieldset>
           <legend id="contention-legend" class="control-label">CONTENTION</legend>
-          <mat-slider
-            class="full-width"
-            [min]="0"
-            [max]="100"
-            [step]="1"
-            aria-labelledby="contention-legend"
-            matTooltip="GPU resource contention percentage"
-          >
+          <mat-slider class="full-width" [min]="0" [max]="100" [step]="1" aria-labelledby="contention-legend"
+            matTooltip="GPU resource contention percentage">
             <input matSliderThumb formControlName="contention" />
           </mat-slider>
           <div class="tick-labels" aria-hidden="true">
@@ -88,14 +61,8 @@
       <div class="control-group slo-group">
         <fieldset>
           <legend id="slo-legend" class="control-label">LATENCY SLO</legend>
-          <mat-slider
-            class="full-width"
-            [min]="100"
-            [max]="500"
-            [step]="10"
-            aria-labelledby="slo-legend"
-            matTooltip="Target latency Service Level Objective in milliseconds"
-          >
+          <mat-slider class="full-width" [min]="100" [max]="500" [step]="10" aria-labelledby="slo-legend"
+            matTooltip="Target latency Service Level Objective in milliseconds">
             <input matSliderThumb formControlName="sloMs" />
           </mat-slider>
           <div class="value-label" aria-live="polite">{{ primaryForm.value.sloMs }} ms</div>
@@ -106,11 +73,8 @@
       <div class="control-group baseline-branch-group">
         <mat-form-field appearance="fill" class="full-width dark-select">
           <mat-label>BASELINE BRANCH</mat-label>
-          <mat-select
-            formControlName="baselineBranch"
-            [disabled]="baselineOptions.length === 0"
-            aria-label="Select baseline detection branch"
-          >
+          <mat-select formControlName="baselineBranch" [disabled]="baselineOptions.length === 0"
+            aria-label="Select baseline detection branch">
             <mat-option *ngFor="let branch of baselineOptions" [value]="branch">
               {{ branch }}
             </mat-option>
@@ -122,11 +86,8 @@
       <div class="control-group agile-branch-group">
         <mat-form-field appearance="fill" class="full-width dark-select">
           <mat-label>AGILE3D BRANCH</mat-label>
-          <mat-select
-            formControlName="activeBranch"
-            [disabled]="agileOptions.length === 0"
-            aria-label="Select AGILE3D detection branch"
-          >
+          <mat-select formControlName="activeBranch" [disabled]="agileOptions.length === 0"
+            aria-label="Select AGILE3D detection branch">
             <mat-option *ngFor="let branch of agileOptions" [value]="branch">
               {{ branch }}
             </mat-option>
