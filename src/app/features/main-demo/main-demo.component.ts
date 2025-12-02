@@ -161,6 +161,10 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((config) => this.frameStream.setDelaySimulation(config));
 
+    this.stateService.playbackSpeed$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((speed) => this.frameStream.setPlaybackSpeed(speed));
+
     // Sequence mode is now the default
     // Use query param to select initial sequence, otherwise runtime-config default
     const querySequenceParam = this.debug.getQueryParam('sequence');
@@ -341,8 +345,8 @@ export class MainDemoComponent implements OnInit, OnDestroy {
       return;
     }
 
-     this.sequenceEntriesByScene.set(entry.sceneId, entry);
-     this.sequenceEntriesById.set(entry.sequenceId, entry);
+    this.sequenceEntriesByScene.set(entry.sceneId, entry);
+    this.sequenceEntriesById.set(entry.sequenceId, entry);
 
     if (entry.sequenceId === this.currentSequenceId) {
       return;
@@ -373,7 +377,7 @@ export class MainDemoComponent implements OnInit, OnDestroy {
   public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    
+
     if (this.isSequenceMode) {
       this.frameStream.stop();
     }
