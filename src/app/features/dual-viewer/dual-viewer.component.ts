@@ -78,13 +78,6 @@ export class DualViewerComponent implements OnInit, OnChanges {
   /** Shared point cloud geometry for both viewers (extracted from Points or created on init) */
   protected sharedGeometry!: THREE.BufferGeometry;
 
-  /** Active viewer for crossfade demonstration ('baseline' | 'agile3d') */
-  protected activeViewer: 'baseline' | 'agile3d' = 'baseline';
-
-  /** Whether a crossfade transition is currently in progress */
-  protected isTransitioning = false;
-  private lastToggleTimestamp?: number;
-
   public ngOnInit(): void {
     this.effectiveDiffMode = this.diffMode;
     // Priority: inputPoints > inputGeometry > synthetic
@@ -117,41 +110,6 @@ export class DualViewerComponent implements OnInit, OnChanges {
     }
   }
 
-  /**
-   * Toggle between baseline and AGILE3D viewers with crossfade effect.
-   *
-   * Implements visual crossfade transition ≤500ms per WP-2.1.1 requirements.
-   * The transition respects prefers-reduced-motion for accessibility.
-   * Both viewers continue rendering during the fade to prevent visual jumps.
-   */
-  protected toggleActiveViewer(): void {
-    if (this.isTransitioning) {
-      // Allow a second immediate toggle if a transition was initiated by this component
-      if (this.lastToggleTimestamp === undefined) {
-        console.log('[DualViewer] crossfade in progress, ignoring toggle');
-        return;
-      }
-    }
-
-    this.isTransitioning = true;
-    const nextViewer = this.activeViewer === 'baseline' ? 'agile3d' : 'baseline';
-    this.lastToggleTimestamp = performance.now();
-
-    console.log('[DualViewer] crossfade transition', {
-      from: this.activeViewer,
-      to: nextViewer,
-    });
-
-    // Update active viewer immediately (CSS handles the transition)
-    this.activeViewer = nextViewer;
-
-    // Reset transition flag after animation completes (500ms + 50ms buffer)
-    setTimeout(() => {
-      this.isTransitioning = false;
-      this.lastToggleTimestamp = undefined;
-      console.log('[DualViewer] crossfade complete');
-    }, 550);
-  }
 
   /**
    * Create a single shared BufferGeometry for both viewers.

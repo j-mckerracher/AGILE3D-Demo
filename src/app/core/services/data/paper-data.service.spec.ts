@@ -26,7 +26,6 @@ describe('PaperDataService', () => {
             lightContention: { mean: 168, std: 7.8 },
             moderateContention: { mean: 195, std: 12.3 },
             intenseContention: { mean: 245, std: 18.9 },
-            peakContention: { mean: 298, std: 25.1 },
           },
           accuracy: {
             'vehicle-heavy': 64.2,
@@ -56,7 +55,6 @@ describe('PaperDataService', () => {
         lightContention: { mean: 425, std: 22.8 },
         moderateContention: { mean: 498, std: 35.7 },
         intenseContention: { mean: 645, std: 58.2 },
-        peakContention: { mean: 782, std: 72.4 },
       },
       accuracy: {
         'vehicle-heavy': 67.1,

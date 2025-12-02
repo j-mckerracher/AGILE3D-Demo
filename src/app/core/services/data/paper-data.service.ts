@@ -156,14 +156,13 @@ export class PaperDataService {
 
   /**
    * Map a continuous contention percentage to a discrete contention level category.
-   * Uses nearest-neighbor binning based on typical contention values from paper.
+   * Uses nearest-neighbor binning based on Excel lookup table data.
    *
    * Bins:
-   * - 0-19%: noContention
-   * - 20-41%: lightContention (38% nominal)
-   * - 42-54%: moderateContention (45% nominal)
-   * - 55-65%: intenseContention (64% nominal)
-   * - 66-100%: peakContention (67% nominal)
+   * - 0-9%: noContention (0% nominal)
+   * - 10-34%: lightContention (20% nominal)
+   * - 35-69%: moderateContention (50% nominal)
+   * - 70-100%: intenseContention (90% nominal)
    *
    * @param contentionPct - Contention percentage (0-100)
    * @returns Discrete contention level for lookup
@@ -171,10 +170,9 @@ export class PaperDataService {
   private mapContentionToLevel(contentionPct: number): ContentionLevel {
     const clamped = Math.max(0, Math.min(100, contentionPct));
 
-    if (clamped < 20) return 'noContention';
-    if (clamped < 42) return 'lightContention';
-    if (clamped < 55) return 'moderateContention';
-    if (clamped < 66) return 'intenseContention';
-    return 'peakContention';
+    if (clamped < 10) return 'noContention';
+    if (clamped < 35) return 'lightContention';
+    if (clamped < 70) return 'moderateContention';
+    return 'intenseContention';
   }
 }

@@ -180,134 +180,17 @@ describe('DualViewerComponent', () => {
     }
   });
 
-  describe('Crossfade functionality (WP-2.1.1)', () => {
-    beforeEach(() => {
-      component.ngOnInit();
-      fixture.detectChanges();
-    });
+  it('should accept external Points instance and extract geometry', () => {
+    const positions = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const material = new THREE.PointsMaterial({ color: 0x888888 });
+    const points = new THREE.Points(geometry, material);
 
-    it('should start with baseline as active viewer', () => {
-      expect(component['activeViewer']).toBe('baseline');
-    });
+    component.inputPoints = points;
+    component.ngOnInit();
 
-    it('should toggle between baseline and agile3d viewers', () => {
-      expect(component['activeViewer']).toBe('baseline');
-
-      component['toggleActiveViewer']();
-      expect(component['activeViewer']).toBe('agile3d');
-
-      component['toggleActiveViewer']();
-      expect(component['activeViewer']).toBe('baseline');
-    });
-
-    it('should set isTransitioning flag during toggle', () => {
-      expect(component['isTransitioning']).toBeFalse();
-
-      component['toggleActiveViewer']();
-      expect(component['isTransitioning']).toBeTrue();
-    });
-
-    it('should prevent multiple simultaneous toggles', () => {
-      component['isTransitioning'] = true;
-      const initialViewer = component['activeViewer'];
-
-      component['toggleActiveViewer']();
-
-      // Should remain unchanged
-      expect(component['activeViewer']).toBe(initialViewer);
-    });
-
-    it('should reset isTransitioning flag after transition duration', (done) => {
-      component['toggleActiveViewer']();
-      expect(component['isTransitioning']).toBeTrue();
-
-      // Wait for transition to complete (550ms as per implementation)
-      setTimeout(() => {
-        expect(component['isTransitioning']).toBeFalse();
-        done();
-      }, 600);
-    });
-
-    it('should render crossfade toggle button', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const toggleButton = compiled.querySelector('.crossfade-toggle');
-
-      expect(toggleButton).toBeTruthy();
-      expect(toggleButton?.textContent).toContain('Show AGILE3D');
-    });
-
-    it('should update button text when viewer changes', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const toggleButton = compiled.querySelector('.crossfade-toggle');
-
-      expect(toggleButton?.textContent).toContain('Show AGILE3D');
-
-      component['toggleActiveViewer']();
-      fixture.detectChanges();
-
-      expect(toggleButton?.textContent).toContain('Show Baseline');
-    });
-
-    it('should apply active/inactive classes to viewer panels', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const panels = compiled.querySelectorAll('.viewer-panel');
-
-      expect(panels.length).toBe(2);
-
-      // Initially baseline should be active
-      expect(panels[0]?.classList.contains('active')).toBeTrue();
-      expect(panels[0]?.classList.contains('inactive')).toBeFalse();
-      expect(panels[1]?.classList.contains('active')).toBeFalse();
-      expect(panels[1]?.classList.contains('inactive')).toBeTrue();
-
-      // Toggle to agile3d
-      component['toggleActiveViewer']();
-      fixture.detectChanges();
-
-      expect(panels[0]?.classList.contains('active')).toBeFalse();
-      expect(panels[0]?.classList.contains('inactive')).toBeTrue();
-      expect(panels[1]?.classList.contains('active')).toBeTrue();
-      expect(panels[1]?.classList.contains('inactive')).toBeFalse();
-    });
-
-    it('should set aria-hidden attribute on inactive viewer', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const panels = compiled.querySelectorAll('.viewer-panel');
-
-      expect(panels[0]?.getAttribute('aria-hidden')).toBe('false');
-      expect(panels[1]?.getAttribute('aria-hidden')).toBe('true');
-
-      component['toggleActiveViewer']();
-      fixture.detectChanges();
-
-      expect(panels[0]?.getAttribute('aria-hidden')).toBe('true');
-      expect(panels[1]?.getAttribute('aria-hidden')).toBe('false');
-    });
-
-    it('should disable button during transition', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const toggleButton = compiled.querySelector('.crossfade-toggle') as HTMLButtonElement;
-
-      expect(toggleButton?.disabled).toBeFalse();
-
-      component['toggleActiveViewer']();
-      fixture.detectChanges();
-
-      expect(toggleButton?.disabled).toBeTrue();
-    });
-
-    it('should accept external Points instance and extract geometry', () => {
-      const positions = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      const material = new THREE.PointsMaterial({ color: 0x888888 });
-      const points = new THREE.Points(geometry, material);
-
-      component.inputPoints = points;
-      component.ngOnInit();
-
-      expect(component['sharedGeometry']).toBe(geometry);
-      expect(component['sharedGeometry'].uuid).toBe(points.geometry.uuid);
-    });
+    expect(component['sharedGeometry']).toBe(geometry);
+    expect(component['sharedGeometry'].uuid).toBe(points.geometry.uuid);
   });
 });

@@ -1,136 +1,153 @@
 {
   "branches": [
     {
+      "branch_id": "CP_Pillar_024",
+      "name": "CenterPoint Pillar 0.24m",
+      "controlKnobs": {
+        "encodingFormat": "pillar",
+        "spatialResolution": 0.24,
+        "spatialEncoding": "HV",
+        "featureExtractor": "sparse_cnn",
+        "detectionHead": "anchor"
+      },
+      "performance": {
+        "memoryFootprint": 4,
+        "latency": {
+          "noContention": {
+            "mean": 41.96,
+            "std": 2.06
+          },
+          "lightContention": {
+            "mean": 68.39,
+            "std": 2.69
+          },
+          "moderateContention": {
+            "mean": 72.03,
+            "std": 3.33
+          },
+          "intenseContention": {
+            "mean": 82.29,
+            "std": 2.25
+          }
+        },
+        "accuracy": {
+          "vehicle-heavy": 57.23,
+          "pedestrian-heavy": 56.72,
+          "mixed": 57.07
+        }
+      },
+      "modelFamily": "CenterPoint"
+    },
+    {
+      "branch_id": "CP_Pillar_028",
+      "name": "CenterPoint Pillar 0.28m",
+      "controlKnobs": {
+        "encodingFormat": "pillar",
+        "spatialResolution": 0.28,
+        "spatialEncoding": "HV",
+        "featureExtractor": "sparse_cnn",
+        "detectionHead": "anchor"
+      },
+      "performance": {
+        "memoryFootprint": 3.98,
+        "latency": {
+          "noContention": {
+            "mean": 46.61,
+            "std": 2
+          },
+          "lightContention": {
+            "mean": 70.46,
+            "std": 3.16
+          },
+          "moderateContention": {
+            "mean": 73.12,
+            "std": 2.5
+          },
+          "intenseContention": {
+            "mean": 87.33,
+            "std": 2.39
+          }
+        },
+        "accuracy": {
+          "vehicle-heavy": 55.53,
+          "pedestrian-heavy": 52.99,
+          "mixed": 54.55
+        }
+      },
+      "modelFamily": "CenterPoint"
+    },
+    {
       "branch_id": "CP_Pillar_032",
       "name": "CenterPoint Pillar 0.32m",
       "controlKnobs": {
         "encodingFormat": "pillar",
         "spatialResolution": 0.32,
-        "spatialEncoding": "DV",
-        "featureExtractor": "2d_cnn",
-        "detectionHead": "center"
-      },
-      "performance": {
-        "memoryFootprint": 3.2,
-        "latency": {
-          "noContention": { "mean": 147, "std": 5.2 },
-          "lightContention": { "mean": 168, "std": 7.8 },
-          "moderateContention": { "mean": 195, "std": 12.3 },
-          "intenseContention": { "mean": 245, "std": 18.9 },
-          "peakContention": { "mean": 298, "std": 25.1 }
-        },
-        "accuracy": {
-          "vehicle-heavy": 64.2,
-          "pedestrian-heavy": 58.7,
-          "mixed": 61.5
-        }
-      },
-      "modelFamily": "CenterPoint"
-    },
-    {
-      "branch_id": "CP_Pillar_048",
-      "name": "CenterPoint Pillar 0.48m",
-      "controlKnobs": {
-        "encodingFormat": "pillar",
-        "spatialResolution": 0.48,
-        "spatialEncoding": "DV",
-        "featureExtractor": "2d_cnn",
-        "detectionHead": "center"
-      },
-      "performance": {
-        "memoryFootprint": 2.4,
-        "latency": {
-          "noContention": { "mean": 98, "std": 3.8 },
-          "lightContention": { "mean": 112, "std": 5.2 },
-          "moderateContention": { "mean": 131, "std": 8.7 },
-          "intenseContention": { "mean": 167, "std": 13.4 },
-          "peakContention": { "mean": 205, "std": 18.6 }
-        },
-        "accuracy": {
-          "vehicle-heavy": 61.8,
-          "pedestrian-heavy": 55.3,
-          "mixed": 58.9
-        }
-      },
-      "modelFamily": "CenterPoint"
-    },
-    {
-      "branch_id": "CP_Voxel_024",
-      "name": "CenterPoint Voxel 0.24m",
-      "controlKnobs": {
-        "encodingFormat": "voxel",
-        "spatialResolution": 0.24,
-        "spatialEncoding": "DV",
-        "featureExtractor": "sparse_cnn",
-        "detectionHead": "center"
-      },
-      "performance": {
-        "memoryFootprint": 4.8,
-        "latency": {
-          "noContention": { "mean": 215, "std": 8.1 },
-          "lightContention": { "mean": 248, "std": 11.3 },
-          "moderateContention": { "mean": 289, "std": 17.2 },
-          "intenseContention": { "mean": 372, "std": 26.8 },
-          "peakContention": { "mean": 451, "std": 34.5 }
-        },
-        "accuracy": {
-          "vehicle-heavy": 65.9,
-          "pedestrian-heavy": 61.2,
-          "mixed": 63.8
-        }
-      },
-      "modelFamily": "CenterPoint"
-    },
-    {
-      "branch_id": "DSVT_Voxel_016",
-      "name": "DSVT Voxel 0.16m",
-      "controlKnobs": {
-        "encodingFormat": "voxel",
-        "spatialResolution": 0.16,
-        "spatialEncoding": "DV",
-        "featureExtractor": "transformer",
-        "detectionHead": "center"
-      },
-      "performance": {
-        "memoryFootprint": 6.8,
-        "latency": {
-          "noContention": { "mean": 371, "std": 15.2 },
-          "lightContention": { "mean": 425, "std": 22.8 },
-          "moderateContention": { "mean": 498, "std": 35.7 },
-          "intenseContention": { "mean": 645, "std": 58.2 },
-          "peakContention": { "mean": 782, "std": 72.4 }
-        },
-        "accuracy": {
-          "vehicle-heavy": 67.1,
-          "pedestrian-heavy": 62.3,
-          "mixed": 64.8
-        }
-      },
-      "modelFamily": "DSVT"
-    },
-    {
-      "branch_id": "CP_Pillar_064",
-      "name": "CenterPoint Pillar 0.64m",
-      "controlKnobs": {
-        "encodingFormat": "pillar",
-        "spatialResolution": 0.64,
         "spatialEncoding": "HV",
-        "featureExtractor": "2d_cnn",
-        "detectionHead": "center"
+        "featureExtractor": "sparse_cnn",
+        "detectionHead": "anchor"
       },
       "performance": {
-        "memoryFootprint": 1.8,
+        "memoryFootprint": 3.96,
         "latency": {
-          "noContention": { "mean": 68, "std": 2.4 },
-          "lightContention": { "mean": 78, "std": 3.6 },
-          "moderateContention": { "mean": 92, "std": 5.8 },
-          "intenseContention": { "mean": 118, "std": 9.2 },
-          "peakContention": { "mean": 145, "std": 12.7 }
+          "noContention": {
+            "mean": 51.03,
+            "std": 2.17
+          },
+          "lightContention": {
+            "mean": 73.32,
+            "std": 2.79
+          },
+          "moderateContention": {
+            "mean": 80.28,
+            "std": 1.96
+          },
+          "intenseContention": {
+            "mean": 102.57,
+            "std": 2.77
+          }
         },
         "accuracy": {
-          "vehicle-heavy": 58.4,
-          "pedestrian-heavy": 51.2,
-          "mixed": 55.1
+          "vehicle-heavy": 52.98,
+          "pedestrian-heavy": 49.05,
+          "mixed": 51.85
+        }
+      },
+      "modelFamily": "CenterPoint"
+    },
+    {
+      "branch_id": "CP_Pillar_036",
+      "name": "CenterPoint Pillar 0.36m",
+      "controlKnobs": {
+        "encodingFormat": "pillar",
+        "spatialResolution": 0.36,
+        "spatialEncoding": "HV",
+        "featureExtractor": "sparse_cnn",
+        "detectionHead": "anchor"
+      },
+      "performance": {
+        "memoryFootprint": 3.94,
+        "latency": {
+          "noContention": {
+            "mean": 57.91,
+            "std": 1.61
+          },
+          "lightContention": {
+            "mean": 81.87,
+            "std": 3
+          },
+          "moderateContention": {
+            "mean": 91.5,
+            "std": 1.86
+          },
+          "intenseContention": {
+            "mean": 124.45,
+            "std": 2.89
+          }
+        },
+        "accuracy": {
+          "vehicle-heavy": 51.39,
+          "pedestrian-heavy": 45.95,
+          "mixed": 49.8
         }
       },
       "modelFamily": "CenterPoint"

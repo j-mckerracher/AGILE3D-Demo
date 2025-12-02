@@ -250,7 +250,7 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
   public ngOnChanges(changes: SimpleChanges): void {
     if (changes['sharedPointGeometry']) {
       if (this.pointCloud && this.sharedPointGeometry) {
-        console.log('[SceneViewer]', this.viewerId, 'swapping to external geometry');
+        // console.log('[SceneViewer]', this.viewerId, 'swapping to external geometry');
         const oldGeom = this.pointCloud.geometry as THREE.BufferGeometry;
         if (this.disposables.includes(oldGeom)) {
           oldGeom.dispose();
@@ -259,11 +259,11 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
         }
         this.pointCloud.geometry = this.sharedPointGeometry;
       } else {
-        console.log(
-          '[SceneViewer]',
-          this.viewerId,
-          'sharedPointGeometry changed but pointCloud not ready'
-        );
+        // console.log(
+        //   '[SceneViewer]',
+        //   this.viewerId,
+        //   'sharedPointGeometry changed but pointCloud not ready'
+        // );
       }
     }
 
@@ -272,10 +272,10 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
       (changes['detections'] || changes['diffMode'] || changes['diffClassification']) &&
       this.scene
     ) {
-      console.log('[SceneViewer]', this.viewerId, 'updating detections/diffMode', {
-        detections: this.detections?.length ?? 0,
-        diffMode: this.diffMode,
-      });
+      // console.log('[SceneViewer]', this.viewerId, 'updating detections/diffMode', {
+      //   detections: this.detections?.length ?? 0,
+      //   diffMode: this.diffMode,
+      // });
       this.updateBoundingBoxes();
     }
   }
@@ -367,11 +367,11 @@ export class SceneViewerComponent implements OnInit, AfterViewInit, OnDestroy, O
   private addPointCloud(): void {
     // Only add point cloud if real geometry is provided
     if (!this.sharedPointGeometry) {
-      console.log('[SceneViewer]', this.viewerId, 'no shared geometry, skipping point cloud');
+      // console.log('[SceneViewer]', this.viewerId, 'no shared geometry, skipping point cloud');
       return;
     }
 
-    console.log('[SceneViewer]', this.viewerId, 'using shared geometry');
+    // console.log('[SceneViewer]', this.viewerId, 'using shared geometry');
     const geometry = this.sharedPointGeometry;
 
     // Use neutral color for points (NFR-3.5, UI 8.2)

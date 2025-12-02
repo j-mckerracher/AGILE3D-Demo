@@ -23,12 +23,12 @@ export interface ComparisonData {
 @Injectable({ providedIn: 'root' })
 export class StateService implements OnDestroy {
   // Private state subjects
-  private readonly sceneSubject = new BehaviorSubject<SceneId>('mixed');
+  private readonly sceneSubject = new BehaviorSubject<SceneId>('pedestrian-heavy');
   private readonly voxelSizeSubject = new BehaviorSubject<VoxelSize>(0.32);
   private readonly contentionSubject = new BehaviorSubject<number>(38);
   private readonly sloMsSubject = new BehaviorSubject<number>(350);
   private readonly activeBranchSubject = new BehaviorSubject<string>('CP_Pillar_032');
-  private readonly baselineBranchSubject = new BehaviorSubject<string>('DSVT_Pillar_030');
+  private readonly baselineBranchSubject = new BehaviorSubject<string>('DSVT_Voxel_020');
   private readonly availableBranchesSubject = new BehaviorSubject<string[]>([]);
   private readonly scoreThresholdSubject = new BehaviorSubject<number>(DET_SCORE_THRESH);
   private readonly labelMaskSubject = new BehaviorSubject<DetectionClass[] | null>(null);
@@ -209,6 +209,7 @@ export class StateService implements OnDestroy {
     branches: string[],
     defaults?: { baseline?: string; active?: string }
   ): void {
+    console.log('[StateService] setAvailableBranches called with:', { branches, defaults });
     const normalized = uniqueOrdered(branches);
     const current = this.availableBranchesSubject.value;
     if (!arraysEqual(current, normalized)) {
@@ -230,13 +231,30 @@ export class StateService implements OnDestroy {
     }
 
     const desiredBaseline = this.pickBaselineBranch(normalized, defaults?.baseline);
-    if (desiredBaseline && this.baselineBranchSubject.value !== desiredBaseline) {
+    console.log('[StateService] desiredBaseline from pickBaselineBranch:', desiredBaseline);
+    console.log('[StateService] current baselineBranchSubject.value:', this.baselineBranchSubject.value);
+
+    // Special handling: Keep DSVT_Voxel_020 as baseline even if not in sequence manifest
+    // (it's used for metrics/display, frame detections will gracefully fall back)
+    const isPreferredVoxel020 = defaults?.baseline === 'DSVT_Voxel_020';
+    const currentIsVoxel020 = this.baselineBranchSubject.value === 'DSVT_Voxel_020';
+
+    if (isPreferredVoxel020 || currentIsVoxel020) {
+      console.log('[StateService] Keeping DSVT_Voxel_020 as baseline (preferred for metrics)');
+      if (this.baselineBranchSubject.value !== 'DSVT_Voxel_020') {
+        this.baselineBranchSubject.next('DSVT_Voxel_020');
+      }
+    } else if (desiredBaseline && this.baselineBranchSubject.value !== desiredBaseline) {
+      console.log('[StateService] Setting baseline to desiredBaseline:', desiredBaseline);
       this.baselineBranchSubject.next(desiredBaseline);
     } else if (!normalized.includes(this.baselineBranchSubject.value)) {
       const fallbackBaseline = normalized[0];
+      console.log('[StateService] Current baseline not in list, using fallback:', fallbackBaseline);
       if (fallbackBaseline) {
         this.baselineBranchSubject.next(fallbackBaseline);
       }
+    } else {
+      console.log('[StateService] Keeping current baseline:', this.baselineBranchSubject.value);
     }
   }
 
@@ -328,11 +346,30 @@ export class StateService implements OnDestroy {
   }
 
   private pickBaselineBranch(branches: string[], preferred?: string): string | undefined {
+    console.log('[StateService] pickBaselineBranch - available branches:', branches);
+    console.log('[StateService] pickBaselineBranch - preferred baseline:', preferred);
+
+    // 1. If preferred baseline exists in branches, use it
     if (preferred && branches.includes(preferred)) {
+      console.log('[StateService] pickBaselineBranch - using preferred:', preferred);
       return preferred;
     }
+
+    // 2. If preferred is DSVT_Voxel_020 but not in list, try generic DSVT_Voxel
+    if (preferred === 'DSVT_Voxel_020') {
+      const voxelGeneric = branches.find((branch) => branch === 'DSVT_Voxel');
+      if (voxelGeneric) {
+        console.log('[StateService] pickBaselineBranch - using DSVT_Voxel fallback:', voxelGeneric);
+        return voxelGeneric;
+      }
+      console.log('[StateService] pickBaselineBranch - DSVT_Voxel not found, using first DSVT');
+    }
+
+    // 3. Fall back to first DSVT branch
     const baselineCandidate = branches.find((branch) => branch.startsWith('DSVT'));
-    return baselineCandidate ?? branches[0];
+    const selected = baselineCandidate ?? branches[0];
+    console.log('[StateService] pickBaselineBranch - selected baseline:', selected);
+    return selected;
   }
 
   /**

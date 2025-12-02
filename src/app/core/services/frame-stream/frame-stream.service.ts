@@ -69,7 +69,7 @@ export class FrameStreamService {
   
   // Detection configuration
   activeBranch = 'CP_Pillar_032';
-  baselineBranch = 'DSVT_Pillar_030';  // Fallback if _038 not available
+  baselineBranch = 'DSVT_Voxel_020';  // Fallback baseline
   simulateDelay = false;
   detScoreThresh = DET_SCORE_THRESH;
   iouThresh = 0.5;

@@ -29,7 +29,7 @@
         "spatialResolution": {
           "type": "number",
           "description": "Grid size in meters",
-          "enum": [0.16, 0.24, 0.32, 0.48, 0.64]
+          "enum": [0.16, 0.20, 0.24, 0.28, 0.32, 0.36, 0.48, 0.64]
         },
         "spatialEncoding": {
           "type": "string",
@@ -62,7 +62,7 @@
         "latency": {
           "type": "object",
           "description": "Latency statistics at different contention levels",
-          "required": ["noContention", "lightContention", "moderateContention", "intenseContention", "peakContention"],
+          "required": ["noContention", "lightContention", "moderateContention", "intenseContention"],
           "properties": {
             "noContention": {
               "$ref": "#/definitions/latencyStats"
@@ -75,9 +75,6 @@
             },
             "intenseContention": {
               "$ref": "#/definitions/latencyStats"
-            },
-            "peakContention": {
-              "$ref": "#/definitions/latencyStats"
             }
           },
           "additionalProperties": false
@@ -85,15 +82,15 @@
         "accuracy": {
           "type": "object",
           "description": "Accuracy (mAP) per scene type",
-          "required": ["vehicleHeavy", "pedestrianHeavy", "mixed"],
+          "required": ["vehicle-heavy", "pedestrian-heavy", "mixed"],
           "properties": {
-            "vehicleHeavy": {
+            "vehicle-heavy": {
               "type": "number",
               "description": "mAP for vehicle-heavy scenes",
               "minimum": 0,
               "maximum": 100
             },
-            "pedestrianHeavy": {
+            "pedestrian-heavy": {
               "type": "number",
               "description": "mAP for pedestrian-heavy scenes",
               "minimum": 0,
