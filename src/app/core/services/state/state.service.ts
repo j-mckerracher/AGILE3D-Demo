@@ -23,7 +23,7 @@ export interface ComparisonData {
 @Injectable({ providedIn: 'root' })
 export class StateService implements OnDestroy {
   // Private state subjects
-  private readonly sceneSubject = new BehaviorSubject<SceneId>('mixed');
+  private readonly sceneSubject = new BehaviorSubject<SceneId>('pedestrian-heavy');
   private readonly voxelSizeSubject = new BehaviorSubject<VoxelSize>(0.32);
   private readonly contentionSubject = new BehaviorSubject<number>(38);
   private readonly sloMsSubject = new BehaviorSubject<number>(350);

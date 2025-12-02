@@ -1,7 +1,7 @@
 {
   "manifestBaseUrl": "https://d1u4x8lsi8lzmi.cloudfront.net/sequences/",
   "defaults": {
-    "sequenceId": "v_1784_1828",
+    "sequenceId": "p_7513_7557",
     "baselineBranch": "DSVT_Voxel_020",
     "activeBranch": "CP_Pillar_032"
   },

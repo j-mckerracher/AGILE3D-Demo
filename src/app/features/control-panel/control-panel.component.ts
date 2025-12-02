@@ -66,7 +66,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   public constructor() {
     const fb = inject(FormBuilder);
     this.primaryForm = fb.group({
-      scene: ['mixed', Validators.required],
+      scene: ['pedestrian-heavy', Validators.required],
       voxelSize: [0.32, Validators.required],
       contention: [38, [Validators.required, Validators.min(0), Validators.max(100)]],
       sloMs: [350, [Validators.required, Validators.min(100), Validators.max(500)]],
