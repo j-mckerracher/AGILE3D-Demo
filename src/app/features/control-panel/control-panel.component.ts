@@ -28,7 +28,6 @@ interface PrimaryControls {
   sloMs: number;
   baselineBranch: string;
   activeBranch: string;
-  playbackSpeed: number;
 }
 
 @Component({
@@ -60,7 +59,6 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     voxelSize: 'Point cloud spatial resolution (0.16m=fine, 0.64m=coarse)',
     contention: 'GPU resource contention percentage (0-100%)',
     sloMs: 'Target latency Service Level Objective (100-500ms)',
-    playbackSpeed: 'Adjust playback speed (0.25x = slow motion, 4x = fast forward)',
   } as const;
 
   private readonly stateService = inject(StateService);
@@ -74,7 +72,6 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       sloMs: [350, [Validators.required, Validators.min(100), Validators.max(500)]],
       baselineBranch: ['DSVT_Voxel_020', Validators.required],
       activeBranch: ['CP_Pillar_032', Validators.required],
-      playbackSpeed: [1.0, [Validators.required, Validators.min(0.25), Validators.max(4)]],
     });
   }
 
@@ -88,13 +85,12 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       this.stateService.baselineBranch$,
       this.stateService.activeBranch$,
       this.stateService.availableBranches$,
-      this.stateService.playbackSpeed$,
     ])
       .pipe(takeUntil(this.destroy$))
-      .subscribe(([scene, voxelSize, contention, sloMs, baselineBranch, activeBranch, branches, playbackSpeed]) => {
+      .subscribe(([scene, voxelSize, contention, sloMs, baselineBranch, activeBranch, branches]) => {
         this.updateBranchOptions(branches);
         this.primaryForm.patchValue(
-          { scene, voxelSize, contention, sloMs, baselineBranch, activeBranch, playbackSpeed },
+          { scene, voxelSize, contention, sloMs, baselineBranch, activeBranch },
           { emitEvent: false }
         );
       });
@@ -113,7 +109,6 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
         if (typeof v?.sloMs === 'number') this.stateService.setSlo(v.sloMs);
         if (typeof v?.baselineBranch === 'string') this.stateService.setBaselineBranch(v.baselineBranch);
         if (typeof v?.activeBranch === 'string') this.stateService.setActiveBranch(v.activeBranch);
-        if (typeof v?.playbackSpeed === 'number') this.stateService.setPlaybackSpeed(v.playbackSpeed);
       });
   }
 

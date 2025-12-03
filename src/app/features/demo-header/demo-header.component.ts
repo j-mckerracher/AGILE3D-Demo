@@ -27,6 +27,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FrameStreamService } from '../../core/services/frame-stream/frame-stream.service';
+import { StateService } from '../../core/services/state/state.service';
 import { Subscription } from 'rxjs';
 
 export interface PlaybackControlEvent {
@@ -53,11 +54,14 @@ export class DemoHeaderComponent implements OnInit, OnDestroy {
   protected currentFrameIndex = 0;
   protected totalFrames = 0;
   protected elapsedTime = '0:00';
+  protected playbackSpeed = 1.0;
 
   private readonly frameStream = inject(FrameStreamService);
+  private readonly stateService = inject(StateService);
   private readonly cdr = inject(ChangeDetectorRef);
   private statusSubscription?: Subscription;
   private frameSubscription?: Subscription;
+  private playbackSpeedSubscription?: Subscription;
   private startTime?: number;
 
   public ngOnInit(): void {
@@ -97,11 +101,18 @@ export class DemoHeaderComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck(); // Trigger change detection
       }
     });
+
+    // Subscribe to playback speed
+    this.playbackSpeedSubscription = this.stateService.playbackSpeed$.subscribe((speed) => {
+      this.playbackSpeed = speed;
+      this.cdr.markForCheck(); // Trigger change detection
+    });
   }
 
   public ngOnDestroy(): void {
     this.statusSubscription?.unsubscribe();
     this.frameSubscription?.unsubscribe();
+    this.playbackSpeedSubscription?.unsubscribe();
   }
 
   protected onPlayPause(): void {
@@ -118,5 +129,15 @@ export class DemoHeaderComponent implements OnInit, OnDestroy {
 
   protected onNext(): void {
     this.playbackControl.emit({ action: 'next' });
+  }
+
+  protected onSpeedIncrease(): void {
+    const newSpeed = Math.min(4.0, this.playbackSpeed + 0.25);
+    this.stateService.setPlaybackSpeed(newSpeed);
+  }
+
+  protected onSpeedDecrease(): void {
+    const newSpeed = Math.max(0.25, this.playbackSpeed - 0.25);
+    this.stateService.setPlaybackSpeed(newSpeed);
   }
 }

@@ -68,18 +68,6 @@
           <div class="value-label" aria-live="polite">{{ primaryForm.value.sloMs }} ms</div>
         </fieldset>
       </div>
-      <!-- Playback speed slider -->
-      <div class="control-group speed-group">
-        <fieldset>
-          <legend id="speed-legend" class="control-label">PLAYBACK SPEED</legend>
-          <mat-slider class="full-width" [min]="0.25" [max]="4" [step]="0.25" [discrete]="true"
-            aria-labelledby="speed-legend"
-            matTooltip="Adjust playback speed (0.25x = slow motion, 4x = fast forward)">
-            <input matSliderThumb formControlName="playbackSpeed" />
-          </mat-slider>
-          <div class="value-label" aria-live="polite">{{ primaryForm.value.playbackSpeed }}x</div>
-        </fieldset>
-      </div>
 
       <!-- Baseline branch selector -->
       <div class="control-group baseline-branch-group">

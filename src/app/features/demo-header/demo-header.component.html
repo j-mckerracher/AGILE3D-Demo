@@ -48,6 +48,29 @@
     <div class="frame-info">
       <span class="frame-counter">Frame {{ currentFrameIndex + 1 }} / {{ totalFrames }}</span>
     </div>
+
+    <!-- Playback Speed Control -->
+    <div class="speed-control">
+      <button
+        mat-icon-button
+        (click)="onSpeedDecrease()"
+        [disabled]="isStopped || playbackSpeed <= 0.25"
+        matTooltip="Decrease playback speed"
+        aria-label="Decrease playback speed"
+        class="speed-btn">
+        <mat-icon>remove</mat-icon>
+      </button>
+      <span class="speed-display" matTooltip="Playback speed (0.25x = 25%, 1.0x = normal, 4.0x = 400%)">{{ playbackSpeed.toFixed(2) }}x</span>
+      <button
+        mat-icon-button
+        (click)="onSpeedIncrease()"
+        [disabled]="isStopped || playbackSpeed >= 4.0"
+        matTooltip="Increase playback speed"
+        aria-label="Increase playback speed"
+        class="speed-btn">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
   </div>
 
   <!-- Right: Elapsed Time -->
