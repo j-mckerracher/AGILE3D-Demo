@@ -44,6 +44,7 @@ export class StateService implements OnDestroy {
     growth: 0.2,
     max: 10,
   });
+  private readonly playbackSpeedSubject = new BehaviorSubject<number>(1.0);
 
   // Camera synchronization (private subjects)
   // Bird's eye view: camera positioned behind (-Y) and above the scene center
@@ -85,6 +86,7 @@ export class StateService implements OnDestroy {
     growth: number;
     max: number;
   }> = this.delaySimulationSubject.asObservable();
+  public readonly playbackSpeed$: Observable<number> = this.playbackSpeedSubject.asObservable();
   public readonly detectionFilters$: Observable<{
     scoreThreshold: number;
     labelMask: DetectionClass[] | null;
@@ -337,6 +339,13 @@ export class StateService implements OnDestroy {
     }
   }
 
+  public setPlaybackSpeed(speed: number): void {
+    const clamped = clamp(speed, 0.25, 4.0);
+    if (this.playbackSpeedSubject.value !== clamped) {
+      this.playbackSpeedSubject.next(clamped);
+    }
+  }
+
   private pickActiveBranch(branches: string[], preferred?: string): string | undefined {
     if (preferred && branches.includes(preferred)) {
       return preferred;
@@ -413,6 +422,7 @@ export class StateService implements OnDestroy {
     this.labelMaskSubject.complete();
     this.diffModeSubject.complete();
     this.delaySimulationSubject.complete();
+    this.playbackSpeedSubject.complete();
   }
 }
 

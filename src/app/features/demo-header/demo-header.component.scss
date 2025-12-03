@@ -121,6 +121,54 @@
   font-weight: var(--agile3d-font-weight-medium);
   font-family: monospace;
   color: var(--agile3d-dark-text-secondary);
+  white-space: nowrap;
+}
+
+// Playback Speed Control
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: var(--agile3d-space-8);
+  margin-left: var(--agile3d-space-16);
+  padding-left: var(--agile3d-space-16);
+  border-left: 1px solid var(--agile3d-dark-border-secondary);
+}
+
+.speed-display {
+  font-size: var(--agile3d-font-size-sm);
+  font-weight: var(--agile3d-font-weight-medium);
+  font-family: monospace;
+  color: var(--agile3d-dark-text-secondary);
+  width: 50px;
+  text-align: center;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.speed-btn {
+  color: var(--agile3d-dark-text-primary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color var(--agile3d-transition-fast);
+
+  &:hover:not(:disabled) {
+    background-color: rgba(88, 166, 255, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
 }
 
 // Elapsed Time Section
