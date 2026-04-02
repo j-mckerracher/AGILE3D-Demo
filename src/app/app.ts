@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { inject } from '@vercel/analytics';
 import { SkipLinkComponent } from './shared/components/skip-link/skip-link.component';
 import { HeaderComponent } from './features/header/header.component';
 import { HeroComponent } from './features/hero/hero.component';
@@ -11,4 +12,8 @@ import { FooterComponent } from './features/footer/footer.component';
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App {}
+export class App {
+  public constructor() {
+    inject();
+  }
+}
